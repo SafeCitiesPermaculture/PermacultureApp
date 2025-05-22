@@ -1,6 +1,9 @@
-import { Text, View } from "react-native";
+import { Text, View, Button } from "react-native";
+import { useRouter } from "expo-router";
 
 const Index = () => {
+    const router = useRouter();
+
     return (
         <View
             style={{
@@ -10,6 +13,9 @@ const Index = () => {
             }}
         >
             <Text>Edit app/index.jsx to edit this screen.</Text>
+            <Button onPress={() => router.push("/login")} title="Login">
+                <Text>Login</Text>
+            </Button>
         </View>
     );
 };
