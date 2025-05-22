@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
+import { AuthContext } from "@/context/AuthContext.js";
 import {
     View,
     Text,
@@ -10,12 +11,18 @@ import {
 
 const LoginPage = () => {
     const router = useRouter();
+    const { login } = useContext(AuthContext);
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
-    const onSubmit = () => {
-        router.dismissTo("/protected");
+    const onSubmit = async () => {
+        try {
+            await login(username, password);
+            router.dismissTo("/protected");
+        } catch (err) {
+            console.log("Login failed", err);
+        }
     };
 
     return (
@@ -25,14 +32,16 @@ const LoginPage = () => {
                 style={styles.textInput}
                 placeholder="Username..."
                 value={username}
-                onChange={setUsername}
+                onChangeText={setUsername}
+                autoCapitalize="none"
             />
             <TextInput
                 style={styles.textInput}
                 placeholder="Password..."
                 secureTextEntry={true}
                 value={password}
-                onChange={setPassword}
+                onChangeText={setPassword}
+                autoCapitalize="none"
             />
             <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
                 <Text style={styles.submitButtonText}>Submit</Text>

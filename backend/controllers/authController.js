@@ -42,6 +42,7 @@ const handleLogin = async (req, res) => {
     const { username, password } = req.body;
     try {
         const user = await User.findOne({ username });
+
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ error: "Invalid credentials" });
         }

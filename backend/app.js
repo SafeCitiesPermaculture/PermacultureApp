@@ -8,6 +8,11 @@ const app = express();
 const PORT = 6000;
 app.use(express.json());
 
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
 //connect to mongodb
 mongoose
     .connect(process.env.MONGODB_URI)
