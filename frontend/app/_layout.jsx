@@ -1,6 +1,9 @@
 import { Stack } from "expo-router";
 import { AuthProvider } from "../context/AuthContext";
 
+/**
+ * Sets up navigation and Auth for all pages
+ */
 const RootLayout = () => {
     return (
         <AuthProvider>

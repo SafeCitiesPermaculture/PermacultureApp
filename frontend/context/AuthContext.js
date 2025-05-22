@@ -2,6 +2,11 @@ import React, { createContext, useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { login as apiLogin, logout as apiLogout } from "@/api/api";
 
+/**
+ * Combination of these two provides Auth functions to all components
+ * Allows access to the values in value={...} at the bottom
+ */
+
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {

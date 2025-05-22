@@ -11,11 +11,14 @@ import {
 
 const LoginPage = () => {
     const router = useRouter();
+
+    //access the login function from Auth
     const { login } = useContext(AuthContext);
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
+    //handle submit
     const onSubmit = async () => {
         try {
             await login(username, password);

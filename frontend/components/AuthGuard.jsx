@@ -3,6 +3,11 @@ import { useRouter } from "expo-router";
 import { AuthContext } from "@/context/AuthContext";
 import { ActivityIndicator, View } from "react-native";
 
+/**
+ * Wrap this component around any page that needs to be protected
+ * and only accessible to logged in users
+ */
+
 const AuthGuard = ({ children }) => {
     const { isAuthenticated, loading } = useContext(AuthContext);
     const router = useRouter();
