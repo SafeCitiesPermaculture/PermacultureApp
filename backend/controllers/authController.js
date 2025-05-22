@@ -1,7 +1,22 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Token = require("../models/Token");
 require("dotenv").config();
-const JWT_SECRET = process.env.JWT_SECRET;
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+
+//Helper functions
+const generateAccessToken = (user) => {
+    return jwt.sign({ userId: user._id }, ACCESS_TOKEN_SECRET, {
+        expiresIn: "15m",
+    });
+};
+
+const generateRefreshToken = (user) => {
+    return jwt.sign({ userId: user._id }, REFRESH_TOKEN_SECRET, {
+        expiresIn: "7d",
+    });
+};
 
 /**
  * Signup handler
@@ -31,13 +46,44 @@ const handleLogin = async (req, res) => {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-            expiresIn: "1d",
-        });
-        res.json({ token });
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        await new Token({ userId: user._id, token: refreshToken }).save();
+
+        res.json({ accessToken, refreshToken });
     } catch (err) {
         res.status(500).json({ error: `Server error. ${err}` });
     }
 };
 
-module.exports = { handleLogin, handleSignup };
+/**
+ * Allow user to refresh their access token
+ */
+const handleRefresh = async (req, res) => {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.sendStaus(401);
+
+    const storedToken = await Token.findOne({ token: refreshToken });
+    if (!storedToken) return res.sendStatus(403);
+
+    jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, async (err, decoded) => {
+        if (err) return res.sendStatus(403);
+
+        const userId = decoded.userId;
+        const accessToken = generateAccessToken({ _id: userId });
+
+        res.json({ accessToken });
+    });
+};
+
+/**
+ * Allows user to logout
+ */
+const handleLogout = async (req, res) => {
+    const { refreshToken } = req.body;
+    await Token.deleteOne({ token: refreshToken });
+    res.sendStatus(204);
+};
+
+module.exports = { handleLogin, handleSignup, handleRefresh, handleLogout };
