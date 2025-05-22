@@ -9,6 +9,15 @@ const bcrypt = require("bcrypt");
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    //email (at sign up)
+    //verified
+    //isAdmin
+    //isSafeCities
+    //ProfilePicture
+    //farmName (at sign up)
+    //reported
+    //removed
+    //removedDate (to be deleted after 30 days)
 });
 
 /**
