@@ -5,5 +5,6 @@ export default {
     greenLight: "#cbd2a4",
     greenRegularA: "#b2c9ad",
     greenRegularB: "#92bd89",
+    greenButton: "#6a8a4e",
     greenDark: "#4b5945",
 };
