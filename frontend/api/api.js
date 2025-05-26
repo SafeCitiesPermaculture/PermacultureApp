@@ -92,9 +92,9 @@ const tryRefreshToken = async () => {
 const login = async (username, password) => {
     try {
         const res = await API.post("/auth/login", { username, password });
-        const { accessToken, refreshToken } = res.data;
+        const { accessToken, refreshToken, user } = res.data;
         await storeTokens({ accessToken, refreshToken });
-        return true;
+        return user;
     } catch (err) {
         if (err.response && err.response.status === 401) {
             throw new Error("Invalid username or password");
