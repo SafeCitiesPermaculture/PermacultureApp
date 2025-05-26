@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     isVerified: { type: Boolean, default: false },
     userRole: { type: String, enum: ["user", "admin"], default: "user" }, //allows for more roles to be added easily
-    isSafeCities: { type: String, default: false },
+    isSafeCities: { type: Boolean, default: false },
     profilePicture: { type: String, default: "" },
     farmName: { type: String, default: "" },
     isReported: { type: Boolean, default: false },

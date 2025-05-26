@@ -1,8 +1,10 @@
 import { Text, View, Button } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Redirect } from "expo-router";
 
 const Index = () => {
     const router = useRouter();
+
+    return <Redirect href={"/login"} />;
 
     return (
         <View

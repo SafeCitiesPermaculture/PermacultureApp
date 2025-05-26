@@ -11,6 +11,7 @@ const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState({});
     const [isAdmin, setIsAdmin] = useState(false);
@@ -35,11 +36,13 @@ const AuthProvider = ({ children }) => {
         const user = await apiLogin(username, password);
         setIsAuthenticated(true);
         setUserData(user);
+        setIsLoggedIn(true);
     };
 
     const logout = async () => {
         await apiLogout();
         setIsAuthenticated(false);
+        setIsLoggedIn(false);
     };
 
     return (
@@ -51,6 +54,7 @@ const AuthProvider = ({ children }) => {
                 loading,
                 userData,
                 isAdmin,
+                isLoggedIn,
             }}
         >
             {children}
