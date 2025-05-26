@@ -9,34 +9,48 @@ import {
     TouchableOpacity,
 } from "react-native";
 import Colors from "@/constants/Colors";
+import API from "@/api/api";
 
-const LoginPage = () => {
+const SignupPage = () => {
     const router = useRouter();
 
-    //access the login function from Auth
-    const { login } = useContext(AuthContext);
-
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     //handle submit
     const onSubmit = async () => {
         try {
-            await login(username, password);
-            router.dismissTo("/protected");
+            const res = await API.post("/auth/signup", {
+                username,
+                password,
+                email,
+            });
+            if (res.status == 201) {
+                router.dismissTo("/login");
+            } else {
+                console.log("Error in signup");
+            }
         } catch (err) {
-            console.log("Login failed", err);
+            console.log("Sign Up failed", err);
         }
     };
 
     return (
         <View style={styles.container}>
-            <Text style={styles.headerText}>Login</Text>
+            <Text style={styles.headerText}>Sign Up</Text>
             <TextInput
                 style={styles.textInput}
                 placeholder="Username..."
                 value={username}
                 onChangeText={setUsername}
+                autoCapitalize="none"
+            />
+            <TextInput
+                style={styles.textInput}
+                placeholder="Email..."
+                value={email}
+                onChangeText={setEmail}
                 autoCapitalize="none"
             />
             <TextInput
@@ -48,13 +62,7 @@ const LoginPage = () => {
                 autoCapitalize="none"
             />
             <TouchableOpacity style={styles.button} onPress={onSubmit}>
-                <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-                style={styles.button}
-                onPress={() => router.push("/signup")}
-            >
-                <Text style={styles.buttonText}>Sign Up</Text>
+                <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
         </View>
     );
@@ -88,4 +96,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default LoginPage;
+export default SignupPage;

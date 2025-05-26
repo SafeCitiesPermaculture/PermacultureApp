@@ -1,5 +1,5 @@
-import { useContext, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useContext, useEffect } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { AuthContext } from "@/context/AuthContext";
 import { ActivityIndicator, View } from "react-native";
 
@@ -12,11 +12,13 @@ const AuthGuard = ({ children }) => {
     const { isAuthenticated, loading } = useContext(AuthContext);
     const router = useRouter();
 
-    useEffect(() => {
-        if (!loading && !isAuthenticated) {
-            router.replace("/login");
-        }
-    }, [loading, isAuthenticated]);
+    useFocusEffect(
+        useCallback(() => {
+            if (!loading && !isAuthenticated) {
+                router.replace("/login");
+            }
+        }, [loading, isAuthenticated])
+    );
 
     if (loading || !isAuthenticated) {
         return (
