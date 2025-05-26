@@ -12,6 +12,17 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [userData, setUserData] = useState({});
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        if (!userData) {
+            setIsAdmin(false);
+            return;
+        }
+
+        setIsAdmin(userData.userRole === "admin");
+    }, [userData]);
 
     useEffect(() => {
         SecureStore.getItemAsync("tokens").then((tokens) => {
@@ -21,8 +32,9 @@ const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (username, password) => {
-        await apiLogin(username, password);
+        const user = await apiLogin(username, password);
         setIsAuthenticated(true);
+        setUserData(user);
     };
 
     const logout = async () => {
@@ -32,7 +44,14 @@ const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider
-            value={{ isAuthenticated, login, logout, loading }}
+            value={{
+                isAuthenticated,
+                login,
+                logout,
+                loading,
+                userData,
+                isAdmin,
+            }}
         >
             {children}
         </AuthContext.Provider>

@@ -28,9 +28,14 @@ const RootLayout = () => {
                 <Stack.Screen name="index" options={{ title: "Home" }} />
                 <Stack.Screen name="login" options={{ headerTitle: "Login" }} />
                 <Stack.Screen
+                    name="signup"
+                    options={{ headerTitle: "Sign Up" }}
+                />
+                <Stack.Screen
                     name="protected"
                     options={{ headerTitle: "Protected" }}
                 />
+                <Stack.Screen name="admin" options={{ headerTitle: "Admin" }} />
             </Stack>
         </AuthProvider>
     );

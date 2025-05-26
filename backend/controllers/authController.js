@@ -22,9 +22,9 @@ const generateRefreshToken = (user) => {
  * Signup handler
  */
 const handleSignup = async (req, res) => {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
     try {
-        const user = User({ username, password });
+        const user = User({ username, email, password });
         await user.save();
         res.status(201).json({ message: "User created" });
     } catch (err) {
@@ -52,7 +52,7 @@ const handleLogin = async (req, res) => {
 
         await new Token({ userId: user._id, token: refreshToken }).save();
 
-        res.json({ accessToken, refreshToken });
+        res.json({ accessToken, refreshToken, user });
     } catch (err) {
         res.status(500).json({ error: `Server error. ${err}` });
     }

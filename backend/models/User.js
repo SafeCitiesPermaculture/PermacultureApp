@@ -13,11 +13,11 @@ const userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     userRole: { type: String, enum: ["user", "admin"], default: "user" }, //allows for more roles to be added easily
     isSafeCities: { type: String, default: false },
-    profilePicture: { type: String },
-    farmName: { type: String },
+    profilePicture: { type: String, default: "" },
+    farmName: { type: String, default: "" },
     isReported: { type: Boolean, default: false },
     isRemoved: { type: Boolean, default: false },
-    removedDate: { type: Date }, //(to be deleted after 30 days)
+    removedDate: { type: Date, default: null }, //(to be deleted after 30 days)
 });
 
 /**
