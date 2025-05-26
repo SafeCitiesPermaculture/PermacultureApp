@@ -9,15 +9,15 @@ const bcrypt = require("bcrypt");
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    //email (at sign up)
-    //verified
-    //isAdmin
-    //isSafeCities
-    //ProfilePicture
-    //farmName (at sign up)
-    //reported
-    //removed
-    //removedDate (to be deleted after 30 days)
+    email: { type: String, required: true, unique: true },
+    isVerified: { type: Boolean, default: false },
+    userRole: { type: String, enum: ["user", "admin"], default: "user" }, //allows for more roles to be added easily
+    isSafeCities: { type: String, default: false },
+    profilePicture: { type: String },
+    farmName: { type: String },
+    isReported: { type: Boolean, default: false },
+    isRemoved: { type: Boolean, default: false },
+    removedDate: { type: Date }, //(to be deleted after 30 days)
 });
 
 /**

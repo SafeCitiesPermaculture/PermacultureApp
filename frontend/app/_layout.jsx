@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { AuthProvider } from "../context/AuthContext";
+import Colors from "@/constants/Colors";
 
 /**
  * Sets up navigation and Auth for all pages
@@ -10,7 +11,7 @@ const RootLayout = () => {
             <Stack
                 screenOptions={{
                     headerStyle: {
-                        backgroundColor: "#fff",
+                        backgroundColor: Colors.brownDark,
                     },
                     headerTintColor: "#000",
                     headerTitleStyle: {
@@ -20,7 +21,7 @@ const RootLayout = () => {
                     contentStyle: {
                         paddingHorizontal: 10,
                         paddingTop: 10,
-                        backgroundColor: "#fff",
+                        backgroundColor: Colors.backgroundWhite,
                     },
                 }}
             >

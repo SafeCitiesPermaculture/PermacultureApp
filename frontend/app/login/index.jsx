@@ -8,6 +8,7 @@ import {
     TextInput,
     TouchableOpacity,
 } from "react-native";
+import Colors from "@/constants/Colors";
 
 const LoginPage = () => {
     const router = useRouter();
@@ -55,7 +56,7 @@ const LoginPage = () => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "#fff",
+        backgroundColor: Colors.backgroundWhite,
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
         width: "90%",
     },
     submitButton: {
-        backgroundColor: "#eee",
+        backgroundColor: Colors.greenButton,
         padding: 10,
         borderRadius: 10,
     },
