@@ -1,7 +1,9 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 
-const authMiddleware = (req, res, next) => {
+//checks if a user is signed in
+const userAuthMiddleware = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         return res.status(401).json({ error: "No token provided" });
@@ -10,11 +12,26 @@ const authMiddleware = (req, res, next) => {
     const token = authHeader.split(" ")[1];
     try {
         const payload = jwt.verify(token, ACCESS_TOKEN_SECRET);
-        req.user = payload;
+        const userObj = await User.findById(payload.userId);
+        req.user = userObj;
         next();
     } catch (err) {
         return res.status(401).json({ error: "Invalid token" });
     }
 };
 
-module.exports = authMiddleware;
+//checks if a signed in user is an admin
+const adminAuthMiddleware = async (req, res, next) => {
+    try {
+        const user = req.user;
+        if (user.userRole == "admin") {
+            next();
+        } else {
+            return res.status(403).json({ error: "Not an admin" });
+        }
+    } catch (err) {
+        return res.status(403).json({ error: "Not an admin" });
+    }
+};
+
+module.exports = { userAuthMiddleware, adminAuthMiddleware };

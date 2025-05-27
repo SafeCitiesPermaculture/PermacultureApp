@@ -47,6 +47,10 @@ const handleLogin = async (req, res) => {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
+        if (!user.isVerified) {
+            return res.status(403).json({ error: "User not verified" });
+        }
+
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 

@@ -24,7 +24,7 @@ const LoginPage = () => {
         try {
             await login(username, password);
         } catch (err) {
-            console.log("Login failed", err);
+            console.log("Login failed:", err);
         }
     };
 
