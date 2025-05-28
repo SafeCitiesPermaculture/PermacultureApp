@@ -67,7 +67,7 @@ const handleLogin = async (req, res) => {
  */
 const handleRefresh = async (req, res) => {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.sendStaus(401);
+    if (!refreshToken) return res.sendStatus(401);
 
     const storedToken = await Token.findOne({ token: refreshToken });
     if (!storedToken) return res.sendStatus(403);

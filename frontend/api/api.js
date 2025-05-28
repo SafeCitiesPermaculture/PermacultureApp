@@ -72,7 +72,7 @@ const tryRefreshToken = async () => {
     if (!tokens?.refreshToken) return false;
 
     try {
-        const res = await axios.post(`${BACKEND_URL}/auth/token`, {
+        const res = await axios.post(`${BACKEND_URL}/auth/refresh`, {
             token: tokens.refreshToken,
         });
 
