@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const listingRoutes = require("./routes/listings");
+const messageRoutes = require("./routes/messages");
 
 const {
     userAuthMiddleware,
@@ -34,6 +35,7 @@ app.get("/api/protected", (req, res) => {
     res.json({ message: `Hello user "${req.user.username}"` });
 });
 app.use("/api/listings", listingRoutes);
+app.use("/api", messageRoutes);
 
 //admin routes
 app.use(adminAuthMiddleware);

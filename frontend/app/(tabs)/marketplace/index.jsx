@@ -27,7 +27,7 @@ const MarketplacePage = () => {
                 </View>
                 <View style={styles.chatContainer}>
                     <TouchableOpacity
-                        onPress={() => router.push("/marketplace/chats")}
+                        onPress={() => router.push("/marketplace/messages")}
                     >
                         <Image
                             source={chatButton}

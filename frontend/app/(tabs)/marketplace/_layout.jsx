@@ -23,6 +23,8 @@ const MarketplaceLayout = () => {
         >
             <Stack.Screen name="index" options={{ title: "Marketplace" }} />
             <Stack.Screen name="post" options={{ title: "Add a Post" }} />
+            <Stack.Screen name="messages" options={{ title: "Messages" }} />
+            <Stack.Screen name="[conversationId]" options={{ title: "Chat" }} />
         </Stack>
     );
 };
