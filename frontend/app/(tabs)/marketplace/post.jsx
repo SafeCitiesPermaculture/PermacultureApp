@@ -156,7 +156,7 @@ const PostListingPage = () => {
                     {loading && (
                         <ActivityIndicator
                             size="large"
-                            color={Colors.greenDark}
+                            color={Colors.greenRegular}
                             style={styles.loadingWheel}
                         />
                     )}
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     header: {
         flex: 1,
         flexDirection: "column",
-        backgroundColor: Colors.backgroundWhite,
+        backgroundColor: Colors.backgroundTan,
         paddingTop: 5,
         alignItems: "center",
     },
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
         width: 300,
         textAlign: "center",
         margin: 5,
-        backgroundColor: Colors.greenLight,
+        backgroundColor: Colors.greyTextBox,
     },
     title: {
         fontSize: 32,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
     form: {
-        backgroundColor: Colors.greenLight,
+        backgroundColor: Colors.greenRegular,
         alignItems: "center",
         flexShrink: 1,
         width: "auto",

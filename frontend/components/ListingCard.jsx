@@ -45,7 +45,7 @@ const listingCard = ({ title, price, postedBy, listingId }) => {
 
 const styles = StyleSheet.create({
     background: {
-        backgroundColor: Colors.brownDark,
+        backgroundColor: Colors.brownLight,
         padding: 5,
         margin: 10,
         flexShrink: 1,

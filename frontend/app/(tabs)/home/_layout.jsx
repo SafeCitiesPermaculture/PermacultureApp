@@ -7,7 +7,7 @@ const HomeLayout = () => {
         <Stack
             screenOptions={{
                 headerStyle: {
-                    backgroundColor: Colors.brownDark,
+                    backgroundColor: Colors.menuBrown,
                 },
                 headerTintColor: "#000",
                 headerTitleStyle: {
@@ -17,7 +17,7 @@ const HomeLayout = () => {
                 contentStyle: {
                     paddingHorizontal: 10,
                     paddingTop: 10,
-                    backgroundColor: Colors.backgroundWhite,
+                    backgroundColor: Colors.backgroundTan,
                 },
             }}
         >

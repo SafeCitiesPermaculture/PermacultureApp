@@ -23,7 +23,7 @@ const RootLayout = () => {
             <Stack
                 screenOptions={{
                     headerStyle: {
-                        backgroundColor: Colors.brownDark,
+                        backgroundColor: Colors.menuBrown,
                     },
                     headerTintColor: "#000",
                     headerTitleStyle: {
@@ -33,7 +33,7 @@ const RootLayout = () => {
                     contentStyle: {
                         paddingHorizontal: 10,
                         paddingTop: 10,
-                        backgroundColor: Colors.backgroundWhite,
+                        backgroundColor: Colors.backgroundTan,
                     },
                 }}
             >

@@ -54,7 +54,7 @@ const AdminApprovalPage = () => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: Colors.backgroundWhite,
+        backgroundColor: Colors.backgroundTan,
         flex: 1,
         flexDirection: "column",
         alignItems: "center",

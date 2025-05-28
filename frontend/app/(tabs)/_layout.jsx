@@ -11,7 +11,7 @@ const TabLayout = () => {
             <Tabs
                 screenOptions={{
                     tabBarStyle: {
-                        backgroundColor: Colors.brownDark,
+                        backgroundColor: Colors.menuBrown,
                     },
                 }}
             >
@@ -22,10 +22,6 @@ const TabLayout = () => {
                 <Tabs.Screen
                     name="marketplace"
                     options={{ title: "Marketplace", headerShown: false }}
-                />
-                <Tabs.Screen
-                    name="protected"
-                    options={{ title: "Protected", headerShown: false }}
                 />
                 <Tabs.Screen
                     name="profile"

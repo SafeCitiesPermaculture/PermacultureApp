@@ -69,13 +69,13 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         paddingTop: 5,
         paddingBottom: 20,
-        backgroundColor: Colors.backgroundWhite,
+        backgroundColor: Colors.backgroundTan,
     },
     titleContainer: {
         flex: 2,
         justifyContent: "center",
         flexDirection: "row",
-        backgroundColor: Colors.backgroundWhite,
+        backgroundColor: Colors.backgroundTan,
     },
     title: {
         fontSize: 32,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     listingArea: {
-        backgroundColor: Colors.backgroundWhite,
+        backgroundColor: Colors.backgroundTan,
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-around",
