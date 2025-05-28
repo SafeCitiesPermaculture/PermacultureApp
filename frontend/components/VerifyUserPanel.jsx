@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import Colors from "@/constants/Colors";
 import API from "@/api/api";
+import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 
 //Panel that gets displayed for each user that needs to be verified
 const VerifyUserPanel = ({ user, getUnverified }) => {
@@ -29,7 +30,11 @@ const VerifyUserPanel = ({ user, getUnverified }) => {
         <View style={styles.container}>
             <Image
                 style={styles.image}
-                source={require("@/assets/images/profile_blank_icon.png")}
+                source={
+                    user.profilePicture !== ""
+                        ? { uri: user.profilePicture }
+                        : DefaultProfilePicture
+                }
             />
             <View style={styles.bioContainer}>
                 <Text style={styles.nameText}>{user.username}</Text>
