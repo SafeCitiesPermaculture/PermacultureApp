@@ -2,12 +2,12 @@ import React from "react";
 import { Stack } from "expo-router";
 import Colors from "@/constants/Colors";
 
-const ProtectedLayout = () => {
+const MarketplaceLayout = () => {
     return (
         <Stack
             screenOptions={{
                 headerStyle: {
-                    backgroundColor: Colors.brownDark,
+                    backgroundColor: Colors.menuBrown,
                 },
                 headerTintColor: "#000",
                 headerTitleStyle: {
@@ -17,13 +17,16 @@ const ProtectedLayout = () => {
                 contentStyle: {
                     paddingHorizontal: 10,
                     paddingTop: 10,
-                    backgroundColor: Colors.backgroundWhite,
+                    backgroundColor: Colors.backgroundTan,
                 },
             }}
         >
-            <Stack.Screen name="index" options={{ title: "Protected" }} />
+            <Stack.Screen name="index" options={{ title: "Marketplace" }} />
+            <Stack.Screen name="post" options={{ title: "Add a Post" }} />
+            <Stack.Screen name="messages" options={{ title: "Messages" }} />
+            <Stack.Screen name="[conversationId]" options={{ title: "Chat" }} />
         </Stack>
     );
 };
 
-export default ProtectedLayout;
+export default MarketplaceLayout;

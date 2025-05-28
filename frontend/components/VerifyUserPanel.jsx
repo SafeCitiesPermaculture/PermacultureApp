@@ -57,7 +57,7 @@ const VerifyUserPanel = ({ user, getUnverified }) => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: Colors.greenRegularB,
+        backgroundColor: Colors.greenRegular,
         margin: 10,
         padding: 5,
         boxShadow: "1px 1px 4px 2px rgba(0,0,0,0.3)",
