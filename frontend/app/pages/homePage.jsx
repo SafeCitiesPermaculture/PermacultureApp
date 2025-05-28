@@ -1,61 +1,39 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { TouchableOpacity, Text } from 'react-native';
-import {menuBar} from 'menu.jsx';
-import { useStyles } from 'react-native-unistyles';
-import { createStyleSheet } from 'react-native-unistyles';  
-import colors from './color';
+import {View, ScrollView, Text, Button, StyleSheet} from 'react-native';
+import Menu from './menu.jsx';
+import colors from '@/constants/Colors.js';
 
-import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, ScrollView } from 'react-native';
 
-const HomeScreen = () => {
-  const { width, height } = Dimensions.get('window');
+export default function Homescreen(){
+    return(
+    <SafeAreaView style={styles.homescreen}>
+        <Text style={texts.header}> WHO WE ARE </Text>
+        <Text style={texts.body}>
+        Safe Cities is a Non Profit Organization based in Elsies River. We focus on Social Development and Skills Training, such as Capacity Building & Theatre Training, Construction Skills Training, Perma-Culture Skills Training, Young Leaders Initiative Program, and Wellness & Women Empowerment Program.
+      </Text>
+      <Text style={texts.header}> VISION & MISSION </Text>
+      <Text style={texts.body}>
+      Our vision is to ensure that individuals have the opportunity to be trained and equipped, through our programs. This will better prepare them for an evolving society. We focus on leadership training, self-sustainability and community upliftment. We believe in empowering and educating, youth, women, men and children.
+    </Text>
+    <Menu />
 
-  return (
-     <View style={styles.screen}>
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Image
-          source={require('./images/logo.png')}
-          style={[styles.banner, { width: width * 0.9, height: height * 0.25 }]}
-        />
-        <Text style={styles.title}>Hello World!</Text>
-      </View>
-    </ScrollView>
-      {/* Footer Menu */}
-      <MenuBar />
-    </View>
-  );
-};
+    </SafeAreaView>
+    );
+    }
 
-const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  container: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  banner: {
-    resizeMode: 'cover',
-    borderRadius: 15,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    textAlign: 'center',
-  },
-});
-
-export default HomeScreen;
+const texts = StyleSheet.create({
+    header:{
+        fontSize: 40,
+        padding: 24,
+        },
+    body: {
+        fontSize: 25,
+        padding: 20,
+        },
+    });
+const styles =StyleSheet.create({
+   homescreen:{
+       flex:1,
+       color: colors.backgroundTan,
+       },
+    });
