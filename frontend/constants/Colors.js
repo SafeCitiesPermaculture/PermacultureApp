@@ -1,10 +1,10 @@
 export default {
-    backgroundWhite: "#ebe5c2",
-    brownLight: "#d0ae90",
-    brownDark: "#ac8155",
-    greenLight: "#cbd2a4",
-    greenRegularA: "#b2c9ad",
-    greenRegularB: "#92bd89",
-    greenButton: "#6a8a4e",
-    greenDark: "#4b5945",
+    backgroundTan: "#FCFBF4", //background color for the app
+    brownLight: "#D0AE90", //color for files in information secction
+    menuBrown: "#A09A7C", //color for menu fooder
+    brownMedium: "#AC8155", //brown for markeplace listing
+    greenRegularA: "#CBD2A4", //green background for chat messages
+    greyTextBox: "#D9D9D9",// color for text input boxes
+    greenButton: "#AEBA8C", //buttons are this green
+    blueLogIn: "#2178E3", //blue for login button and sign up button
 };
