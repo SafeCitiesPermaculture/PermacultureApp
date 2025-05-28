@@ -2,7 +2,7 @@ import React from "react";
 import { Stack } from "expo-router";
 import Colors from "@/constants/Colors";
 
-const AdminLayout = () => {
+const ProfileLayout = () => {
     return (
         <Stack
             screenOptions={{
@@ -21,7 +21,8 @@ const AdminLayout = () => {
                 },
             }}
         >
-            <Stack.Screen name="index" options={{ title: "Admin" }} />
+            <Stack.Screen name="index" options={{ title: "Profile" }} />
+            <Stack.Screen name="admin" options={{ title: "Admin" }} />
             <Stack.Screen
                 name="approval"
                 options={{ title: "Admin Approval" }}
@@ -30,4 +31,4 @@ const AdminLayout = () => {
     );
 };
 
-export default AdminLayout;
+export default ProfileLayout;

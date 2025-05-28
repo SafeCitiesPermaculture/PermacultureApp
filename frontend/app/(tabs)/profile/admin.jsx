@@ -9,7 +9,8 @@ const AdminPage = () => {
         <AdminGuard>
             <View>
                 <Text>This Page Should only be accessible for admin users</Text>
-                <Link href={"/admin/approval"}>
+                <Text>STILL A WORK IN PROGRESS</Text>
+                <Link href={"/profile/approval"}>
                     <Text style={styles.linkText}>Approval Page</Text>
                 </Link>
             </View>
