@@ -8,34 +8,49 @@ import {
     TextInput,
     TouchableOpacity,
 } from "react-native";
+import Colors from "@/constants/Colors";
+import API from "@/api/api";
 
-const LoginPage = () => {
+const SignupPage = () => {
     const router = useRouter();
 
-    //access the login function from Auth
-    const { login } = useContext(AuthContext);
-
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     //handle submit
     const onSubmit = async () => {
         try {
-            await login(username, password);
-            router.dismissTo("/protected");
+            const res = await API.post("/auth/signup", {
+                username,
+                password,
+                email,
+            });
+            if (res.status == 201) {
+                router.dismissTo("/login");
+            } else {
+                console.log("Error in signup");
+            }
         } catch (err) {
-            console.log("Login failed", err);
+            console.log("Sign Up failed", err);
         }
     };
 
     return (
         <View style={styles.container}>
-            <Text style={styles.headerText}>Login</Text>
+            <Text style={styles.headerText}>Sign Up</Text>
             <TextInput
                 style={styles.textInput}
                 placeholder="Username..."
                 value={username}
                 onChangeText={setUsername}
+                autoCapitalize="none"
+            />
+            <TextInput
+                style={styles.textInput}
+                placeholder="Email..."
+                value={email}
+                onChangeText={setEmail}
                 autoCapitalize="none"
             />
             <TextInput
@@ -46,8 +61,8 @@ const LoginPage = () => {
                 onChangeText={setPassword}
                 autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
-                <Text style={styles.submitButtonText}>Submit</Text>
+            <TouchableOpacity style={styles.button} onPress={onSubmit}>
+                <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
         </View>
     );
@@ -55,7 +70,7 @@ const LoginPage = () => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "#fff",
+        backgroundColor: Colors.backgroundWhite,
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
@@ -70,14 +85,15 @@ const styles = StyleSheet.create({
         padding: 10,
         width: "90%",
     },
-    submitButton: {
-        backgroundColor: "#eee",
+    button: {
+        backgroundColor: Colors.greenButton,
         padding: 10,
         borderRadius: 10,
+        marginBottom: 10,
     },
-    submitButtonText: {
+    buttonText: {
         fontSize: 20,
     },
 });
 
-export default LoginPage;
+export default SignupPage;

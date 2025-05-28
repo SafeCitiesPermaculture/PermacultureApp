@@ -7,4 +7,5 @@ export default {
     greenRegularB: "#92bd89",
     greenButton: "#6a8a4e",
     greenDark: "#4b5945",
+    errorRed: "#db0f0f",
 };

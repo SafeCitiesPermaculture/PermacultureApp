@@ -1,15 +1,16 @@
 import { useCallback, useContext, useEffect } from "react";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { AuthContext } from "@/context/AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 import { ActivityIndicator, View } from "react-native";
 
 /**
  * Wrap this component around any page that needs to be protected
- * and only accessible to logged in users
+ * and only accessible to logged in Admin users
  */
 
-const AuthGuard = ({ children }) => {
-    const { isAuthenticated, loading } = useContext(AuthContext);
+const AdminGuard = ({ children }) => {
+    const { isAuthenticated, loading, isAdmin } = useContext(AuthContext);
     const router = useRouter();
 
     useFocusEffect(
@@ -18,6 +19,14 @@ const AuthGuard = ({ children }) => {
                 router.replace("/login");
             }
         }, [loading, isAuthenticated])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!isAdmin) {
+                router.replace("/protected");
+            }
+        }, [isAdmin])
     );
 
     if (loading || !isAuthenticated) {
@@ -31,4 +40,4 @@ const AuthGuard = ({ children }) => {
     return <>{children}</>;
 };
 
-export default AuthGuard;
+export default AdminGuard;

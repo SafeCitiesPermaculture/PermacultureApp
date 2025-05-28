@@ -22,9 +22,9 @@ const generateRefreshToken = (user) => {
  * Signup handler
  */
 const handleSignup = async (req, res) => {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
     try {
-        const user = User({ username, password });
+        const user = User({ username, email, password });
         await user.save();
         res.status(201).json({ message: "User created" });
     } catch (err) {
@@ -47,12 +47,16 @@ const handleLogin = async (req, res) => {
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
+        if (!user.isVerified) {
+            return res.status(403).json({ error: "User not verified" });
+        }
+
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
         await new Token({ userId: user._id, token: refreshToken }).save();
 
-        res.json({ accessToken, refreshToken });
+        res.json({ accessToken, refreshToken, user });
     } catch (err) {
         res.status(500).json({ error: `Server error. ${err}` });
     }

@@ -1,7 +1,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth");
-const authMiddleware = require("./middleware/auth");
+const adminRoutes = require("./routes/admin");
+const {
+    userAuthMiddleware,
+    adminAuthMiddleware,
+} = require("./middleware/auth");
 require("dotenv").config();
 
 const app = express();
@@ -23,9 +27,13 @@ mongoose
 app.use("/api/auth", authRoutes);
 
 //Protected routes
-app.use(authMiddleware);
+app.use(userAuthMiddleware);
 app.get("/api/protected", (req, res) => {
-    res.json({ message: `Hello user ${req.user.userId}` });
+    res.json({ message: `Hello user "${req.user.username}"` });
 });
+
+//admin routes
+app.use(adminAuthMiddleware);
+app.use("/api/admin", adminRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
