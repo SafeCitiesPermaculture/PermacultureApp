@@ -32,7 +32,7 @@ API.interceptors.request.use(async (config) => {
 
     //attach token
     if (tokens?.accessToken) {
-        config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+        config.headers.authorization = `Bearer ${tokens.accessToken}`;
     }
 
     return config;
@@ -58,7 +58,7 @@ API.interceptors.response.use(
             if (refreshed) {
                 return API(originalRequest);
             } else {
-                await clearTokens();
+                //await clearTokens();
                 return Promise.reject("Session expired. Please log in again.");
             }
         }
@@ -77,10 +77,7 @@ const tryRefreshToken = async () => {
         });
 
         const newAccessToken = res.data.accessToken;
-        await storeTokens({
-            accessToken: newAccessToken,
-            refreshToken: tokens.refreshToken,
-        });
+        await storeTokens(newAccessToken, tokens.refreshToken);
 
         return true;
     } catch {
@@ -93,7 +90,7 @@ const login = async (username, password) => {
     try {
         const res = await API.post("/auth/login", { username, password });
         const { accessToken, refreshToken, user } = res.data;
-        await storeTokens({ accessToken, refreshToken });
+        await storeTokens(accessToken, refreshToken);
         return user;
     } catch (err) {
         if (err.response && err.response.status === 401) {

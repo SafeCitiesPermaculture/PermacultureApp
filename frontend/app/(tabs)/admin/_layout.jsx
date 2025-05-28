@@ -22,6 +22,10 @@ const AdminLayout = () => {
             }}
         >
             <Stack.Screen name="index" options={{ title: "Admin" }} />
+            <Stack.Screen
+                name="approval"
+                options={{ title: "Admin Approval" }}
+            />
         </Stack>
     );
 };
