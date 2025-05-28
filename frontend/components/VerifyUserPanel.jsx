@@ -1,8 +1,27 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import Colors from "@/constants/Colors";
+import API from "@/api/api";
 
-const VerifyUserPanel = ({ user }) => {
+const VerifyUserPanel = ({ user, getUnverified }) => {
+    const approve = async () => {
+        try {
+            await API.put(`/admin/verify/${user._id}`);
+            getUnverified();
+        } catch (err) {
+            console.log("Error when approving user", err);
+        }
+    };
+
+    const deny = async () => {
+        try {
+            await API.delete(`/admin/denyverify/${user._id}`);
+            getUnverified();
+        } catch (err) {
+            console.log("Error when denying user", err);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <Image
@@ -14,10 +33,13 @@ const VerifyUserPanel = ({ user }) => {
                 <Text style={styles.emailText}>{user.email}</Text>
             </View>
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.approveButton}>
+                <TouchableOpacity
+                    style={styles.approveButton}
+                    onPress={approve}
+                >
                     <Text>Approve</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.denyButton}>
+                <TouchableOpacity style={styles.denyButton} onPress={deny}>
                     <Text>Deny</Text>
                 </TouchableOpacity>
             </View>

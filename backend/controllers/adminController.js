@@ -29,4 +29,16 @@ const verifyUser = async (req, res) => {
     }
 };
 
-module.exports = { getUnverifiedUsers, verifyUser };
+//deny verification of a user
+const denyVerification = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await User.findByIdAndDelete(id);
+
+        res.json({ message: "user deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+module.exports = { getUnverifiedUsers, verifyUser, denyVerification };

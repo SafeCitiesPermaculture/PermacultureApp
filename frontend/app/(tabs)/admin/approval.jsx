@@ -7,16 +7,16 @@ import API from "@/api/api";
 const AdminApprovalPage = () => {
     const [unverifiedUsers, setUnverifiedUsers] = useState([]);
 
-    useEffect(() => {
-        const getUnverified = async () => {
-            try {
-                const res = await API.post("/admin/unverified");
-                setUnverifiedUsers(res.data);
-            } catch (err) {
-                console.log("Error when getting unverified:", err);
-            }
-        };
+    const getUnverified = async () => {
+        try {
+            const res = await API.post("/admin/unverified");
+            setUnverifiedUsers(res.data);
+        } catch (err) {
+            console.log("Error when getting unverified:", err);
+        }
+    };
 
+    useEffect(() => {
         getUnverified();
     }, []);
 
@@ -29,11 +29,23 @@ const AdminApprovalPage = () => {
                     Cities Permaculture App
                 </Text>
             </View>
-            <ScrollView style={styles.userContainer}>
-                {unverifiedUsers.map((item) => (
-                    <VerifyUserPanel user={item} key={item._id} />
-                ))}
-            </ScrollView>
+            {unverifiedUsers.length > 0 ? (
+                <ScrollView style={styles.userContainer}>
+                    {unverifiedUsers.map((item) => (
+                        <VerifyUserPanel
+                            user={item}
+                            getUnverified={getUnverified}
+                            key={item._id}
+                        />
+                    ))}
+                </ScrollView>
+            ) : (
+                <View style={styles.messageContainer}>
+                    <Text style={styles.messageText}>
+                        No users waiting to be verified
+                    </Text>
+                </View>
+            )}
         </View>
     );
 };
@@ -71,6 +83,18 @@ const styles = StyleSheet.create({
         flex: 1,
         width: "90%",
         marginBottom: 30,
+    },
+    messageContainer: {
+        backgroundColor: Colors.brownLight,
+        flex: 1,
+        width: "90%",
+        marginBottom: 30,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    messageText: {
+        fontSize: 30,
+        textAlign: "center",
     },
 });
 
