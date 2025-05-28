@@ -12,7 +12,7 @@ const RootLayout = () => {
 
     useEffect(() => {
         if (!loading && isLoggedIn && isAuthenticated) {
-            router.replace("/protected");
+            router.replace("/home");
         } else if (!loading) {
             router.replace("/login");
         }

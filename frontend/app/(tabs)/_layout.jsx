@@ -16,6 +16,10 @@ const TabLayout = () => {
                 }}
             >
                 <Tabs.Screen
+                    name="home"
+                    options={{ title: "Home", headerShown: false }}
+                />
+                <Tabs.Screen
                     name="protected"
                     options={{ title: "Protected", headerShown: false }}
                 />
