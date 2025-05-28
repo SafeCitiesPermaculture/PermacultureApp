@@ -1,25 +1,24 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import Colors from "@/constants/Colors";
 import VerifyUserPanel from "@/components/VerifyUserPanel";
+import API from "@/api/api";
 
 const AdminApprovalPage = () => {
-    const exampleUser = {
-        _id: "683610a9f659759ee63ba9ca",
-        username: "Steve",
-        password:
-            "$2b$10$Vaz12hnfEhCzfew.RHW5WOe/jEGFfLRB75BV17c9yCcWKgHu1G8pC",
-        email: "steve@test.com",
-        isVerified: false,
-        userRole: "user",
-        isSafeCities: false,
-        profilePicture: "",
-        farmName: "",
-        isReported: false,
-        isRemoved: false,
-        removedDate: null,
-        __v: 0,
-    };
+    const [unverifiedUsers, setUnverifiedUsers] = useState([]);
+
+    useEffect(() => {
+        const getUnverified = async () => {
+            try {
+                const res = await API.post("/admin/unverified");
+                setUnverifiedUsers(res.data);
+            } catch (err) {
+                console.log("Error when getting unverified:", err);
+            }
+        };
+
+        getUnverified();
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -31,9 +30,9 @@ const AdminApprovalPage = () => {
                 </Text>
             </View>
             <ScrollView style={styles.userContainer}>
-                <VerifyUserPanel user={exampleUser} />
-                <VerifyUserPanel user={exampleUser} />
-                <VerifyUserPanel user={exampleUser} />
+                {unverifiedUsers.map((item) => (
+                    <VerifyUserPanel user={item} key={item._id} />
+                ))}
             </ScrollView>
         </View>
     );
