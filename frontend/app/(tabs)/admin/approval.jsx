@@ -29,8 +29,10 @@ const AdminApprovalPage = () => {
                     Cities Permaculture App
                 </Text>
             </View>
+            {/* Check if we have users waiting to be verified */}
             {unverifiedUsers.length > 0 ? (
                 <ScrollView style={styles.userContainer}>
+                    {/* Loop through users and display a panel for each */}
                     {unverifiedUsers.map((item) => (
                         <VerifyUserPanel
                             user={item}

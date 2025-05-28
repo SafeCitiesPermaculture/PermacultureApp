@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import AdminGuard from "@/components/AdminGuard";
 import { Link } from "expo-router";
+import Colors from "@/constants/Colors";
 
 const AdminPage = () => {
     return (
@@ -9,11 +10,19 @@ const AdminPage = () => {
             <View>
                 <Text>This Page Should only be accessible for admin users</Text>
                 <Link href={"/admin/approval"}>
-                    <Text>Approval Page</Text>
+                    <Text style={styles.linkText}>Approval Page</Text>
                 </Link>
             </View>
         </AdminGuard>
     );
 };
+
+const styles = StyleSheet.create({
+    linkText: {
+        fontSize: 30,
+        textAlign: "center",
+        backgroundColor: Colors.greenButton,
+    },
+});
 
 export default AdminPage;

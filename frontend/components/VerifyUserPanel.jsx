@@ -3,20 +3,23 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import Colors from "@/constants/Colors";
 import API from "@/api/api";
 
+//Panel that gets displayed for each user that needs to be verified
 const VerifyUserPanel = ({ user, getUnverified }) => {
+    //aprove the user
     const approve = async () => {
         try {
             await API.put(`/admin/verify/${user._id}`);
-            getUnverified();
+            getUnverified(); //refresh list
         } catch (err) {
             console.log("Error when approving user", err);
         }
     };
 
+    //deny the user
     const deny = async () => {
         try {
             await API.delete(`/admin/denyverify/${user._id}`);
-            getUnverified();
+            getUnverified(); //refresh list
         } catch (err) {
             console.log("Error when denying user", err);
         }
