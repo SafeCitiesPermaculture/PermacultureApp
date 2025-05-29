@@ -1,153 +1,113 @@
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState, useRef } from "react";
-import {
-    View,
-    Text,
-    FlatList,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
-} from "react-native";
-import API from "@/api/api";
-import { getUserIdFromToken } from "@/utils/getUserIdFromToken.js";
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+const BACKEND_URL = "http://192.168.100.174:6000/api";
 
-const ConversationDetailPage = () => {
-    const { conversationId } = useLocalSearchParams();
-    const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState("");
-    const [userId, setUserId] = useState(null);
-    const flatListRef = useRef(null);
+//initliaze the API
+const API = axios.create({
+    baseURL: BACKEND_URL,
+});
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const uid = await getUserIdFromToken();
-                setUserId(uid);
-
-                const res = await API.get(
-                    `/conversations/${conversationId}/messages`
-                );
-                setMessages(res.data);
-            } catch (err) {
-                console.error("Failed to fetch messages", err);
-            }
-        };
-
-        fetchData();
-    }, [conversationId]);
-
-    const handleSend = async () => {
-        if (!input.trim()) return;
-        try {
-            const res = await API.post(
-                `/conversations/${conversationId}/messages`,
-                {
-                    text: input,
-                }
-            );
-            setMessages((prev) => [...prev, res.data]);
-            setInput("");
-
-            // Scroll to latest
-            setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-        } catch (err) {
-            console.error("Failed to send message", err);
-        }
-    };
-
-    const renderItem = ({ item }) => (
-        <View
-            style={[
-                styles.messageBubble,
-                item.sender._id === userId ? styles.outgoing : styles.incoming,
-            ]}
-        >
-            <Text>{item.text}</Text>
-            <Text style={styles.timestamp}>
-                {new Date(item.createdAt).toLocaleTimeString()}
-            </Text>
-        </View>
-    );
-
-    return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={90}
-        >
-            <FlatList
-                ref={flatListRef}
-                data={messages}
-                keyExtractor={(item) => item._id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.messageList}
-            />
-            <View style={styles.inputContainer}>
-                <TextInput
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="Type a message..."
-                    style={styles.textInput}
-                />
-                <TouchableOpacity
-                    onPress={handleSend}
-                    style={styles.sendButton}
-                >
-                    <Text style={styles.sendText}>Send</Text>
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+//Store auth tokens in a secure storage
+const storeTokens = async (accessToken, refreshToken) => {
+    await SecureStore.setItemAsync(
+        "tokens",
+        JSON.stringify({ accessToken, refreshToken })
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-    messageList: { padding: 10 },
-    messageBubble: {
-        marginVertical: 5,
-        padding: 10,
-        borderRadius: 8,
-        maxWidth: "80%",
-    },
-    incoming: {
-        alignSelf: "flex-start",
-        backgroundColor: "#f0f0f0",
-    },
-    outgoing: {
-        alignSelf: "flex-end",
-        backgroundColor: "#dcf8c6",
-    },
-    timestamp: {
-        fontSize: 10,
-        color: "#666",
-        marginTop: 4,
-    },
-    inputContainer: {
-        flexDirection: "row",
-        padding: 10,
-        borderTopColor: "#ccc",
-        borderTopWidth: 1,
-    },
-    textInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 20,
-        paddingHorizontal: 15,
-        height: 40,
-    },
-    sendButton: {
-        justifyContent: "center",
-        paddingHorizontal: 15,
-    },
-    sendText: {
-        color: "blue",
-        fontWeight: "bold",
-    },
+//Retrieve tokens from storage
+const getTokens = async () => {
+    const tokens = await SecureStore.getItemAsync("tokens");
+    return tokens ? JSON.parse(tokens) : null;
+};
+
+//clear tokens
+const clearTokens = async () => {
+    await SecureStore.deleteItemAsync("tokens");
+};
+
+//Attach tokens to all sent requests automatically
+API.interceptors.request.use(async (config) => {
+    const tokens = await getTokens();
+
+    //attach token
+    if (tokens?.accessToken) {
+        config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+    }
+
+    return config;
 });
 
-export default ConversationDetailPage;
+//Auto refresh access token if it was expired
+//Occurs if request returns a 401 error
+API.interceptors.response.use(
+    (res) => res,
+    async (error) => {
+        const originalRequest = error.config;
+        // Don't refresh if it's login or refresh token request
+        if (
+            originalRequest.url.includes("/login") ||
+            originalRequest.url.includes("/refresh")
+        ) {
+            return Promise.reject(error);
+        }
+        //401 error that hasn't been retired
+        if (error.response?.status == 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            const refreshed = await tryRefreshToken();
+            if (refreshed) {
+                return API(originalRequest);
+            } else {
+                await clearTokens();
+                return Promise.reject("Session expired. Please log in again.");
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
+//refresh the tokens
+const tryRefreshToken = async () => {
+    const tokens = await getTokens();
+    if (!tokens?.refreshToken) return false;
+
+    try {
+        const res = await axios.post(`${BACKEND_URL}/auth/token`, {
+            token: tokens.refreshToken,
+        });
+
+        const newAccessToken = res.data.accessToken;
+        await storeTokens(newAccessToken, tokens.refreshToken);
+
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+//Auth functions
+const login = async (username, password) => {
+    try {
+        const res = await API.post("/auth/login", { username, password });
+        const { accessToken, refreshToken, user } = res.data;
+        await storeTokens(accessToken, refreshToken);
+        return user;
+    } catch (err) {
+        if (err.response && err.response.status === 401) {
+            throw new Error("Invalid username or password");
+        }
+        throw new Error("Login failed. Please try again later.");
+    }
+};
+
+const logout = async () => {
+    const tokens = await getTokens();
+    if (tokens?.refreshToken) {
+        await API.post("/auth/logout", { token: tokens.refreshToken });
+    }
+    await clearTokens();
+};
+
+export { login, logout };
+
+export default API;
