@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="80494b87-c0c4-4474-bcda-34724f5ecea4" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/Images/Add _ plus icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/Comment icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/DM icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/Info icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/Setting icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/add account icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/admin setting icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/chat forum icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/folder 2 icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/folder 3 icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/folder icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/home icon transparent.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/location icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/log out icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/maginfying glass icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/marketplace icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/password icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/profile icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/report flag icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/schedule icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/send icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/spam icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/translation icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/api/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/api/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/Menu.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Menu.jsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Alanis-C3"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/SafeCitiesPermaculture/PermacultureApp.git",
+    "accountId": "eedc2429-c90f-41e8-8e81-c42e8a015263"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2xeAWmhPSCx80utQBtXQIShOfvB" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "HomePageNew",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/anae2/PermacultureApp",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\anae2\PermacultureApp\frontend" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="80494b87-c0c4-4474-bcda-34724f5ecea4" name="Changes" comment="" />
+      <created>1748288200905</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1748288200905</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

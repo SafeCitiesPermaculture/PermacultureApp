@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
-const BACKEND_URL = "http://localhost:6000/api";
+const BACKEND_URL = "http://192.168.100.154:6000/api";
 
 //initliaze the API
 const API = axios.create({
