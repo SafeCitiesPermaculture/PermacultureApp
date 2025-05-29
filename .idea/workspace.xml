@@ -5,31 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80494b87-c0c4-4474-bcda-34724f5ecea4" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Images/Add _ plus icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/Comment icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/DM icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/Info icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/Setting icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/add account icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/admin setting icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/chat forum icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/folder 2 icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/folder 3 icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/folder icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/home icon transparent.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/location icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/log out icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/maginfying glass icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/marketplace icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/password icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/profile icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/report flag icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/schedule icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/send icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/spam icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/translation icon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/api/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/api/api.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/components/Menu.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Menu.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
