@@ -3,10 +3,7 @@ const router = express.Router();
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
-const authMiddleware = require("../middleware/auth");
 
-// Apply authentication to all routes in this router
-router.use(authMiddleware);
 
 // Logging middleware
 router.use((req, res, next) => {

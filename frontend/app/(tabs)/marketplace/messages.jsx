@@ -47,7 +47,7 @@ const ConversationsPage = () => {
         return (
             <TouchableOpacity
                 style={styles.convoItem}
-                onPress={() => router.push(`/messages/${item._id}`)}
+                onPress={() => router.push(`/marketplace/${item._id}`)}
             >
                 <Text style={styles.name}>
                     {otherUser?.username || "Unknown User"}
