@@ -25,9 +25,9 @@ const listingCard = ({ title, price, postedBy, listingId }) => {
                     <Text style={styles.price}>R{price}</Text>
                 </View>
                 <View style={styles.bottomRow}>
-                    <Text style={styles.username}>{postedBy}</Text>
+                    <Text style={styles.username}>{postedBy.username}</Text>
                     <TouchableOpacity
-                        onPress={() => router.push(`/report?user=${postedBy}`)}
+                        onPress={() => router.push(`/report?user=${postedBy._id}`)}
                     >
                         <Image
                             source={require("@/assets/images/report-flag.png")}
@@ -49,8 +49,9 @@ const styles = StyleSheet.create({
         padding: 5,
         margin: 10,
         flexShrink: 1,
-        width: width / 3 + 15,
-        height: 100,
+        width: width / 3 + 25,
+        height: 'auto',
+        minHeight: 100
     },
     title: {
         flex: -1,
