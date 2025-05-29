@@ -6,6 +6,9 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     StyleSheet,
+    Alert,
+    TextInput,
+    Modal
 } from "react-native";
 import API from "@/api/api";
 import { useRouter } from "expo-router";
@@ -15,6 +18,8 @@ const ConversationsPage = () => {
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false); // NEW STATE
+    const [targetUsername, setTargetUsername] = useState(""); // NEW STATE
     const router = useRouter();
 
     useEffect(() => {
@@ -62,15 +67,6 @@ const ConversationsPage = () => {
         );
     };
 
-    // if (loading) {
-    //     console.log("Still loading...");
-    //     return (
-    //         <View style={styles.container}>
-    //             <ActivityIndicator size="large" />
-    //         </View>
-    //     );
-    // }
-
     if (conversations.length === 0) {
         return (
             <View style={styles.container}>
@@ -86,6 +82,56 @@ const ConversationsPage = () => {
                 keyExtractor={(item) => item._id}
                 renderItem={renderItem}
             />
+
+            {/* NEW FLOATING BUTTON */}
+            <TouchableOpacity
+                style={styles.newChatButton}
+                onPress={() => setModalVisible(true)}
+            >
+                <Text style={styles.newChatText}>+</Text>
+            </TouchableOpacity>
+
+            {/* NEW MODAL INPUT */}
+            <Modal visible={modalVisible} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <Text style={{ fontSize: 18, marginBottom: 10 }}>Start New Chat</Text>
+                        <TextInput
+                            placeholder="Enter username"
+                            value={targetUsername}
+                            onChangeText={setTargetUsername}
+                            style={styles.input}
+                        />
+                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                            <TouchableOpacity
+                                onPress={async () => {
+                                    try {
+                                        if (!targetUsername.trim()) return;
+                                        const res = await API.post("/conversations", {
+                                            username: targetUsername.trim(),
+                                        });
+                                        setModalVisible(false);
+                                        setTargetUsername("");
+                                        router.push(`/marketplace/${res.data._id}`);
+                                    } catch (err) {
+                                        console.error("Error starting chat:", err);
+                                        Alert.alert("Error", "User not found or cannot start chat.");
+                                    }
+                                }}
+                                style={styles.modalButton}
+                            >
+                                <Text style={styles.modalButtonText}>Start</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => setModalVisible(false)}
+                                style={[styles.modalButton, { backgroundColor: "#aaa" }]}
+                            >
+                                <Text style={styles.modalButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -100,6 +146,54 @@ const styles = StyleSheet.create({
     name: { fontWeight: "bold", fontSize: 18 },
     message: { fontSize: 14, color: "#555" },
     timestamp: { fontSize: 12, color: "#888" },
+
+    // ADD THESE NEW STYLES
+    newChatButton: {
+        position: "absolute",
+        bottom: 30,
+        right: 30,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "#28a745",
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 5,
+    },
+    newChatText: {
+        color: "#fff",
+        fontSize: 30,
+        fontWeight: "bold",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalBox: {
+        width: "80%",
+        backgroundColor: "white",
+        borderRadius: 10,
+        padding: 20,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 5,
+        paddingHorizontal: 10,
+        marginBottom: 15,
+    },
+    modalButton: {
+        backgroundColor: "#28a745",
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+    },
+    modalButtonText: {
+        color: "white",
+        fontWeight: "bold",
+    },
 });
 
 export default ConversationsPage;

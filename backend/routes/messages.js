@@ -4,6 +4,8 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
 
+const mongoose = require("mongoose");
+const ObjectId = mongoose.Types.ObjectId;
 
 // Logging middleware
 router.use((req, res, next) => {
@@ -12,18 +14,13 @@ router.use((req, res, next) => {
 });
 
 
-const mongoose = require("mongoose");
-const ObjectId = mongoose.Types.ObjectId;
-
+// GET /conversations - Fetch user's conversations
 router.get("/conversations", async (req, res) => {
   try {
     const userId = new ObjectId(req.user._id);
-
     console.log("Looking for conversations with participant:", userId);
 
     let conversations = await Conversation.find({ participants: userId })
-
-
       .populate("participants", "username")
       .sort({ updatedAt: -1 });
 
@@ -44,26 +41,37 @@ router.get("/conversations", async (req, res) => {
   }
 });
 
-
-
 /**
  * POST /conversations
- * Create or fetch existing conversation with a recipient
+ * Create or fetch existing conversation with another user
  */
 router.post("/conversations", async (req, res) => {
-    try {
-        const { recipientUsername } = req.body;
-        const senderId = req.user._id;
+  try {
+    const { username } = req.body;
+    const senderId = req.user._id;
 
-    const recipient = await User.findOne({ username: recipientUsername });
-    if (!recipient) return res.status(404).json({ error: "Recipient not found" });
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    const recipient = await User.findOne({ username });
+    if (!recipient) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Prevent chatting with yourself
+    if (recipient._id.equals(senderId)) {
+      return res.status(400).json({ error: "Cannot start a chat with yourself" });
+    }
 
     let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, recipient._id] },
+      participants: { $all: [senderId, recipient._id], $size: 2 },
     });
 
     if (!conversation) {
-      conversation = new Conversation({ participants: [senderId, recipient._id] });
+      conversation = new Conversation({
+        participants: [senderId, recipient._id],
+      });
       await conversation.save();
     }
 
@@ -77,7 +85,6 @@ router.post("/conversations", async (req, res) => {
 
 /**
  * GET /conversations/:conversationId/messages
- * Return all messages in a specific conversation
  */
 router.get("/conversations/:conversationId/messages", async (req, res) => {
   try {
@@ -93,13 +100,12 @@ router.get("/conversations/:conversationId/messages", async (req, res) => {
 
 /**
  * POST /conversations/:conversationId/messages
- * Send a message in a specific conversation
  */
 router.post("/conversations/:conversationId/messages", async (req, res) => {
-    try {
-        const { text } = req.body;
-        const senderId = req.user._id;
-        const conversationId = req.params.conversationId;
+  try {
+    const { text } = req.body;
+    const senderId = req.user._id;
+    const conversationId = req.params.conversationId;
 
     const message = new Message({
       conversation: conversationId,
