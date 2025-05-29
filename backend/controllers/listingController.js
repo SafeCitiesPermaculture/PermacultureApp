@@ -67,4 +67,21 @@ const createListing = async (req, res) => {
     }
 };
 
-module.exports = { createListing };
+const getListings = async (req, res) => {
+    console.log("running server side getListings");
+    try{
+        const listings = await Listing.find().sort({ createdAt: -1 }).populate('postedBy', 'username');
+        res.status(200).json({
+            message: 'Listings retrieved successfully',
+            listings: listings
+        });
+    } catch (error) {
+        console.error("Error in getListings: ", error);
+        res.status(500).json({
+            message: "Failed to fetch listings.",
+            error: error.message
+        })
+    }
+};
+
+module.exports = { createListing, getListings };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -6,11 +6,15 @@ import {
     Image,
     StyleSheet,
     ScrollView,
+    ActivityIndicator,
+    RefreshControl
 } from "react-native";
 import AuthGuard from "@/components/AuthGuard";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/Colors";
 import ListingCard from "@/components/ListingCard";
+import API from "@/api/api";
+import { useFocusEffect } from "@react-navigation/native";
 
 const MarketplacePage = () => {
     const router = useRouter();
@@ -18,10 +22,41 @@ const MarketplacePage = () => {
     const chatButton = require("@/assets/images/chat-button.png");
     const postButton = require("@/assets/images/post-button.png");
 
+    const [listings, setListings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const getListings = useCallback(async () => {
+        console.log("Running clientside getListings");
+        setLoading(true);
+        setErrorMessage('');
+        try {
+            const response = await API.get('/listings/get');
+            setListings(response.data.listings || response.data);
+        } catch (error) {
+            console.error("Error fetching listings: ", error);
+            setErrorMessage('Failed to fetch listings. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            getListings();
+        }, [getListings])
+    );
+    
+    
+
     return (
         <AuthGuard>
             <View style={styles.header}>
-                <View style={{ flex: 1 }} />
+                <View style={{ flex: 1 , alignItems: 'center'}} >
+                    <TouchableOpacity onPress={() => router.push('/marketplace/my-listings')}>
+                        <Text style={{fontSize: 14, textAlignVertical: 'center'}}>My listings</Text>
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>Marketplace</Text>
                 </View>
@@ -36,22 +71,28 @@ const MarketplacePage = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            <ScrollView contentContainerStyle={styles.listingArea}>
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-                <ListingCard title="Carrots" price={120} postedBy="Param" />
-            </ScrollView>
+            
+            {loading ? (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size='large' color={Colors.greenRegular} />
+                </View>
+            ) : errorMessage ? (
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorMessage}>Error: {errorMessage}</Text>
+                    <TouchableOpacity onPress={getListings} style={styles.retryButton}>
+                        <Text>Retry</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={styles.listingArea}>
+                    <View style={styles.grid}>
+                    {
+                    listings.map((listing) => 
+                    <ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} />)
+                    }
+                    </View>
+                </ScrollView>
+            )}
 
             <TouchableOpacity
                 onPress={() => router.push("/marketplace/post")}
@@ -105,7 +146,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-around",
+        alignItems: 'flex-start'
     },
+    errorMessage: {
+        color: 'red',
+        fontSize: 20
+    },
+    centerContainer: {
+        alignItems: 'center'
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    }
 });
 
 export default MarketplacePage;
