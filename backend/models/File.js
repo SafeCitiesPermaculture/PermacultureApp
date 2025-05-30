@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const fileSchema = new mongoose.Schema({
     name: String,
-    driveFieldId: String,
+    driveFileId: String,
     driveLink: String,
     uploadedAt: { type: Date, default: Date.now },
 });

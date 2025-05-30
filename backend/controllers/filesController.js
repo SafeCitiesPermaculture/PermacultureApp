@@ -38,6 +38,7 @@ const handleUpload = async (req, res) => {
             fields: "id, webViewLink",
         });
 
+        //share with main safe cities gmail
         await drive.permissions.create({
             fileId: driveRes.data.id,
             requestBody: {
@@ -63,4 +64,49 @@ const handleUpload = async (req, res) => {
     }
 };
 
-module.exports = { handleUpload };
+//list all of the file metadatas in mongodb
+const listFiles = async (req, res) => {
+    try {
+        const files = await File.find().sort({ createdAt: -1 });
+        res.json({ success: true, files });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to list files" });
+    }
+};
+
+//retrieve a file from google drive
+const getFileById = async (req, res) => {
+    try {
+        //get from mongo
+        const fileRecord = await File.findById(req.params.id);
+        if (!fileRecord) {
+            return res.status(404).json({ error: "File not found in MongoDB" });
+        }
+
+        console.log(fileRecord);
+
+        //get the file from google
+        const driveRes = await drive.files.get(
+            {
+                fileId: fileRecord.driveFileId,
+                alt: "media",
+            },
+            { responseType: "stream" }
+        );
+
+        //set headers
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${fileRecord.name}"`
+        );
+        res.setHeader("Content-Type", "application/octet-stream");
+
+        driveRes.data.pipe(res);
+    } catch (err) {
+        console.error("Error downloading file from Drive:", err.message);
+        res.status(500).json({ error: "Failed to download file" });
+    }
+};
+
+module.exports = { handleUpload, listFiles, getFileById };
