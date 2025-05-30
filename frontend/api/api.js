@@ -44,6 +44,7 @@ API.interceptors.response.use(
     (res) => res,
     async (error) => {
         const originalRequest = error.config;
+        console.log("Error when sending request:", error);
         // Don't refresh if it's login or refresh token request
         if (
             originalRequest.url.includes("/login") ||
@@ -56,12 +57,15 @@ API.interceptors.response.use(
             originalRequest._retry = true;
             const refreshed = await tryRefreshToken();
             if (refreshed) {
+                console.log("Got new tokens");
                 return API(originalRequest);
             } else {
-                //await clearTokens();
+                console.log("Did not get new tokens");
+                await clearTokens();
                 return Promise.reject("Session expired. Please log in again.");
             }
         }
+        console.log("Didn't try again");
         return Promise.reject(error);
     }
 );
@@ -73,14 +77,15 @@ const tryRefreshToken = async () => {
 
     try {
         const res = await axios.post(`${BACKEND_URL}/auth/refresh`, {
-            token: tokens.refreshToken,
+            refreshToken: tokens.refreshToken,
         });
 
         const newAccessToken = res.data.accessToken;
         await storeTokens(newAccessToken, tokens.refreshToken);
 
         return true;
-    } catch {
+    } catch (err) {
+        console.log("Refresh failed:", err);
         return false;
     }
 };
