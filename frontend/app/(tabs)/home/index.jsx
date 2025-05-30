@@ -1,4 +1,5 @@
 //home screen page
+import { useRouter } from "expo-router";
 import React from "react";
 import {
     View,
@@ -14,6 +15,7 @@ import safeCitiesLogo from '@/assets/images/logo.png';
 import Menu from "@/components/Menu";
 import Colors from "@/constants/Colors.js";
 
+const router = useRouter();
 const { width } = Dimensions.get('window');
 const buttons = [
   {
