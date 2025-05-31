@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import colors from "@/constants/Colors.js";
+import { useRouter } from "expo-router";
 
 // Icon imports
 import homeIcon from "@/assets/images/home icon transparent.png";
@@ -11,32 +12,29 @@ import scheduleIcon from "@/assets/images/schedule icon.png";
 import profileIcon from "@/assets/images/profile icon.png";
 
 export default function Menu() {
+    const router = useRouter();
+
+        const menuItems = [
+            { label: "Home", icon: homeIcon, route: "/home" },
+            { label: "Marketplace", icon: marketIcon, route: "/marketplace" },
+            { label: "Info", icon: infoIcon, route: "/information" },
+            { label: "Chat", icon: chatIcon, route: "/chat" }, // optional
+            { label: "Schedule", icon: scheduleIcon, route: "/schedule" }, // optional
+            { label: "Profile", icon: profileIcon, route: "/profile" },
+        ];
+
     return (
         <View style={styles.bottomRectangle}>
-            <TouchableOpacity style={styles.menuItem}>
-                <Image source={homeIcon} style={styles.icon} />
-                <Text style={styles.label}>Home</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-                <Image source={marketIcon} style={styles.icon} />
-                <Text style={styles.label}>Marketplace</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-                <Image source={infoIcon} style={styles.icon} />
-                <Text style={styles.label}>Info</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-                <Image source={chatIcon} style={styles.icon} />
-                <Text style={styles.label}>Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-                <Image source={scheduleIcon} style={styles.icon} />
-                <Text style={styles.label}>Schedule</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
-                <Image source={profileIcon} style={styles.icon} />
-                <Text style={styles.label}>Profile</Text>
-            </TouchableOpacity>
+           {menuItems.map((item) => (
+              <TouchableOpacity
+                  key={item.label}
+                  style={styles.menuItem}
+                  onPress={() => router.push(item.route)}
+              >
+                  <Image source={item.icon} style={styles.icon} />
+                  <Text style={styles.label}>{item.label}</Text>
+              </TouchableOpacity>
+          ))}
         </View>
     );
 }

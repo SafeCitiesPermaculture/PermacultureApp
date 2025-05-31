@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
-const BACKEND_URL = "http://192.168.100.154:6000/api";
+const BACKEND_URL = "http://192.168.0.218:6000/api";
 
 //initliaze the API
 const API = axios.create({
@@ -96,6 +96,7 @@ const login = async (username, password) => {
         if (err.response && err.response.status === 401) {
             throw new Error("Invalid username or password");
         }
+        console.log(err);
         throw new Error("Login failed. Please try again later.");
     }
 };

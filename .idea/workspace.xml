@@ -6,7 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="80494b87-c0c4-4474-bcda-34724f5ecea4" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/api/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/api/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/_layout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/_layout.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/information/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/information/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/components/Menu.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Menu.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/constants/Colors.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/constants/Colors.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
