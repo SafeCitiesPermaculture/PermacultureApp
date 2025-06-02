@@ -13,13 +13,14 @@ import {
 import API from "@/api/api";
 import { useRouter } from "expo-router";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken.js";
+import socket from "@/utils/socket"; // NEW IMPORT
 
 const ConversationsPage = () => {
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userId, setUserId] = useState(null);
-    const [modalVisible, setModalVisible] = useState(false); // NEW STATE
-    const [targetUsername, setTargetUsername] = useState(""); // NEW STATE
+    const [modalVisible, setModalVisible] = useState(false);
+    const [targetUsername, setTargetUsername] = useState("");
     const router = useRouter();
 
     useEffect(() => {
@@ -27,8 +28,9 @@ const ConversationsPage = () => {
             try {
                 const uid = await getUserIdFromToken();
                 setUserId(uid);
+                socket.emit("joinUserRoom", uid); // ✅ JOIN user-specific socket room
 
-                const res = await API.get("/conversations"); // updated route
+                const res = await API.get("/conversations");
                 console.log("Fetched conversations:", res.data);
 
                 setConversations(res.data);
@@ -41,6 +43,29 @@ const ConversationsPage = () => {
 
         init();
     }, []);
+
+    // ✅ Listen for real-time conversation updates
+    useEffect(() => {
+        socket.on("conversationUpdated", (update) => {
+            console.log("📬 Received conversationUpdated event:", update); // ← ADD THIS
+
+            setConversations((prev) => {
+            const updated = prev.map((c) =>
+                c._id === update.conversationId
+                ? { ...c, lastMessage: update.lastMessage, updatedAt: update.updatedAt }
+                : c
+            );
+            return updated.sort(
+                (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+            );
+            });
+        });
+
+        return () => {
+            socket.off("conversationUpdated");
+        };
+        }, []);
+
 
     const getOtherUser = (participants) => {
         return participants.find((p) => p._id !== userId);
@@ -83,7 +108,7 @@ const ConversationsPage = () => {
                 renderItem={renderItem}
             />
 
-            {/* NEW FLOATING BUTTON */}
+            {/* FLOATING BUTTON */}
             <TouchableOpacity
                 style={styles.newChatButton}
                 onPress={() => setModalVisible(true)}
@@ -91,7 +116,7 @@ const ConversationsPage = () => {
                 <Text style={styles.newChatText}>+</Text>
             </TouchableOpacity>
 
-            {/* NEW MODAL INPUT */}
+            {/* MODAL INPUT */}
             <Modal visible={modalVisible} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalBox}>
@@ -147,7 +172,6 @@ const styles = StyleSheet.create({
     message: { fontSize: 14, color: "#555" },
     timestamp: { fontSize: 12, color: "#888" },
 
-    // ADD THESE NEW STYLES
     newChatButton: {
         position: "absolute",
         bottom: 30,

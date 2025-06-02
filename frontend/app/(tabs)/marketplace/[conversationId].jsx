@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import API from "@/api/api";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken";
+import socket from "@/utils/socket";
 
 const ConversationDetailPage = () => {
   const { conversationId } = useLocalSearchParams();
@@ -21,34 +22,97 @@ const ConversationDetailPage = () => {
   const flatListRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const uid = await getUserIdFromToken();
-      setUserId(uid);
-      try {
-        const res = await API.get(`/conversations/${conversationId}/messages`);
-        setMessages(res.data);
-      } catch (err) {
-        console.error("Failed to fetch messages", err);
+    let active = true;
+    let uid = null;
+
+    const handleReceiveMessage = (message) => {
+      console.log("called");
+      console.log("📥 Received message:", message);
+      if (!active) return;
+
+      setMessages((prev) => [...prev, message]);
+      scrollToBottom();
+
+      // Acknowledge delivery
+      if (uid) {
+        socket.emit("messageDelivered", {
+          messageId: message._id,
+          userId: uid,
+        });
       }
     };
-    fetchData();
+
+    const init = async () => {
+      uid = await getUserIdFromToken();
+      setUserId(uid);
+
+      socket.emit("joinConversation", conversationId);
+      console.log("📡 Joined conversation room:", conversationId);
+
+      const res = await API.get(`/conversations/${conversationId}/messages`);
+      setMessages(res.data);
+      scrollToBottom();
+
+      // ⚠️ Move the listener here to ensure it's registered AFTER userId
+      socket.on("receiveMessage", handleReceiveMessage);
+      console.log("After recieveMessage has been called");
+    };
+
+    init();
+
+    return () => {
+      active = false;
+      socket.off("receiveMessage", handleReceiveMessage);
+    };
   }, [conversationId]);
+
+
+
+
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
+
     try {
       const res = await API.post(`/conversations/${conversationId}/messages`, {
         text: input,
       });
-      setMessages((prev) => [...prev, res.data]);
+
+      const message = res.data;
+
+      setMessages((prev) => [...prev, message]);
+      scrollToBottom();
       setInput("");
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+
+      // ✅ Extract participant IDs from existing messages
+      const participantIds = [
+        message.sender._id,
+        ...new Set(
+          messages
+            .map((m) => m.sender._id)
+            .filter((id) => id !== message.sender._id)
+        ),
+      ];
+
+      socket.emit("sendMessage", {
+        conversationId,
+        message: {
+          ...message,
+          participants: participantIds,
+        },
+      });
     } catch (err) {
       console.error("Failed to send message", err);
     }
   };
+
+
 
   const renderItem = ({ item }) => (
     <View
