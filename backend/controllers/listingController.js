@@ -67,12 +67,11 @@ const createListing = async (req, res) => {
     }
 };
 
-const getListings = async (req, res) => {
-    console.log("running server side getListings");
+const getAllListings = async (req, res) => {
     try{
         const listings = await Listing.find().sort({ createdAt: -1 }).populate('postedBy', 'username');
         res.status(200).json({
-            message: 'Listings retrieved successfully',
+            message: 'Listings retrieved successfully.',
             listings: listings
         });
     } catch (error) {
@@ -80,8 +79,86 @@ const getListings = async (req, res) => {
         res.status(500).json({
             message: "Failed to fetch listings.",
             error: error.message
-        })
+        });
     }
 };
 
-module.exports = { createListing, getListings };
+const getMyListings = async (req, res) => {
+    // Verify user
+    if (!req.user || !req.user.isVerified) {
+        return res
+            .status(401)
+            .json({ message: "Unauthorized: User not authenticated." });
+    }
+
+    try{
+        const listings = await Listing.find({ postedBy: req.user._id }).sort({ createdAt: -1 });
+        res.status(200).json({
+            message: 'Listings retrieved successfully.',
+            listings: listings
+        });
+    } catch (error) {
+        console.error("Error in getMyListings: ", error);
+        res.status(500).json({
+            message: "Failed to fetch my listings.",
+            error: error.message
+        });
+    }
+};
+
+const getListing = async(req, res) => {
+    try {
+         // Validate user
+         if (!req.user || !req.user.isVerified){
+            return res.status(401).json({ message: "Unauthorized: User not authenticated."});
+        }
+
+        // Get listing
+        const id = req.params.id;
+        const listing = await Listing.findById(id).populate('postedBy', 'username');
+        if (!listing) {
+            return res.status(404).json({ message: "Listing not found." });
+        }
+
+        return res.status(200).json({ 
+            message: "Listing retrieved successfully.", 
+            listing: listing
+        });
+    } catch (error) {
+        console.error("Error in getListing: ", error);
+        res.status(500).json({
+            message: "Failed to get listing.",
+            error: error.message
+        });
+    }
+};
+
+const removeListing = async(req, res) => {
+    try {
+        // Validate user
+        if (!req.user || !req.user.isVerified){
+            return res.status(401).json({ message: "Unauthorized: User not authenticated."});
+        }
+        
+        const id = req.params.id;
+        const listing = await Listing.findById(id);
+        if (!listing) {
+            return res.status(404).json({ message: "Listing not found." });
+        }
+
+        if (listing.postedBy.toString() != req.user._id.toString()) {
+            return res.status(403).json({ message: "You cannot remove this listing." });
+        }
+
+        await Listing.findByIdAndDelete(id);
+        return res.status(200).json({ message:"Listing deleted." });
+    } catch (error) {
+        console.error("Error in removeListing: ", error);
+        res.status(500).json({
+            message: "Failed to delete listing.",
+            error: error.message
+        });
+    }
+};
+
+module.exports = { createListing, getAllListings, getMyListings, removeListing, getListing };
