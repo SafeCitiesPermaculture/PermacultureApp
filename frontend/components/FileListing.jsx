@@ -2,27 +2,43 @@ import Colors from "@/constants/Colors";
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
-const FileListing = ({ file, displayFile, deleteFile }) => {
+const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
     return (
-        <View style={styles.container}>
-            <View style={styles.nameContainer}>
-                <Text style={styles.nameText}>{file.name}</Text>
-            </View>
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={styles.displayButton}
-                    onPress={() => displayFile(file._id)}
-                >
-                    <Text style={styles.displayButtonText}>Download File</Text>
+        <>
+            {!file.isFolder ? (
+                <View style={styles.container}>
+                    <View style={styles.nameContainer}>
+                        <Text style={styles.nameText}>{file.name}</Text>
+                    </View>
+                    {!file.isFolder && (
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity
+                                style={styles.displayButton}
+                                onPress={() => displayFile(file._id)}
+                            >
+                                <Text style={styles.displayButtonText}>
+                                    Download File
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.deleteButton}
+                                onPress={() => deleteFile(file._id)}
+                            >
+                                <Text style={styles.deleteButtonText}>
+                                    Delete File
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+            ) : (
+                <TouchableOpacity onPress={() => enterFolder(file)}>
+                    <View style={styles.folderContainer}>
+                        <Text style={styles.nameText}>{file.name}</Text>
+                    </View>
                 </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => deleteFile(file._id)}
-                >
-                    <Text style={styles.deleteButtonText}>Delete File</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+            )}
+        </>
     );
 };
 
@@ -74,6 +90,16 @@ const styles = StyleSheet.create({
 
     deleteButtonText: {
         fontSize: 15,
+    },
+
+    folderContainer: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-evenly",
+        backgroundColor: Colors.greenButton,
+        margin: 10,
+        height: 50,
     },
 });
 

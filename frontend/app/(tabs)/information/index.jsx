@@ -18,6 +18,8 @@ import FileListing from "@/components/FileListing";
 const InformationPage = () => {
     const [uploadedFile, setUploadedFile] = useState(null);
     const [fileList, setFileList] = useState([]);
+    const [currentFolder, setCurrentFolder] = useState(null);
+    const [folderStack, setFolderStack] = useState([]);
 
     //get the file from the file picker
     const pickFile = async () => {
@@ -61,6 +63,8 @@ const InformationPage = () => {
             name: file.name,
             type: file.mimeType,
         });
+
+        formData.append("parent", currentFolder?._id || null);
 
         try {
             const res = await API.post("/files/upload", formData, {
@@ -136,16 +140,46 @@ const InformationPage = () => {
     //populate file list
     const getFileList = async () => {
         try {
-            const res = await API.post("/files/list");
-            setFileList(res.data.files);
+            const res = await API.get("/files/list", {
+                params: {
+                    parent: currentFolder?._id || null,
+                },
+            });
+            //sort files
+            setFileList(
+                res.data.files.sort((a, b) => {
+                    //folders should appear first
+                    if (a.isFolder !== b.isFolder) {
+                        return a.isFolder ? -1 : 1;
+                    }
+
+                    //Alphabetical tie breaker
+                    return a.name.localeCompare(b.name);
+                })
+            );
         } catch (err) {
             console.log("Error populating list", err);
         }
     };
 
+    //navigate into a folder
+    const enterFolder = (folder) => {
+        setCurrentFolder(folder);
+        setFolderStack((prevStack) => [...prevStack, folder]);
+    };
+
+    //go back to the parent folder
+    const exitFolder = () => {
+        if (folderStack.length === 0) return;
+        setCurrentFolder(
+            folderStack.length > 1 ? folderStack[folderStack.length - 2] : null
+        );
+        setFolderStack((prevStack) => prevStack.slice(0, -1));
+    };
+
     useEffect(() => {
         getFileList();
-    }, []);
+    }, [currentFolder]);
 
     return (
         <View style={styles.container}>
@@ -165,6 +199,13 @@ const InformationPage = () => {
                     Current File:{" "}
                     {uploadedFile ? uploadedFile.assets[0].name : "N/A"}
                 </Text>
+                <Text style={styles.folderText}>
+                    Current Folder:{" "}
+                    {currentFolder ? currentFolder.name : "Root"}
+                </Text>
+                <TouchableOpacity onPress={exitFolder}>
+                    <Text style={styles.exitButtonText}>Exit Folder</Text>
+                </TouchableOpacity>
             </View>
             <ScrollView style={styles.fileListingContainer}>
                 {fileList.length > 0 ? (
@@ -174,6 +215,7 @@ const InformationPage = () => {
                             file={item}
                             displayFile={displayFile}
                             deleteFile={deleteFile}
+                            enterFolder={enterFolder}
                         />
                     ))
                 ) : (
@@ -213,7 +255,7 @@ const styles = StyleSheet.create({
 
     fileContainer: {
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         padding: 10,
@@ -222,7 +264,18 @@ const styles = StyleSheet.create({
     },
 
     fileText: {
-        fontSize: 25,
+        fontSize: 18,
+    },
+
+    folderText: {
+        fontSize: 18,
+    },
+
+    exitButtonText: {
+        fontSize: 18,
+        backgroundColor: Colors.errorRed,
+        padding: 5,
+        borderRadius: 5,
     },
 
     fileListingContainer: {

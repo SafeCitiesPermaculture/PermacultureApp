@@ -8,8 +8,9 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router.post("/upload", upload.single("file"), filesController.handleUpload);
-router.post("/list", filesController.listFiles);
+router.get("/list", filesController.listFiles);
 router.post("/:id", filesController.getFileById);
 router.delete("/delete/:id", filesController.deleteFile);
+router.post("/folder/create", filesController.createFolder);
 
 module.exports = router;

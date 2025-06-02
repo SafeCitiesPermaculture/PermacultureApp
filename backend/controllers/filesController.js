@@ -16,10 +16,16 @@ const drive = google.drive({ version: "v3", auth });
 //Upload a file to google drive
 const handleUpload = async (req, res) => {
     try {
-        // console.log("Received file", req.file);
+        //get parent folder
+        const { parent } = req.body;
+        const parentFolder = await File.findById(parent);
 
+        //construct metadata
         const fileMetadata = {
             name: req.file.originalname,
+            parents: parentFolder?.driveFileId
+                ? [parentFolder.driveFileId]
+                : [],
         };
 
         const bufferStream = new Readable();
@@ -53,6 +59,7 @@ const handleUpload = async (req, res) => {
             name: req.file.originalname,
             driveFileId: driveRes.data.id,
             driveLink: driveRes.data.webViewLink,
+            parent: parentFolder?._id || null,
         });
 
         console.log("Uploaded successfully:", driveRes);
@@ -67,7 +74,16 @@ const handleUpload = async (req, res) => {
 //list all of the file metadatas in mongodb
 const listFiles = async (req, res) => {
     try {
-        const files = await File.find().sort({ createdAt: -1 });
+        const { parent } = req.query;
+        const parentFolder = await File.findById(parent);
+
+        console.log("Parent Info:", parentFolder);
+
+        const files = await File.find({
+            parent: parentFolder?._id || null,
+        }).sort({
+            createdAt: -1,
+        });
         res.json({ success: true, files });
     } catch (err) {
         console.error(err);
@@ -134,4 +150,57 @@ const deleteFile = async (req, res) => {
     }
 };
 
-module.exports = { handleUpload, listFiles, getFileById, deleteFile };
+const createFolder = async (req, res) => {
+    try {
+        //get arguments
+        const { name, parent } = req.body;
+        const parentFolder = await File.findById(parent);
+
+        //construct metadata
+        const folderMetadata = {
+            name,
+            mimeType: "application/vnd.google-apps.folder",
+            parents: parentFolder?.driveFileId
+                ? [parentFolder.driveFileId]
+                : [],
+        };
+
+        //create folder in drive
+        const folder = await drive.files.create({
+            resource: folderMetadata,
+            fields: "id, webViewLink",
+        });
+
+        //share with Safe Cities account
+        await drive.permissions.create({
+            fileId: folder.data.id,
+            requestBody: {
+                type: "user",
+                role: "writer",
+                emailAddress: "safecitiespermaculture@gmail.com",
+            },
+        });
+
+        //save to mongo
+        const savedFolder = await File.create({
+            name,
+            driveFileId: folder.data.id,
+            driveLink: folder.data.webViewLink,
+            isFolder: true,
+            parent: parentFolder?._id || null,
+        });
+
+        res.json({ success: true, folder: savedFolder });
+    } catch (err) {
+        console.error("Folder creation error:", err);
+        res.status(500).json({ error: "Failed to create folder" });
+    }
+};
+
+module.exports = {
+    handleUpload,
+    listFiles,
+    getFileById,
+    deleteFile,
+    createFolder,
+};
