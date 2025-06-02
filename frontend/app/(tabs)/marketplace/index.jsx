@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -27,7 +27,6 @@ const MarketplacePage = () => {
     const [errorMessage, setErrorMessage] = useState('');
 
     const getListings = useCallback(async () => {
-        console.log("Running clientside getListings");
         setLoading(true);
         setErrorMessage('');
         try {
@@ -58,7 +57,7 @@ const MarketplacePage = () => {
                     </TouchableOpacity>
                 </View>
                 <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Marketplace</Text>
+                    <Text style={styles.title}>All Listings</Text>
                 </View>
                 <View style={styles.chatContainer}>
                     <TouchableOpacity

@@ -8,10 +8,11 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
+import API from "@/api/api";
 
 const { width, height } = Dimensions.get("window");
 
-const ListingCard = ({ title, price, postedBy, listingId }) => {
+const ListingCard = ({ title, price, postedBy, listingId, onDelete }) => {
     const router = useRouter();
 
     return (
@@ -24,12 +25,12 @@ const ListingCard = ({ title, price, postedBy, listingId }) => {
                     <Text style={styles.price}>R{price}</Text>
                 </View>
                 <View style={styles.bottomRow}>
-                    <Text style={styles.username}>{postedBy.username}</Text>
+                    <Text style={styles.username}>{postedBy}</Text>
                     <TouchableOpacity
-                        onPress={() => router.push(`/report/${postedBy._id}`)}
+                        onPress={onDelete}
                     >
                         <Image
-                            source={require("@/assets/images/report-flag.png")}
+                            source={require("@/assets/images/trash-can.png")}
                             style={{
                                 height: 15,
                                 width: 15,
