@@ -109,4 +109,29 @@ const getFileById = async (req, res) => {
     }
 };
 
-module.exports = { handleUpload, listFiles, getFileById };
+const deleteFile = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        //find file in mongo
+        const file = await File.findById(id);
+        if (!file) {
+            return res.status(404).json({ error: "File not found in MongoDB" });
+        }
+
+        //delete from google drive
+        await drive.files.delete({ fileId: file.driveFileId });
+
+        //delete from mongo
+        await File.findByIdAndDelete(id);
+
+        res.status(200).json({
+            message: "File deleted from Google Drive and MongoDB",
+        });
+    } catch (err) {
+        console.error("Delete error:", err.message);
+        res.status(500).json({ error: "Failed to delete file" });
+    }
+};
+
+module.exports = { handleUpload, listFiles, getFileById, deleteFile };

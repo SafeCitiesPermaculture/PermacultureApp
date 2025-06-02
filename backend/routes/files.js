@@ -10,5 +10,6 @@ const upload = multer({ storage });
 router.post("/upload", upload.single("file"), filesController.handleUpload);
 router.post("/list", filesController.listFiles);
 router.post("/:id", filesController.getFileById);
+router.delete("/delete/:id", filesController.deleteFile);
 
 module.exports = router;
