@@ -12,6 +12,7 @@ import AuthGuard from "@/components/AuthGuard";
 import { AuthContext } from "@/context/AuthContext";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
+import { useRouter } from "expo-router";
 
 const PostListingPage = () => {
     const [title, setTitle] = useState("");
@@ -21,6 +22,7 @@ const PostListingPage = () => {
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const { userData, isAuthenticated } = useContext(AuthContext);
+    const router = useRouter();
 
     const handlePriceChange = (newPrice) => {
         const cleanedPrice = newPrice.replace(/[^0-9]/g, "");
@@ -77,6 +79,7 @@ const PostListingPage = () => {
             setPrice("");
             setLocation("");
             setDescription("");
+            setTimeout(() => router.dismiss(), 1500);
         } catch (error) {
             console.error("Error creating listing: ", error);
 
