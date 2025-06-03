@@ -26,8 +26,7 @@ const ConversationDetailPage = () => {
     let uid = null;
 
     const handleReceiveMessage = (message) => {
-      console.log("called");
-      console.log("📥 Received message:", message);
+      console.log("Received message:", message);
       if (!active) return;
 
       setMessages((prev) => [...prev, message]);
@@ -47,7 +46,7 @@ const ConversationDetailPage = () => {
       setUserId(uid);
 
       socket.emit("joinConversation", conversationId);
-      console.log("📡 Joined conversation room:", conversationId);
+      console.log("Joined conversation room:", conversationId);
 
       const res = await API.get(`/conversations/${conversationId}/messages`);
       setMessages(res.data);
@@ -55,7 +54,6 @@ const ConversationDetailPage = () => {
 
       // ⚠️ Move the listener here to ensure it's registered AFTER userId
       socket.on("receiveMessage", handleReceiveMessage);
-      console.log("After recieveMessage has been called");
     };
 
     init();
@@ -90,7 +88,7 @@ const ConversationDetailPage = () => {
       scrollToBottom();
       setInput("");
 
-      // ✅ Extract participant IDs from existing messages
+      // Extract participant IDs from existing messages
       const participantIds = [
         message.sender._id,
         ...new Set(

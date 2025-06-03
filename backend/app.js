@@ -54,13 +54,13 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // ✅ Join user-specific room
+  // Join user-specific room
   socket.on("joinUserRoom", (userId) => {
     socket.join(userId);
     console.log(`Socket ${socket.id} joined user room: ${userId}`);
   });
 
-  // ✅ Join conversation room
+  // Join conversation room
   socket.on("joinConversation", (conversationId) => {
     socket.join(conversationId);
     console.log(`Socket ${socket.id} joined conversation room: ${conversationId}`);
@@ -73,7 +73,7 @@ io.on("connection", (socket) => {
     // Broadcast message to others in the conversation room
     socket.to(conversationId).emit("receiveMessage", message);
 
-    // ✅ NEW: Emit conversation preview update to all participants' user rooms
+    // Emit conversation preview update to all participants' user rooms
     if (Array.isArray(message.participants)) {
       message.participants.forEach((userId) => {
         io.to(userId).emit("conversationUpdated", {
@@ -81,21 +81,20 @@ io.on("connection", (socket) => {
           lastMessage: message.text,
           updatedAt: message.createdAt,
         });
-        console.log(`📤 Sent conversationUpdated to user room: ${userId}`);
       });
     } else {
-      console.warn("⚠️ No participants array in message:", message);
+      console.warn("No participants array in message:", message);
     }
   });
 
   socket.on("messageDelivered", async ({ messageId, userId }) => {
     try {
       await Message.findByIdAndUpdate(messageId, {
-        $addToSet: { deliveredTo: userId }, // ✅ no duplicates
+        $addToSet: { deliveredTo: userId },
       });
-      console.log(`📬 Marked message ${messageId} as delivered to user ${userId}`);
+      console.log(`Marked message ${messageId} as delivered to user ${userId}`);
     } catch (err) {
-      console.error("❌ Failed to mark as delivered:", err);
+      console.error("Failed to mark as delivered:", err);
     }
   });
 

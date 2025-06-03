@@ -28,7 +28,7 @@ const ConversationsPage = () => {
             try {
                 const uid = await getUserIdFromToken();
                 setUserId(uid);
-                socket.emit("joinUserRoom", uid); // ✅ JOIN user-specific socket room
+                socket.emit("joinUserRoom", uid); // Join user-specific socket room
 
                 const res = await API.get("/conversations");
                 console.log("Fetched conversations:", res.data);
@@ -44,10 +44,10 @@ const ConversationsPage = () => {
         init();
     }, []);
 
-    // ✅ Listen for real-time conversation updates
+    // Listen for real-time conversation updates
     useEffect(() => {
         socket.on("conversationUpdated", (update) => {
-            console.log("📬 Received conversationUpdated event:", update); // ← ADD THIS
+            console.log("Received conversationUpdated event:", update);
 
             setConversations((prev) => {
             const updated = prev.map((c) =>
