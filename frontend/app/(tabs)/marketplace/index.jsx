@@ -7,7 +7,6 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
-    RefreshControl
 } from "react-native";
 import AuthGuard from "@/components/AuthGuard";
 import { useRouter } from "expo-router";

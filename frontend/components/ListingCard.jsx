@@ -9,7 +9,7 @@ import {
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const ListingCard = ({ title, price, postedBy, listingId }) => {
     const router = useRouter();

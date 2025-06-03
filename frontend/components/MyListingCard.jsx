@@ -8,9 +8,8 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
-import API from "@/api/api";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const ListingCard = ({ title, price, postedBy, listingId, onDelete }) => {
     const router = useRouter();
