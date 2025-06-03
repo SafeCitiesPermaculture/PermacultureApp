@@ -14,7 +14,6 @@ const ListingPage = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [isOwner, setIsOwner] = useState(false);
     const [buttonFunction, setButtonFunction] = useState(null);
-    const [imageSource, setImageSource] = useState(null);
     const { userData } = useContext(AuthContext);
     const router = useRouter();
 
@@ -30,23 +29,24 @@ const ListingPage = () => {
 
         try {
             const response = await API.get(`/listings/get/${listingId}`);
-            setListing(response.data.listing);
-            console.log("Listing:", response.data.listing);
-            setIsOwner(listing?.postedBy._id.toString() === userData._id.toString());
-            setImageSource(isOwner ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png"));
+            const tempListing = response.data.listing;
+            setListing(tempListing);
+            //console.log("Listing:", response.data.listing.postedBy._id);
+            //console.log("User:", userData._id);
+            if (tempListing && userData) {
+                setIsOwner(tempListing.postedBy._id.toString() === userData._id.toString());
+            }
         } catch (error) {
             console.error("Error fetching listing details:", error);
             setErrorMessage(error.message);
         } finally {
             setLoading(false);
         }
-    }, [listingId]);
+    }, [listingId, userData]);
 
     useEffect(() => {
         getListingDetails();
     }, [getListingDetails]);
-
-
     
     const deleteListing = useCallback(async () => {
         setLoading(true);
@@ -65,15 +65,18 @@ const ListingPage = () => {
         router.push('/report');
     }, [router]);
 
+    const isAdmin = userData.userRole === 'admin';
+    const imageSource = isOwner || isAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
+
     useEffect(() => {
-        if (isOwner) {
+        if (isOwner || isAdmin) {
             setButtonFunction(() => deleteListing);
         } else {
             setButtonFunction(() => reportListing);
         }
-    }, [isOwner, deleteListing, reportListing]);
+    }, [isOwner, isAdmin, deleteListing, reportListing]);
     
-
+    
     return (
         <AuthGuard>
             <ScrollView>
