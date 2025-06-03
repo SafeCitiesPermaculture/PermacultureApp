@@ -6,7 +6,7 @@ const makeReport = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: User must be logged in to submit a report." });
         }
         
-        console.log(req.user);
+        
 
         const { reportedUsername, reportedByUsername, description } = req.body;
 
@@ -16,6 +16,10 @@ const makeReport = async (req, res) => {
 
         if (!reportedByUsername.trim()) {
             return res.status(400).json({ message: "Username of reporter is required." });
+        }
+
+        if(reportedUsername == reportedByUsername) {
+            return res.status(401).json({ message: "User cannot report themself" });
         }
 
         if(!description.trim()) {
@@ -53,4 +57,18 @@ const makeReport = async (req, res) => {
     }
 };
 
-module.exports = { makeReport };
+const getAllReports = async (req, res) => {
+    try {
+        if (req.user.userRole !== 'admin') {
+            return res.status(401).json({ message: "Unauthorized: Only admins are permitted to see reports" });
+        }
+
+        const reports = await Report.find().sort({ createdAt: 1 });
+        res.status(200).json({ message: "Reports fetched successfully.", reports: reports });
+    } catch (error) {
+        console.error("Error in getAllReports:", error);
+        res.status(500).json({ message: "Error retrieving listings", error: error.message });
+    }
+};
+
+module.exports = { makeReport, getAllReports };

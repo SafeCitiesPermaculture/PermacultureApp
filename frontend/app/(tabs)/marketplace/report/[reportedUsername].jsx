@@ -31,7 +31,7 @@ const reportPage = () => {
                 description: description
             };
 
-            const response = await API.post('/report', reportData);
+            const response = await API.post('/reports', reportData);
             setMessage("Report successfully created.");
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {

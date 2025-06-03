@@ -38,7 +38,7 @@ app.get("/api/protected", (req, res) => {
 });
 app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
-app.use("/api/report", reportRoutes);
+app.use("/api/reports", reportRoutes);
 
 //admin routes
 app.use(adminAuthMiddleware);
