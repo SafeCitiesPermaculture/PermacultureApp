@@ -61,6 +61,27 @@ const ListingPage = () => {
         }
     }, [listingId, router]);
 
+    const handleSendMessage = async () => {
+        try {
+            const recipientUsername = listing?.postedBy?.username;
+            if (!recipientUsername || recipientUsername === userData?.username) {
+                alert("Cannot message yourself.");
+                return;
+            }
+
+            const response = await API.post('/conversations', {
+                username: recipientUsername
+            });
+
+            const conversationId = response.data._id;
+            router.push(`/marketplace/${conversationId}`);
+        } catch (error) {
+            console.error("Failed to initiate conversation:", error);
+            setErrorMessage("Failed to send message.");
+        }
+    };
+
+
     const reportListing = useCallback(() => {
         router.push('/report');
     }, [router]);
@@ -101,7 +122,7 @@ const ListingPage = () => {
                     <Text style={styles.location}>{listing.location}</Text>
                 </View>
                 <View style={styles.row}>
-                    <TouchableOpacity style={{flexDirection: 'row'}}>
+                    <TouchableOpacity onPress={handleSendMessage} style={{flexDirection: 'row'}}>
                         <Image source={require("@/assets/images/send-message.png")} style={styles.image} />
                         <Text style={styles.sendMessage}>Send message</Text>
                     </TouchableOpacity>
