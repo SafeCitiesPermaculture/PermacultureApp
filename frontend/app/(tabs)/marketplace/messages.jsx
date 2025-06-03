@@ -86,7 +86,15 @@ const ConversationsPage = () => {
                     {item.lastMessage || "No messages yet"}
                 </Text>
                 <Text style={styles.timestamp}>
-                    {new Date(item.updatedAt).toLocaleString()}
+                    {new Date(item.updatedAt).toLocaleString("en-GB", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                        })
+                    }
                 </Text>
             </TouchableOpacity>
         );

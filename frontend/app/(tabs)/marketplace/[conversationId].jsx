@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState, useRef } from "react";
+import { useLocalSearchParams, useNavigation  } from "expo-router";
+import { useEffect, useState, useRef, useLayoutEffect  } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ const ConversationDetailPage = () => {
   const [input, setInput] = useState("");
   const [userId, setUserId] = useState(null);
   const flatListRef = useRef(null);
+  const navigation = useNavigation();
+  const [otherUser, setOtherUser] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -52,7 +54,12 @@ const ConversationDetailPage = () => {
       setMessages(res.data);
       scrollToBottom();
 
-      // ⚠️ Move the listener here to ensure it's registered AFTER userId
+      const convoRes = await API.get(`/conversations/${conversationId}`);
+      const participants = convoRes.data.participants;
+      const other = participants.find((p) => p._id !== uid);
+      if (other) setOtherUser(other);
+
+
       socket.on("receiveMessage", handleReceiveMessage);
     };
 
@@ -64,6 +71,11 @@ const ConversationDetailPage = () => {
     };
   }, [conversationId]);
 
+  useLayoutEffect(() => {
+    if (otherUser?.username) {
+      navigation.setOptions({ title: otherUser.username });
+    }
+  }, [otherUser]);
 
 
 
@@ -121,7 +133,11 @@ const ConversationDetailPage = () => {
     >
       <Text>{item.text}</Text>
       <Text style={styles.timestamp}>
-        {new Date(item.createdAt).toLocaleTimeString()}
+        {new Date(item.updatedAt).toLocaleString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}
       </Text>
     </View>
   );

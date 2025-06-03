@@ -98,9 +98,23 @@ router.get("/conversations/:conversationId/messages", async (req, res) => {
   }
 });
 
-/**
- * POST /conversations/:conversationId/messages
- */
+router.get("/conversations/:conversationId", async (req, res) => {
+  try {
+    const convo = await Conversation.findById(req.params.conversationId)
+      .populate("participants", "username");
+
+    if (!convo) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    res.json(convo);
+  } catch (err) {
+    console.error("Error fetching conversation:", err);
+    res.status(500).json({ error: "Failed to fetch conversation" });
+  }
+});
+
+ // POST /conversations/:conversationId/messages
 router.post("/conversations/:conversationId/messages", async (req, res) => {
   try {
     const { text } = req.body;
