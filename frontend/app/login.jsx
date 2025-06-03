@@ -9,12 +9,14 @@ import {
     TouchableOpacity,
 } from "react-native";
 import Colors from "@/constants/Colors";
+import { useLoading } from "@/context/LoadingContext";
 
 const LoginPage = () => {
     const router = useRouter();
 
     //access the login function from Auth
     const { login } = useContext(AuthContext);
+    const { showLoading, hideLoading } = useLoading();
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -22,9 +24,12 @@ const LoginPage = () => {
     //handle submit
     const onSubmit = async () => {
         try {
+            showLoading();
             await login(username, password);
         } catch (err) {
             console.log("Login failed:", err);
+        } finally {
+            hideLoading();
         }
     };
 

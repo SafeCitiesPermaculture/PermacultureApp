@@ -1,35 +1,26 @@
+import React from "react";
 import { Tabs } from "expo-router";
-import Colors from "@/constants/Colors";
 import AuthGuard from "@/components/AuthGuard";
+import Menu from "@/components/Menu";
 
 /**
  * Sets up navigation and Auth for all pages
  */
-const TabLayout = () => {
+export default function TabLayout() {
     return (
         <AuthGuard>
             <Tabs
                 screenOptions={{
-                    tabBarStyle: {
-                        backgroundColor: Colors.menuBrown,
-                    },
+                    headerShown: false,
                 }}
+                tabBar={(props) => <Menu {...props} />} // Spread props to ensure proper tab behavior
             >
-                <Tabs.Screen
-                    name="home"
-                    options={{ title: "Home", headerShown: false }}
-                />
-                <Tabs.Screen
-                    name="marketplace"
-                    options={{ title: "Marketplace", headerShown: false }}
-                />
-                <Tabs.Screen
-                    name="profile"
-                    options={{ title: "Profile", headerShown: false }}
-                />
+                <Tabs.Screen name="home" />
+                <Tabs.Screen name="information" />
+                <Tabs.Screen name="marketplace" />
+                <Tabs.Screen name="profile" />
+                <Tabs.Screen name="schedule" />
             </Tabs>
         </AuthGuard>
     );
-};
-
-export default TabLayout;
+}
