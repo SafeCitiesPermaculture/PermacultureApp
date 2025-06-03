@@ -27,6 +27,7 @@ const ConversationDetailPage = () => {
     let active = true;
     let uid = null;
 
+    console.log("🔌 Socket connected?", socket.connected, "ID:", socket.id);
     const handleReceiveMessage = (message) => {
       console.log("Received message:", message);
       if (!active) return;
@@ -96,29 +97,30 @@ const ConversationDetailPage = () => {
 
       const message = res.data;
 
-      setMessages((prev) => [...prev, message]);
-      scrollToBottom();
-      setInput("");
-
-      // Extract participant IDs from existing messages
-      const participantIds = [
+      // extract participant IDs from current messages
+      const participantIds = new Set([
         message.sender._id,
-        ...new Set(
-          messages
-            .map((m) => m.sender._id)
-            .filter((id) => id !== message.sender._id)
-        ),
-      ];
+        ...messages.map((m) => m.sender._id),
+      ]);
 
-      socket.emit("sendMessage", {
+      const emitPayload = {
         conversationId,
         message: {
           ...message,
-          participants: participantIds,
+          participants: [...participantIds],
         },
-      });
+      };
+
+      console.log("📡 Emitting sendMessage socket event with:", emitPayload);
+
+      // 🔥 EMIT SOCKET EVENT
+      socket.emit("sendMessage", emitPayload);
+
+      setMessages((prev) => [...prev, message]);
+      scrollToBottom();
+      setInput("");
     } catch (err) {
-      console.error("Failed to send message", err);
+      console.error("❌ Failed to send message", err);
     }
   };
 
@@ -154,6 +156,7 @@ const ConversationDetailPage = () => {
         keyExtractor={(item) => item._id}
         renderItem={renderItem}
         contentContainerStyle={styles.messageList}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
       <View style={styles.inputContainer}>
         <TextInput
