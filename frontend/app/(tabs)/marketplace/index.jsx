@@ -23,17 +23,17 @@ const MarketplacePage = () => {
 
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState("");
 
     const getListings = useCallback(async () => {
         setLoading(true);
-        setErrorMessage('');
+        setErrorMessage("");
         try {
-            const response = await API.get('/listings/get');
+            const response = await API.get("/listings/get");
             setListings(response.data.listings || response.data);
         } catch (error) {
             console.error("Error fetching listings: ", error);
-            setErrorMessage('Failed to fetch listings. Please try again.');
+            setErrorMessage("Failed to fetch listings. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -44,15 +44,22 @@ const MarketplacePage = () => {
             getListings();
         }, [getListings])
     );
-    
-    
 
     return (
         <AuthGuard>
             <View style={styles.header}>
-                <View style={{ flex: 1 , alignItems: 'center'}} >
-                    <TouchableOpacity onPress={() => router.push('/marketplace/my-listings')}>
-                        <Text style={{fontSize: 14, textAlignVertical: 'center'}}>My listings</Text>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                    <TouchableOpacity
+                        onPress={() => router.push("/marketplace/my-listings")}
+                    >
+                        <Text
+                            style={{
+                                fontSize: 14,
+                                textAlignVertical: "center",
+                            }}
+                        >
+                            My listings
+                        </Text>
                     </TouchableOpacity>
                 </View>
                 <View style={styles.titleContainer}>
@@ -69,25 +76,38 @@ const MarketplacePage = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            
+
             {loading ? (
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size='large' color={Colors.greenRegular} />
+                    <ActivityIndicator
+                        size="large"
+                        color={Colors.greenRegular}
+                    />
                 </View>
             ) : errorMessage ? (
                 <View style={styles.centerContainer}>
-                    <Text style={styles.errorMessage}>Error: {errorMessage}</Text>
-                    <TouchableOpacity onPress={getListings} style={styles.retryButton}>
+                    <Text style={styles.errorMessage}>
+                        Error: {errorMessage}
+                    </Text>
+                    <TouchableOpacity
+                        onPress={getListings}
+                        style={styles.retryButton}
+                    >
                         <Text>Retry</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.listingArea}>
                     <View style={styles.grid}>
-                    {
-                    listings.map((listing) => 
-                    <ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} />)
-                    }
+                        {listings.map((listing) => (
+                            <ListingCard
+                                title={listing.title}
+                                price={listing.price}
+                                postedBy={listing.postedBy}
+                                listingId={listing._id}
+                                key={listing._id}
+                            />
+                        ))}
                     </View>
                 </ScrollView>
             )}
@@ -131,7 +151,7 @@ const styles = StyleSheet.create({
     },
     postButton: {
         position: "absolute",
-        bottom: 20,
+        bottom: 100,
         right: 20,
         backgroundColor: "transparent",
         width: 50,
@@ -144,20 +164,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-around",
-        alignItems: 'flex-start'
+        alignItems: "flex-start",
     },
     errorMessage: {
-        color: 'red',
-        fontSize: 20
+        color: "red",
+        fontSize: 20,
     },
     centerContainer: {
-        alignItems: 'center'
+        alignItems: "center",
     },
     grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    }
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+    },
 });
 
 export default MarketplacePage;
