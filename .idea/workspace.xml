@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80494b87-c0c4-4474-bcda-34724f5ecea4" name="Changes" comment="fixed menu bar, changed color for info tab and then did formating for info page">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+    <list default="true" id="80494b87-c0c4-4474-bcda-34724f5ecea4" name="Changes" comment="finalized frontend UI for information page">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/api/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/api/api.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/_layout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/_layout.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/home/index.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/(tabs)/information/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/(tabs)/information/index.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/components/Menu.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Menu.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -85,7 +81,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748731573445</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="finalized frontend UI for information page">
+      <option name="closed" value="true" />
+      <created>1748939873806</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1748939873806</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -101,6 +105,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="fixed menu bar, changed color for info tab and then did formating for info page" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed menu bar, changed color for info tab and then did formating for info page" />
+    <MESSAGE value="finalized frontend UI for information page" />
+    <option name="LAST_COMMIT_MESSAGE" value="finalized frontend UI for information page" />
   </component>
 </project>

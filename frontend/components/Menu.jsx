@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import colors from "@/constants/Colors.js";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 
 // Icon imports
 import homeIcon from "@/assets/images/home icon transparent.png";
@@ -11,13 +11,14 @@ import scheduleIcon from "@/assets/images/schedule icon.png";
 import profileIcon from "@/assets/images/profile icon.png";
 
 export default function Menu() {
-    const router = useRouter();
+     const router = useRouter();
+     const pathname = usePathname(); // <-- current path
 
         const menuItems = [
             { label: "Home", icon: homeIcon, route: "/home" },
             { label: "Marketplace", icon: marketIcon, route: "/marketplace" },
             { label: "Info", icon: infoIcon, route: "/information" },
-            { label: "Schedule", icon: scheduleIcon, route: "/schedule" }, // optional
+            { label: "Schedule", icon: scheduleIcon, route: "/schedule" },
             { label: "Profile", icon: profileIcon, route: "/profile" },
         ];
 
@@ -27,7 +28,11 @@ export default function Menu() {
               <TouchableOpacity
                   key={item.label}
                   style={styles.menuItem}
-                  onPress={() => router.push(item.route)}
+                  onPress={() => {
+                      if (pathname !== item.route) {
+                          router.push(item.route);
+                      }
+                  }}
               >
                   <Image source={item.icon} style={styles.icon} />
                   <Text style={styles.label}>{item.label}</Text>

@@ -1,5 +1,5 @@
 //home screen page
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import React from "react";
 import {
     View,
@@ -15,36 +15,53 @@ import safeCitiesLogo from '@/assets/images/logo.png';
 import Menu from "@/components/Menu";
 import Colors from "@/constants/Colors.js";
 
-const router = useRouter();
-const { width } = Dimensions.get('window');
-const buttons = [
+   const { width } = Dimensions.get('window');
 
- {
-    label: 'Marketplace',
-    icon: require('@/assets/images/marketplace icon.png'),
-    onPress: () => console.log('Navigate to Marketplace'),
-  },
-  {
-    label: 'Information Page',
-    icon: require('@/assets/images/Info icon.png'),
-    onPress: () => console.log('Navigate to Information Page'),
-  },
-
-  {
-    label: 'Schedule',
-    icon: require('@/assets/images/schedule icon.png'),
-    onPress: () => console.log('Navigate to Schedule'),
-  },
-  {
-    label: 'Profile Page',
-    icon: require('@/assets/images/profile icon.png'),
-    onPress: () => console.log('Navigate to Profile Page'),
-  },
-];
 export default function HomeScreen() {
+    const router = useRouter();
+    const pathname = usePathname(); // <-- current path
+    const buttons = [
+      {
+        label: 'Marketplace',
+        icon: require('@/assets/images/marketplace icon.png'),
+        onPress: () => {
+          if (pathname !== '/marketplace') {
+            router.push('/marketplace');
+          }
+        },
+      },
+      {
+        label: 'Information Page',
+        icon: require('@/assets/images/Info icon.png'),
+        onPress: () => {
+          if (pathname !== '/information') {
+            router.push('/information');
+          }
+        },
+      },
+      {
+        label: 'Schedule',
+        icon: require('@/assets/images/schedule icon.png'),
+        onPress: () => {
+          if (pathname !== '/schedule') {
+            router.push('/schedule');
+          }
+        },
+      },
+      {
+        label: 'Profile Page',
+        icon: require('@/assets/images/profile icon.png'),
+        onPress: () => {
+          if (pathname !== '/profile') {
+            router.push('/profile');
+          }
+        },
+      },
+    ];
+
     return (
         <SafeAreaView style={styles.homescreen}>
-            <ScrollView style={styles.homescreen}>
+            <ScrollView style={styles.homescreen} contentContainerStyle={{ paddingBottom: 120}}>
             <Image
             source = {safeCitiesLogo}
             style = {styles.pic}
