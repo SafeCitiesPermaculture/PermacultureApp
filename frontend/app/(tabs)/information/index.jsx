@@ -8,6 +8,7 @@ import {
     StyleSheet,
     SafeAreaView,
     TouchableOpacity,
+    Pressable,
     TextInput,
     Dimensions,
     Modal,
@@ -36,6 +37,7 @@ const InformationPage = () => {
     const [currentFolder, setCurrentFolder] = useState(null);
     const [folderStack, setFolderStack] = useState([]);
     const [searchText, setSearchText] = useState("");
+    const [newFolderName, setNewFolderName] = useState("");
 
     const { showLoading, hideLoading } = useLoading();
 
@@ -93,7 +95,7 @@ const InformationPage = () => {
                     "Content-Type": "multipart/form-data",
                 },
             });
-
+            setUploadedFile(null);
             await getFileList();
         } catch (err) {
             console.error("Upload error:", error.response || error.message);
@@ -191,7 +193,24 @@ const InformationPage = () => {
             console.log("Error populating list", err);
         } finally {
             hideLoading();
-            setUploadedFile(null);
+        }
+    };
+
+    const createFolder = async () => {
+        try {
+            showLoading();
+            setFileModalVisible(false);
+            const res = await API.post("/files/folder/create", {
+                name: newFolderName,
+                parent: currentFolder?._id || null,
+            });
+
+            setNewFolderName("");
+            await getFileList();
+        } catch (err) {
+            console.log("Error creating folder:", err);
+        } finally {
+            hideLoading();
         }
     };
 
@@ -309,7 +328,10 @@ const InformationPage = () => {
                 transparent
                 onRequestClose={() => setFileModalVisible(false)}
             >
-                <View style={styles.modalBackground}>
+                <Pressable
+                    style={styles.modalBackground}
+                    onPress={() => setFileModalVisible(false)}
+                >
                     <View style={styles.modalContainer}>
                         <TouchableOpacity
                             onPress={() => setFileModalVisible(false)}
@@ -321,12 +343,12 @@ const InformationPage = () => {
                             />
                         </TouchableOpacity>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalHeaderText}>
-                                Upload a File
-                            </Text>
+                            <Text style={styles.modalHeaderText}>Create</Text>
                         </View>
-
                         <View style={styles.pickFileContainer}>
+                            <Text style={styles.uploadFileText}>
+                                Upload File:
+                            </Text>
                             <TouchableOpacity
                                 onPress={pickFile}
                                 style={styles.pickFileButton}
@@ -336,30 +358,59 @@ const InformationPage = () => {
                                 </Text>
                             </TouchableOpacity>
                         </View>
+                        <Text style={styles.selectedFileText}>
+                            Selected File:{" "}
+                            {uploadedFile ? uploadedFile.assets[0].name : "N/A"}
+                        </Text>
 
-                        {uploadedFile && (
-                            <>
-                                <Text style={styles.selectedFileText}>
-                                    Selected File:{" "}
-                                    {uploadedFile
-                                        ? uploadedFile.assets[0].name
-                                        : "N/A"}
+                        <View style={styles.uploadContainer}>
+                            <TouchableOpacity
+                                onPress={sendFile}
+                                style={[
+                                    styles.uploadButton,
+                                    !uploadedFile
+                                        ? styles.disabledButton
+                                        : null,
+                                ]}
+                                disabled={!uploadedFile}
+                            >
+                                <Text style={styles.uploadText}>
+                                    Upload File
                                 </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.modalDivider} />
+                        <View style={styles.newFolderContainer}>
+                            <Text style={styles.newFolderText}>
+                                New Folder:
+                            </Text>
+                            <TextInput
+                                style={styles.newFolderInput}
+                                value={newFolderName}
+                                onChangeText={setNewFolderName}
+                                placeholder="Enter new folder name..."
+                                placeholderTextColor="#888"
+                            />
+                        </View>
 
-                                <View style={styles.uploadContainer}>
-                                    <TouchableOpacity
-                                        onPress={sendFile}
-                                        style={styles.uploadButton}
-                                    >
-                                        <Text style={styles.uploadText}>
-                                            Upload File
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </>
-                        )}
+                        <View style={styles.createFolderContainer}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.createFolderButton,
+                                    newFolderName.length <= 0
+                                        ? styles.disabledButton
+                                        : null,
+                                ]}
+                                disabled={newFolderName.length <= 0}
+                                onPress={createFolder}
+                            >
+                                <Text style={styles.createFolderText}>
+                                    Create Folder
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
+                </Pressable>
             </Modal>
         </>
     );
@@ -501,7 +552,13 @@ const styles = StyleSheet.create({
     pickFileContainer: {
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "space-evenly",
+        flexDirection: "row",
+        marginHorizontal: 50,
+    },
+
+    uploadFileText: {
+        fontSize: 20,
     },
 
     pickFileButton: {
@@ -535,14 +592,70 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: Colors.greenButton,
-        padding: 20,
+        padding: 10,
+        borderRadius: 10,
+        marginTop: 20,
+    },
+    uploadText: {
+        fontSize: 20,
+        fontWeight: "bold",
+    },
+
+    modalDivider: {
+        borderBottomColor: Colors.greenRegular,
+        borderBottomWidth: 3,
+        marginVertical: 30,
+    },
+
+    newFolderContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        marginHorizontal: 20,
+    },
+
+    newFolderText: {
+        marginRight: 10,
+        fontSize: 20,
+    },
+
+    newFolderInput: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: Colors.greyTextBox,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        height: 40,
+        justifyContent: "space-between",
+        flex: 1,
+    },
+
+    createFolderContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    createFolderButton: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: Colors.greenButton,
+        padding: 10,
         borderRadius: 10,
         marginTop: 20,
     },
 
-    uploadText: {
-        fontSize: 25,
+    createFolderText: {
+        fontSize: 20,
         fontWeight: "bold",
+    },
+
+    disabledButton: {
+        opacity: 0.3,
+        backgroundColor: Colors.greyTextBox,
     },
 });
 

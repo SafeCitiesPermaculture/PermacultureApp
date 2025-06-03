@@ -1,9 +1,12 @@
 import Colors from "@/constants/Colors";
-import React from "react";
+import React, { useContext } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import folders from "@/assets/images/folder 2 icon.png";
+import { AuthContext } from "@/context/AuthContext";
 
 const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
+    const { isAdmin } = useContext(AuthContext);
+
     return (
         <TouchableOpacity
             style={styles.button}
@@ -25,7 +28,17 @@ const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
                     source={file.isFolder ? folders : ""}
                     style={styles.folderIcons}
                 />
-                <Text style={styles.searchText}>{file.name}</Text>
+                <View style={styles.textContent}>
+                    <Text style={styles.searchText}>{file.name}</Text>
+                    {isAdmin && (
+                        <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={() => deleteFile(file._id)}
+                        >
+                            <Text style={styles.deleteButtonText}>X</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -54,6 +67,30 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         borderWidth: 1, // Thickness of the border
         borderColor: "black",
+    },
+
+    textContent: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+
+    deleteButton: {
+        backgroundColor: Colors.greenButton,
+        padding: 5,
+        marginRight: 20,
+        borderRadius: 5,
+        height: "80%",
+        aspectRatio: 1 / 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    deleteButtonText: {
+        fontSize: 20,
+        fontWeight: "bold",
     },
 });
 
