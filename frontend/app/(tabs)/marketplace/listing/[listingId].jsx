@@ -31,8 +31,6 @@ const ListingPage = () => {
             const response = await API.get(`/listings/get/${listingId}`);
             const tempListing = response.data.listing;
             setListing(tempListing);
-            //console.log("Listing:", response.data.listing.postedBy._id);
-            //console.log("User:", userData._id);
             if (tempListing && userData) {
                 setIsOwner(tempListing.postedBy._id.toString() === userData._id.toString());
             }
@@ -83,7 +81,7 @@ const ListingPage = () => {
 
 
     const reportListing = useCallback(() => {
-        router.push('/report');
+        router.push(`/marketplace/report/${listing.postedBy.username}`);
     }, [router]);
 
     const isAdmin = userData.userRole === 'admin';

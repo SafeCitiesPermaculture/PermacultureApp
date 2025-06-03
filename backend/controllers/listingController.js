@@ -61,7 +61,7 @@ const createListing = async (req, res) => {
                 .json({ message: "Validation failed", errors });
         }
         res.status(500).json({
-            message: "Server error: Failed to create listing.",
+            message: "Failed to create listing.",
             error: error.message,
         });
     }

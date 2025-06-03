@@ -8,11 +8,38 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { AuthContext } from "@/context/AuthContext";
+import API from "@/api/api";
 
 const { width } = Dimensions.get("window");
 
 const ListingCard = ({ title, price, postedBy, listingId }) => {
     const router = useRouter();
+    const { userData } = useContext(AuthContext);
+    const isOwnerAdmin = postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
+    const imageSource = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
+    const [buttonFunction, setButtonFunction] = useState(null);
+    
+    const deleteListing = useCallback(async () => {
+        try {
+            await API.delete(`/listings/remove/${listingId}`);
+        } catch (error) {
+            console.error("Error deleting listing:", error);
+        }
+    }, [listingId, router]);
+
+    const reportListing = useCallback(() => {
+            router.push(`/marketplace/report/${postedBy.username}`);
+        }, [router]);
+     
+    useEffect(() => {
+            if (isOwnerAdmin) {
+                setButtonFunction(() => deleteListing);
+            } else {
+                setButtonFunction(() => reportListing);
+            }
+        }, [isOwnerAdmin, deleteListing, reportListing]);
 
     return (
         <TouchableOpacity
@@ -26,10 +53,10 @@ const ListingCard = ({ title, price, postedBy, listingId }) => {
                 <View style={styles.bottomRow}>
                     <Text style={styles.username}>{postedBy.username}</Text>
                     <TouchableOpacity
-                        onPress={() => router.push(`/report/${postedBy._id}`)}
+                        onPress={buttonFunction}
                     >
                         <Image
-                            source={require("@/assets/images/report-flag.png")}
+                            source={imageSource}
                             style={{
                                 height: 15,
                                 width: 15,

@@ -79,7 +79,7 @@ const PostListingPage = () => {
             setPrice("");
             setLocation("");
             setDescription("");
-            setTimeout(() => router.dismiss(), 1500);
+            setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
 
