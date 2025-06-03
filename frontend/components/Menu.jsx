@@ -7,7 +7,6 @@ import { useRouter } from "expo-router";
 import homeIcon from "@/assets/images/home icon transparent.png";
 import infoIcon from "@/assets/images/Info icon.png";
 import marketIcon from "@/assets/images/marketplace icon.png";
-import chatIcon from "@/assets/images/chat forum icon.png";
 import scheduleIcon from "@/assets/images/schedule icon.png";
 import profileIcon from "@/assets/images/profile icon.png";
 
@@ -18,7 +17,6 @@ export default function Menu() {
             { label: "Home", icon: homeIcon, route: "/home" },
             { label: "Marketplace", icon: marketIcon, route: "/marketplace" },
             { label: "Info", icon: infoIcon, route: "/information" },
-            { label: "Chat", icon: chatIcon, route: "/chat" }, // optional
             { label: "Schedule", icon: scheduleIcon, route: "/schedule" }, // optional
             { label: "Profile", icon: profileIcon, route: "/profile" },
         ];
@@ -59,7 +57,7 @@ const styles = StyleSheet.create({
     },
     icon: {
         width: 24,
-        height: 24,
+        height: 30,
         marginBottom: 4,
     },
     label: {

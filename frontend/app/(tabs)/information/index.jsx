@@ -10,7 +10,7 @@
     ex: Livestock parent folder and then chickens, and fish are children folders and then individual files within theses
     */}
 
-import React from "react";
+import React, { useState } from "react";
 import {
     View,
     ScrollView,
@@ -21,30 +21,44 @@ import {
     SafeAreaView,
     TouchableOpacity,
     onPress,
+    TextInput,
+    Dimensions,
 } from "react-native";
 import Menu from "@/components/Menu";
 import Colors from "@/constants/Colors.js";
 import safeCitiesLogo from '@/assets/images/logo.png';
 import folders from '@/assets/images/folder 2 icon.png';
 import searchGlass from '@/assets/images/maginfying glass icon.png';
+import addIcon from '@/assets/images/Add _ plus icon.png';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function InformationMainScreen() {
+    const [searchText, setSearchText] = useState('');
     return (
         <SafeAreaView style={styles.informationMainScreen}>
         <ScrollView style={styles.informationMainScreen}> 
 
-           // header with logo and search box 
+           {/* header with logo and search box */}
           <View style={styles.headerContainer}>
             <Image source={safeCitiesLogo} style={styles.logo} />
 
+
             <View style={styles.searchBox}>
-              <Text style={styles.boxText}>Search Information</Text>
+               <TextInput
+                       style={styles.textInput}
+                       value={searchText}
+                       onChangeText={setSearchText}
+                       placeholder="Search Information"
+                       placeholderTextColor="#888"
+                     />
               {/* magnfiying image*/}
               <Image source={searchGlass} style={styles.searchIcon} />
             </View>
+
           </View>
 
-           // file folders 
+           {/*file folders */}
             <View style={styles.scrollContent}>
                   <TouchableOpacity style={styles.button} onPress={onPress}>
                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -71,7 +85,13 @@ export default function InformationMainScreen() {
                        </View>
                     </TouchableOpacity>
             </View>
-        
+
+        <View>
+             <TouchableOpacity
+                      style={styles.add}>
+              <Image source={addIcon} style={styles.plusIcon} />
+              </TouchableOpacity>
+            </View>
         </ScrollView>
         <Menu />
         </SafeAreaView>
@@ -79,6 +99,16 @@ export default function InformationMainScreen() {
 }
 
 const styles = StyleSheet.create({
+    add: {
+        flex: 1,
+        marginLeft: screenWidth * 0.82,
+        marginTop: screenWidth * 0.99,
+        },
+    plusIcon: {
+        flex: 1,
+        width: 45,
+        height: 55,
+        },
     informationMainScreen: {
         flex: 1,
         backgroundColor: Colors.backgroundTan,
@@ -147,5 +177,11 @@ const styles = StyleSheet.create({
       borderWidth: 1,            // Thickness of the border
       borderColor: 'black',
         },
+    textInput: {
+        flex: 1,
+        paddingVertical: 6,
+        paddingHorizontal: 8,
+        fontSize: 16,
+      },
 
 });

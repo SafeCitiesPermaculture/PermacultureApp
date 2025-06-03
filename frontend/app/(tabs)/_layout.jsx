@@ -20,12 +20,7 @@ export default function TabLayout() {
         <Tabs.Screen name="marketplace" />
         <Tabs.Screen name="profile" />
         {/* Hidden screens not shown in the tab bar */}
-        <Tabs.Screen
-          name="chat"
-          options={{
-            tabBarButton: () => null,
-          }}
-        />
+
         <Tabs.Screen
           name="schedule"
           options={{

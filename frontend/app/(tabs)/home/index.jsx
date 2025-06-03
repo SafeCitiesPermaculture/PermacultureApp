@@ -18,21 +18,18 @@ import Colors from "@/constants/Colors.js";
 const router = useRouter();
 const { width } = Dimensions.get('window');
 const buttons = [
-  {
-    label: 'Information Page',
-    icon: require('@/assets/images/Info icon.png'),
-    onPress: () => console.log('Navigate to Information Page'),
-  },
-  {
+
+ {
     label: 'Marketplace',
     icon: require('@/assets/images/marketplace icon.png'),
     onPress: () => console.log('Navigate to Marketplace'),
   },
   {
-    label: 'Chat Forum',
-    icon: require('@/assets/images/chat forum icon.png'),
-    onPress: () => console.log('Navigate to Chat Forum'),
+    label: 'Information Page',
+    icon: require('@/assets/images/Info icon.png'),
+    onPress: () => console.log('Navigate to Information Page'),
   },
+
   {
     label: 'Schedule',
     icon: require('@/assets/images/schedule icon.png'),
