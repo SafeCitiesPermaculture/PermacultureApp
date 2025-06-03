@@ -5,13 +5,12 @@ import {
     ScrollView,
     Text,
     Image,
-    Button,
     StyleSheet,
     SafeAreaView,
     TouchableOpacity,
-    onPress,
     TextInput,
     Dimensions,
+    Modal,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
@@ -31,6 +30,7 @@ const screenWidth = Dimensions.get("window").width;
 
 const InformationPage = () => {
     const [uploadedFile, setUploadedFile] = useState(null);
+    const [fileModalVisible, setFileModalVisible] = useState(false);
     const [fileList, setFileList] = useState([]);
     const [filteredFileList, setFilteredFileList] = useState([]);
     const [currentFolder, setCurrentFolder] = useState(null);
@@ -85,6 +85,9 @@ const InformationPage = () => {
         formData.append("parent", currentFolder?._id || null);
 
         try {
+            showLoading();
+            setFileModalVisible(false);
+
             const res = await API.post("/files/upload", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
@@ -94,6 +97,8 @@ const InformationPage = () => {
             await getFileList();
         } catch (err) {
             console.error("Upload error:", error.response || error.message);
+        } finally {
+            hideLoading();
         }
     };
 
@@ -151,10 +156,13 @@ const InformationPage = () => {
 
     const deleteFile = async (fileId) => {
         try {
+            showLoading();
             await API.delete(`/files/delete/${fileId}`);
             await getFileList();
         } catch (err) {
             console.error("Error when deleting file", err);
+        } finally {
+            hideLoading();
         }
     };
 
@@ -183,6 +191,7 @@ const InformationPage = () => {
             console.log("Error populating list", err);
         } finally {
             hideLoading();
+            setUploadedFile(null);
         }
     };
 
@@ -284,11 +293,74 @@ const InformationPage = () => {
                 </ScrollView>
             </SafeAreaView>
 
+            {/* Add Button */}
             <View style={styles.addContainer}>
-                <TouchableOpacity style={styles.add}>
+                <TouchableOpacity
+                    style={styles.add}
+                    onPress={() => setFileModalVisible(true)}
+                >
                     <Image source={addIcon} style={styles.plusIcon} />
                 </TouchableOpacity>
             </View>
+
+            {/* Add File Modal */}
+            <Modal
+                visible={fileModalVisible}
+                transparent
+                onRequestClose={() => setFileModalVisible(false)}
+            >
+                <View style={styles.modalBackground}>
+                    <View style={styles.modalContainer}>
+                        <TouchableOpacity
+                            onPress={() => setFileModalVisible(false)}
+                            style={styles.modalBackButton}
+                        >
+                            <Image
+                                source={backArrow}
+                                style={styles.backArrowIcon}
+                            />
+                        </TouchableOpacity>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalHeaderText}>
+                                Upload a File
+                            </Text>
+                        </View>
+
+                        <View style={styles.pickFileContainer}>
+                            <TouchableOpacity
+                                onPress={pickFile}
+                                style={styles.pickFileButton}
+                            >
+                                <Text style={styles.pickFileText}>
+                                    Pick File
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {uploadedFile && (
+                            <>
+                                <Text style={styles.selectedFileText}>
+                                    Selected File:{" "}
+                                    {uploadedFile
+                                        ? uploadedFile.assets[0].name
+                                        : "N/A"}
+                                </Text>
+
+                                <View style={styles.uploadContainer}>
+                                    <TouchableOpacity
+                                        onPress={sendFile}
+                                        style={styles.uploadButton}
+                                    >
+                                        <Text style={styles.uploadText}>
+                                            Upload File
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </>
     );
 };
@@ -393,6 +465,84 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "start",
+    },
+
+    modalBackground: {
+        flex: 1,
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.8)",
+        padding: 20,
+    },
+    modalContainer: {
+        backgroundColor: "#fff",
+        padding: 10,
+        borderRadius: 12,
+    },
+
+    modalBackButton: {
+        position: "absolute",
+        top: 20,
+        left: 15,
+    },
+
+    modalHeader: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 10,
+    },
+
+    modalHeaderText: {
+        fontSize: 30,
+        fontWeight: "bold",
+    },
+
+    pickFileContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    pickFileButton: {
+        backgroundColor: Colors.greenButton,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 5,
+    },
+
+    pickFileText: {
+        fontSize: 20,
+    },
+
+    selectedFileText: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        marginTop: 10,
+        fontSize: 20,
+    },
+
+    uploadContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    uploadButton: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: Colors.greenButton,
+        padding: 20,
+        borderRadius: 10,
+        marginTop: 20,
+    },
+
+    uploadText: {
+        fontSize: 25,
+        fontWeight: "bold",
     },
 });
 

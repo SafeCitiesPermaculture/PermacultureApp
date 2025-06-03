@@ -18,7 +18,8 @@ const handleUpload = async (req, res) => {
     try {
         //get parent folder
         const { parent } = req.body;
-        const parentFolder = await File.findById(parent);
+        const parentFolder =
+            parent !== "null" ? await File.findById(parent) : null;
 
         //construct metadata
         const fileMetadata = {

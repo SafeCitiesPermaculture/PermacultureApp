@@ -1,11 +1,19 @@
 import React from "react";
-import { View, ActivityIndicator, StyleSheet, Dimensions } from "react-native";
+import {
+    View,
+    ActivityIndicator,
+    StyleSheet,
+    Dimensions,
+    Modal,
+} from "react-native";
 
 const LoadingOverlay = () => {
     return (
-        <View style={styles.overlay}>
-            <ActivityIndicator size="large" color="#ffffff" />
-        </View>
+        <Modal transparent visible={true} statusBarTranslucent={true}>
+            <View style={styles.overlay}>
+                <ActivityIndicator size="large" color="#ffffff" />
+            </View>
+        </Modal>
     );
 };
 
@@ -13,16 +21,14 @@ const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
     overlay: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width,
-        height,
+        flex: 1,
         backgroundColor: "rgba(0,0,0,0.6)",
         justifyContent: "center",
         alignItems: "center",
-        zIndex: 1000,
-        elevation: 10,
+        width,
+        height,
+        zIndex: 999,
+        elevation: 999,
     },
 });
 
