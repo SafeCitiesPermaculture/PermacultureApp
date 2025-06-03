@@ -20,7 +20,7 @@ const ConversationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [targetUsername, setTargetUsername] = useState("");
+  const [targetUsernames, setTargetUsernames] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +32,6 @@ const ConversationsPage = () => {
         console.log("joinedUserRoom emitted with:", uid);
 
         const res = await API.get("/conversations");
-        console.log("Fetched conversations:", res.data);
         setConversations(res.data);
 
         socket.on("conversationUpdated", (update) => {
@@ -49,7 +48,6 @@ const ConversationsPage = () => {
                   : c
               );
             } else {
-              // fallback for new conversation (very basic)
               newList = [
                 ...prev,
                 {
@@ -75,54 +73,64 @@ const ConversationsPage = () => {
     };
 
     init();
-
     return () => {
       socket.off("conversationUpdated");
     };
   }, []);
 
-  const getOtherUser = (participants) => {
-    return participants.find((p) => p._id !== userId);
+  const getDisplayName = (conversation) => {
+    if (conversation.name) return conversation.name;
+
+    const others = conversation.participants.filter((p) => p._id !== userId);
+    return others.map((u) => u.username).join(" & ");
   };
 
-  const renderItem = ({ item }) => {
-    const otherUser = getOtherUser(item.participants) || item.otherUser;
 
-    return (
-      <TouchableOpacity
-        style={styles.convoItem}
-        onPress={() => router.push(`/marketplace/${item._id}`)}
-      >
-        <Text style={styles.name}>{otherUser?.username || "Unknown User"}</Text>
-        <Text numberOfLines={1} style={styles.message}>
-          {item.lastMessage || "No messages yet"}
-        </Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.updatedAt).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}
-        </Text>
-      </TouchableOpacity>
-    );
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.convoItem}
+      onPress={() => router.push(`/marketplace/${item._id}`)}
+    >
+      <Text style={styles.name}>{getDisplayName(item)}</Text>
+      <Text numberOfLines={1} style={styles.message}>
+        {item.lastMessage || "No messages yet"}
+      </Text>
+      <Text style={styles.timestamp}>
+        {new Date(item.updatedAt).toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const startNewChat = async () => {
+    try {
+      const usernames = targetUsernames
+        .split(",")
+        .map((u) => u.trim())
+        .filter(Boolean);
+
+      if (usernames.length === 0) return;
+
+      const res = await API.post("/conversations", { usernames });
+      setModalVisible(false);
+      setTargetUsernames("");
+      router.push(`/marketplace/${res.data._id}`);
+    } catch (err) {
+      console.error("Error starting chat:", err);
+      Alert.alert("Error", "One or more usernames invalid.");
+    }
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (conversations.length === 0) {
-    return (
-      <View style={styles.container}>
-        <Text>No conversations yet. Start a new chat!</Text>
       </View>
     );
   }
@@ -145,31 +153,17 @@ const ConversationsPage = () => {
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 10 }}>Start New Chat</Text>
+            <Text style={{ fontSize: 18, marginBottom: 10 }}>
+              Create New Chat
+            </Text>
             <TextInput
-              placeholder="Enter username"
-              value={targetUsername}
-              onChangeText={setTargetUsername}
+              placeholder="Enter usernames, separated by commas"
+              value={targetUsernames}
+              onChangeText={setTargetUsernames}
               style={styles.input}
             />
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    if (!targetUsername.trim()) return;
-                    const res = await API.post("/conversations", {
-                      username: targetUsername.trim(),
-                    });
-                    setModalVisible(false);
-                    setTargetUsername("");
-                    router.push(`/marketplace/${res.data._id}`);
-                  } catch (err) {
-                    console.error("Error starting chat:", err);
-                    Alert.alert("Error", "User not found or cannot start chat.");
-                  }
-                }}
-                style={styles.modalButton}
-              >
+              <TouchableOpacity onPress={startNewChat} style={styles.modalButton}>
                 <Text style={styles.modalButtonText}>Start</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -196,7 +190,6 @@ const styles = StyleSheet.create({
   name: { fontWeight: "bold", fontSize: 18 },
   message: { fontSize: 14, color: "#555" },
   timestamp: { fontSize: 12, color: "#888" },
-
   newChatButton: {
     position: "absolute",
     bottom: 30,
