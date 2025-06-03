@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLoading } from "@/context/LoadingContext";
 import {
     View,
     ScrollView,
@@ -21,18 +22,22 @@ import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import FileListing from "@/components/FileListing";
 import safeCitiesLogo from "@/assets/images/logo.png";
-import folders from "@/assets/images/folder 2 icon.png";
 import searchGlass from "@/assets/images/maginfying glass icon.png";
 import addIcon from "@/assets/images/Add _ plus icon.png";
+import backArrow from "@/assets/images/back_arrow.png";
+import folders from "@/assets/images/folder 2 icon.png";
 
 const screenWidth = Dimensions.get("window").width;
 
 const InformationPage = () => {
     const [uploadedFile, setUploadedFile] = useState(null);
     const [fileList, setFileList] = useState([]);
+    const [filteredFileList, setFilteredFileList] = useState([]);
     const [currentFolder, setCurrentFolder] = useState(null);
     const [folderStack, setFolderStack] = useState([]);
     const [searchText, setSearchText] = useState("");
+
+    const { showLoading, hideLoading } = useLoading();
 
     //get the file from the file picker
     const pickFile = async () => {
@@ -95,6 +100,7 @@ const InformationPage = () => {
     //get file from backend and open it on frontend
     const displayFile = async (fileId) => {
         try {
+            showLoading();
             //get data
             const res = await API.post(
                 `/files/${fileId}`,
@@ -138,6 +144,8 @@ const InformationPage = () => {
             }
         } catch (err) {
             console.error("Download or open failed:", error);
+        } finally {
+            hideLoading();
         }
     };
 
@@ -153,6 +161,7 @@ const InformationPage = () => {
     //populate file list
     const getFileList = async () => {
         try {
+            showLoading();
             const res = await API.get("/files/list", {
                 params: {
                     parent: currentFolder?._id || null,
@@ -172,6 +181,8 @@ const InformationPage = () => {
             );
         } catch (err) {
             console.log("Error populating list", err);
+        } finally {
+            hideLoading();
         }
     };
 
@@ -194,108 +205,108 @@ const InformationPage = () => {
         getFileList();
     }, [currentFolder]);
 
+    useEffect(() => {
+        const filtered = fileList.filter((file) =>
+            file.name.toLowerCase().includes(searchText.toLowerCase())
+        );
+        setFilteredFileList(filtered);
+    }, [searchText, fileList]);
+
     return (
-        <SafeAreaView style={styles.informationMainScreen}>
-            <ScrollView style={styles.informationMainScreen}>
-                {/* header with logo and search box */}
-                <View style={styles.headerContainer}>
-                    <Image source={safeCitiesLogo} style={styles.logo} />
+        <>
+            <SafeAreaView style={styles.informationMainScreen}>
+                <ScrollView style={styles.informationMainScreen}>
+                    {/* header with logo and search box */}
+                    <View style={styles.headerContainer}>
+                        <View style={styles.searchContainer}>
+                            <Image
+                                source={safeCitiesLogo}
+                                style={styles.logo}
+                            />
 
-                    <View style={styles.searchBox}>
-                        <TextInput
-                            style={styles.textInput}
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            placeholder="Search Information"
-                            placeholderTextColor="#888"
-                        />
-                        {/* magnfiying image*/}
-                        <Image source={searchGlass} style={styles.searchIcon} />
+                            <View style={styles.searchBox}>
+                                <TextInput
+                                    style={styles.textInput}
+                                    value={searchText}
+                                    onChangeText={setSearchText}
+                                    placeholder="Search Information"
+                                    placeholderTextColor="#888"
+                                />
+                                {/* magnfiying image*/}
+                                <Image
+                                    source={searchGlass}
+                                    style={styles.searchIcon}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.currentFolderContainer}>
+                            {currentFolder && (
+                                <>
+                                    <TouchableOpacity onPress={exitFolder}>
+                                        <Image
+                                            source={backArrow}
+                                            style={styles.backArrowIcon}
+                                        />
+                                    </TouchableOpacity>
+                                    <View style={styles.currentFolderText}>
+                                        <Image
+                                            source={folders}
+                                            style={styles.folderIcons}
+                                        />
+                                        <Text>
+                                            {currentFolder
+                                                ? currentFolder.name
+                                                : "N/A"}
+                                        </Text>
+                                    </View>
+                                </>
+                            )}
+                        </View>
                     </View>
-                </View>
 
-                {/*file folders */}
-                <View style={styles.scrollContent}>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>Livestock</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>Plants</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>
-                                Plant Calendar
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>Insects</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
+                    {/*file folders */}
+                    <View style={styles.scrollContent}>
+                        {filteredFileList.length > 0 ? (
+                            filteredFileList.map((item) => (
+                                <FileListing
+                                    key={item._id}
+                                    file={item}
+                                    displayFile={displayFile}
+                                    deleteFile={deleteFile}
+                                    enterFolder={enterFolder}
+                                />
+                            ))
+                        ) : (
+                            <Text>No files available</Text>
+                        )}
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
 
-                <View>
-                    <TouchableOpacity style={styles.add}>
-                        <Image source={addIcon} style={styles.plusIcon} />
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+            <View style={styles.addContainer}>
+                <TouchableOpacity style={styles.add}>
+                    <Image source={addIcon} style={styles.plusIcon} />
+                </TouchableOpacity>
+            </View>
+        </>
     );
 };
 
 const styles = StyleSheet.create({
+    addContainer: {
+        position: "absolute",
+        right: 20,
+        bottom: 100,
+    },
+
     add: {
         flex: 1,
-        marginLeft: screenWidth * 0.82,
-        marginTop: screenWidth * 0.99,
     },
     plusIcon: {
         flex: 1,
         width: 45,
-        height: 55,
+        height: 59,
     },
     informationMainScreen: {
         flex: 1,
@@ -309,15 +320,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 20,
     },
-    folderIcons: {
-        width: 40,
-        height: 40,
-        alignItems: "center",
-        resizeMode: "contain",
-        marginRight: 10,
-        padding: 10,
-    },
-    headerContainer: {
+
+    headerContainer: {},
+
+    searchContainer: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
@@ -345,31 +351,48 @@ const styles = StyleSheet.create({
         height: 20,
         marginLeft: 8,
     },
-    searchText: {
-        color: "#555",
-        fontSize: 16,
-    },
+
     searchIcon: {
         width: 20,
         height: 20,
         resizeMode: "contain",
-    },
-    button: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: Colors.brownLight,
-        borderRadius: 5,
-        height: 45,
-        justifyContent: "space-between",
-        borderWidth: 1, // Thickness of the border
-        borderColor: "black",
     },
     textInput: {
         flex: 1,
         paddingVertical: 6,
         paddingHorizontal: 8,
         fontSize: 16,
+    },
+
+    currentFolderContainer: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: 15,
+    },
+
+    backArrowIcon: {
+        width: 20,
+        height: 20,
+        resizeMode: "contain",
+        marginRight: 10,
+    },
+
+    folderIcons: {
+        width: 30,
+        height: 30,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        resizeMode: "contain",
+        marginTop: 10,
+    },
+
+    currentFolderText: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "start",
     },
 });
 
