@@ -37,9 +37,7 @@ const myListingsPage = () => {
 
     const handleDelete = async (listingId) => {
         try {
-            console.log('removing listing');
             await API.delete(`/listings/remove/${listingId}`);
-            console.log('getting again');
             await getListings();
         } catch (error) {
             console.error("Error deleting listing: ", error);
