@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
 import {
     View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
     ScrollView,
+    Text,
+    Image,
+    Button,
+    StyleSheet,
+    SafeAreaView,
+    TouchableOpacity,
+    onPress,
+    TextInput,
+    Dimensions,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
@@ -14,12 +20,19 @@ import { Buffer } from "buffer";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import FileListing from "@/components/FileListing";
+import safeCitiesLogo from "@/assets/images/logo.png";
+import folders from "@/assets/images/folder 2 icon.png";
+import searchGlass from "@/assets/images/maginfying glass icon.png";
+import addIcon from "@/assets/images/Add _ plus icon.png";
+
+const screenWidth = Dimensions.get("window").width;
 
 const InformationPage = () => {
     const [uploadedFile, setUploadedFile] = useState(null);
     const [fileList, setFileList] = useState([]);
     const [currentFolder, setCurrentFolder] = useState(null);
     const [folderStack, setFolderStack] = useState([]);
+    const [searchText, setSearchText] = useState("");
 
     //get the file from the file picker
     const pickFile = async () => {
@@ -182,106 +195,181 @@ const InformationPage = () => {
     }, [currentFolder]);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.headerContainer}>
-                <Text style={styles.headerText}>Information Page</Text>
-            </View>
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity onPress={pickFile}>
-                    <Text>Upload File</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={sendFile}>
-                    <Text>Send File</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.fileContainer}>
-                <Text style={styles.fileText}>
-                    Current File:{" "}
-                    {uploadedFile ? uploadedFile.assets[0].name : "N/A"}
-                </Text>
-                <Text style={styles.folderText}>
-                    Current Folder:{" "}
-                    {currentFolder ? currentFolder.name : "Root"}
-                </Text>
-                <TouchableOpacity onPress={exitFolder}>
-                    <Text style={styles.exitButtonText}>Exit Folder</Text>
-                </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.fileListingContainer}>
-                {fileList.length > 0 ? (
-                    fileList.map((item) => (
-                        <FileListing
-                            key={item._id}
-                            file={item}
-                            displayFile={displayFile}
-                            deleteFile={deleteFile}
-                            enterFolder={enterFolder}
+        <SafeAreaView style={styles.informationMainScreen}>
+            <ScrollView style={styles.informationMainScreen}>
+                {/* header with logo and search box */}
+                <View style={styles.headerContainer}>
+                    <Image source={safeCitiesLogo} style={styles.logo} />
+
+                    <View style={styles.searchBox}>
+                        <TextInput
+                            style={styles.textInput}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            placeholder="Search Information"
+                            placeholderTextColor="#888"
                         />
-                    ))
-                ) : (
-                    <Text>No files available</Text>
-                )}
+                        {/* magnfiying image*/}
+                        <Image source={searchGlass} style={styles.searchIcon} />
+                    </View>
+                </View>
+
+                {/*file folders */}
+                <View style={styles.scrollContent}>
+                    <TouchableOpacity style={styles.button} onPress={onPress}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Image
+                                source={folders}
+                                style={styles.folderIcons}
+                            />
+                            <Text style={styles.searchText}>Livestock</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={onPress}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Image
+                                source={folders}
+                                style={styles.folderIcons}
+                            />
+                            <Text style={styles.searchText}>Plants</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={onPress}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Image
+                                source={folders}
+                                style={styles.folderIcons}
+                            />
+                            <Text style={styles.searchText}>
+                                Plant Calendar
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={onPress}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Image
+                                source={folders}
+                                style={styles.folderIcons}
+                            />
+                            <Text style={styles.searchText}>Insects</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+
+                <View>
+                    <TouchableOpacity style={styles.add}>
+                        <Image source={addIcon} style={styles.plusIcon} />
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    add: {
         flex: 1,
+        marginLeft: screenWidth * 0.82,
+        marginTop: screenWidth * 0.99,
     },
-
-    headerContainer: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: 50,
-        width: "100%",
+    plusIcon: {
+        flex: 1,
+        width: 45,
+        height: 55,
     },
-
-    headerText: {
-        fontSize: 30,
+    informationMainScreen: {
+        flex: 1,
+        backgroundColor: Colors.backgroundTan,
     },
-
-    buttonContainer: {
-        display: "flex",
+    scrollContent: {
+        padding: 16,
+    },
+    header: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-evenly",
-        padding: 10,
-        backgroundColor: Colors.greenRegular,
-        marginBottom: 10,
+        marginBottom: 20,
     },
-
-    fileContainer: {
-        display: "flex",
-        flexDirection: "column",
+    folderIcons: {
+        width: 40,
+        height: 40,
         alignItems: "center",
-        justifyContent: "center",
+        resizeMode: "contain",
+        marginRight: 10,
         padding: 10,
-        backgroundColor: Colors.greenRegular,
-        marginBottom: 20,
+    },
+    headerContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        marginTop: 10,
     },
 
-    fileText: {
-        fontSize: 18,
+    logo: {
+        width: 60,
+        height: 60,
+        resizeMode: "contain",
+        marginRight: 12,
     },
-
-    folderText: {
-        fontSize: 18,
+    searchBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: Colors.greyTextBox,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        height: 40,
+        flex: 1, // take remaining space
+        justifyContent: "space-between",
     },
-
-    exitButtonText: {
-        fontSize: 18,
-        backgroundColor: Colors.errorRed,
-        padding: 5,
-        borderRadius: 5,
+    searchIcon: {
+        width: 20,
+        height: 20,
+        marginLeft: 8,
     },
-
-    fileListingContainer: {
+    searchText: {
+        color: "#555",
+        fontSize: 16,
+    },
+    searchIcon: {
+        width: 20,
+        height: 20,
+        resizeMode: "contain",
+    },
+    button: {
         flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: Colors.brownLight,
-        marginBottom: 20,
+        borderRadius: 5,
+        height: 45,
+        justifyContent: "space-between",
+        borderWidth: 1, // Thickness of the border
+        borderColor: "black",
+    },
+    textInput: {
+        flex: 1,
+        paddingVertical: 6,
+        paddingHorizontal: 8,
+        fontSize: 16,
     },
 });
 
