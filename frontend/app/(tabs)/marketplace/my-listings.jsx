@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import AuthGuard from "@/components/AuthGuard";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
-import MyListingCard from "@/components/MyListingCard";
+import ListingCard from "@/components/ListingCard";
 import { AuthContext } from "@/context/AuthContext";
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,7 +21,7 @@ const myListingsPage = () => {
 
         try{
             const response = await API.get("/listings/get-my-listings");
-            setListings(response.data.listings || response.data);
+            setListings(response.data.listings);
         } catch (error) {
             console.error("Error fetching listings: ", error);
             setErrorMessage("Failed to fetch your listings.");
@@ -43,7 +43,11 @@ const myListingsPage = () => {
             console.error("Error deleting listing: ", error);
             setErrorMessage(error.message);
         }
+    };
 
+    const postedBy = {
+        _id: userData._id,
+        username: userData.username
     };
 
     return (
@@ -64,12 +68,12 @@ const myListingsPage = () => {
                     <View style={styles.grid}>
                     {listings.length !== 0 ?
                     listings.map((listing) => 
-                    <MyListingCard title={listing.title} price={listing.price} postedBy={userData.username} listingId={listing._id} key={listing._id} onDelete={() => handleDelete(listing._id)} />) :
+                    <ListingCard title={listing.title} price={listing.price} postedBy={postedBy} listingId={listing._id} key={listing._id} buttonFunction={() => handleDelete(listing._id)} buttonImage={require("@/assets/images/trash-can.png")} />) :
                     <View style={{justifyContent: 'center'}}>
                         <Text style={{fontSize: 30}}>You have no listings.</Text>
-                        <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
+                        {!userData.isReported && <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
                             <Text style={{color: '#14782f', textDecorationLine: 'underline', fontSize: 30}}>{'\n'}Make your first here!</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity>}
                     </View>
                     }
                     </View>

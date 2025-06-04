@@ -13,6 +13,9 @@ const AdminPage = () => {
                 <Link href={"/profile/approval"}>
                     <Text style={styles.linkText}>Approval Page</Text>
                 </Link>
+                <Link href={"/profile/reports"}>
+                    <Text style={styles.linkText}>View Reports</Text>
+                </Link>
             </View>
         </AdminGuard>
     );

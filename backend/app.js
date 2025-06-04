@@ -4,6 +4,7 @@ const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
+const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
 const Message = require("./models/Message"); // Make sure this is at the top
 
@@ -39,6 +40,7 @@ app.get("/api/protected", (req, res) => {
 });
 app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
 
 //admin routes

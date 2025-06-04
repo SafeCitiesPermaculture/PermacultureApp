@@ -39,6 +39,11 @@ const PostListingPage = () => {
             return;
         }
 
+        if (userData.isReported){
+            setMessage("Reported users cannot make new listings");
+            return;
+        }
+
         if (!title.trim()) {
             setMessage("Listing title is required.");
             return;
@@ -79,7 +84,7 @@ const PostListingPage = () => {
             setPrice("");
             setLocation("");
             setDescription("");
-            setTimeout(() => router.dismiss(), 1500);
+            setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
 

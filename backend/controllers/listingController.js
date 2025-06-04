@@ -3,10 +3,18 @@ const Listing = require("../models/Listing");
 const createListing = async (req, res) => {
     try {
         // Verify user
-        if (!req.user || !req.user._id || !req.user.isVerified) {
+        if (!req.user.isVerified) {
             return res
                 .status(401)
                 .json({ message: "Unauthorized: User not authenticated" });
+        }
+
+        if (req.user.isReported) {
+            return res.status(401).json({ message: "Unauthorized: Reported users cannot make new listings" });
+        }
+
+        if (req.user.isRemoved) {
+            return res.status(401).json({ message: "Unauthorized: Removed users cannot make new listings" });
         }
 
         const postedBy = req.user._id;
@@ -24,6 +32,10 @@ const createListing = async (req, res) => {
                 .json({ message: "Title must be a non-empty string." });
         }
 
+        if (!location.trim()) {
+            return res.status(400).json({ message: "Location must be a non-empty string" });
+        }
+
         if (!price) {
             return res.status(400).json({ message: "Price is required." });
         }
@@ -37,7 +49,7 @@ const createListing = async (req, res) => {
         const newListing = Listing({
             title: title.trim(),
             price,
-            location: location ? location.trim() : "",
+            location: location.trim(),
             description: description ? description.trim() : "",
             postedBy,
         });
@@ -61,7 +73,7 @@ const createListing = async (req, res) => {
                 .json({ message: "Validation failed", errors });
         }
         res.status(500).json({
-            message: "Server error: Failed to create listing.",
+            message: "Failed to create listing.",
             error: error.message,
         });
     }
@@ -120,7 +132,7 @@ const getListing = async(req, res) => {
             return res.status(404).json({ message: "Listing not found." });
         }
 
-        return res.status(200).json({ 
+        res.status(200).json({ 
             message: "Listing retrieved successfully.", 
             listing: listing
         });
@@ -151,7 +163,7 @@ const removeListing = async(req, res) => {
         }
 
         await Listing.findByIdAndDelete(id);
-        return res.status(200).json({ message:"Listing deleted." });
+        res.status(200).json({ message:"Listing deleted." });
     } catch (error) {
         console.error("Error in removeListing: ", error);
         res.status(500).json({

@@ -7,13 +7,10 @@ import {
     Image,
 } from "react-native";
 import Colors from "@/constants/Colors";
-import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-const ListingCard = ({ title, price, postedBy, listingId }) => {
-    const router = useRouter();
-
+const ListingCard = ({ title, price, postedBy, listingId, buttonFunction, buttonImage }) => {
     return (
         <TouchableOpacity
             onPress={() => router.push(`/marketplace/listing/${listingId}`)}
@@ -26,10 +23,10 @@ const ListingCard = ({ title, price, postedBy, listingId }) => {
                 <View style={styles.bottomRow}>
                     <Text style={styles.username}>{postedBy.username}</Text>
                     <TouchableOpacity
-                        onPress={() => router.push(`/report/${postedBy._id}`)}
+                        onPress={buttonFunction}
                     >
                         <Image
-                            source={require("@/assets/images/report-flag.png")}
+                            source={buttonImage}
                             style={{
                                 height: 15,
                                 width: 15,
