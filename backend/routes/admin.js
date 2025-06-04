@@ -3,7 +3,9 @@ const router = express.Router();
 const adminController = require("../controllers/adminController");
 
 //define admin routes
-router.post("/unverified", adminController.getUnverifiedUsers);
+router.get("/unverified", adminController.getUnverifiedUsers);
+router.get("/verified", adminController.getVerifiedUsers);
+router.get("/user/:id", adminController.getUser);
 router.put("/verify/:id", adminController.verifyUser);
 router.delete("/denyverify/:id", adminController.denyVerification);
 

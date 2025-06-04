@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { AuthContext } from "@/context/AuthContext";
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
