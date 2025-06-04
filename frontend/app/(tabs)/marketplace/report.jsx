@@ -13,9 +13,15 @@ const reportPage = () => {
     const [message, setMessage] = useState('');
     const { userData } = useContext(AuthContext);
     const router = useRouter();
+    
 
     const handleSubmit = async () => {
         Keyboard.dismiss();
+
+        if (userData.isReported) {
+            setMessage("Reported users cannot create reports");
+            return;
+        }
         
         if (!description.trim()) {
             setMessage("Description is required.");

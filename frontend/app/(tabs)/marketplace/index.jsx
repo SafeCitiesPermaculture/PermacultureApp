@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useContext} from "react";
 import {
     View,
     Text,
@@ -14,6 +14,7 @@ import Colors from "@/constants/Colors";
 import ListingCard from "@/components/ListingCard";
 import API from "@/api/api";
 import { useFocusEffect } from "@react-navigation/native";
+import { AuthContext } from "@/context/AuthContext";
 
 const MarketplacePage = () => {
     const router = useRouter();
@@ -24,6 +25,8 @@ const MarketplacePage = () => {
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
+
+    const { userData } = useContext(AuthContext);
 
     const getListings = useCallback(async () => {
         setLoading(true);
@@ -45,12 +48,10 @@ const MarketplacePage = () => {
         }, [getListings])
     );
     
-    
-
     return (
         <AuthGuard>
             <View style={styles.header}>
-                <View style={{ flex: 1 , alignItems: 'center'}} >
+                <View style={{ flex: 1 , justifyContent: 'center', alignItems: 'center'}} >
                     <TouchableOpacity onPress={() => router.push('/marketplace/my-listings')}>
                         <Text style={{fontSize: 14, textAlignVertical: 'center'}}>My listings</Text>
                     </TouchableOpacity>
@@ -92,12 +93,12 @@ const MarketplacePage = () => {
                 </ScrollView>
             )}
 
-            <TouchableOpacity
+            {!userData.isReported && <TouchableOpacity
                 onPress={() => router.push("/marketplace/post")}
                 style={styles.postButton}
             >
                 <Image source={postButton} style={{ height: 50, width: 50 }} />
-            </TouchableOpacity>
+            </TouchableOpacity>}
         </AuthGuard>
     );
 };

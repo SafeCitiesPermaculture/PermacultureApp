@@ -67,9 +67,9 @@ const myListingsPage = () => {
                     <ListingCard title={listing.title} price={listing.price} postedBy={userData.username} listingId={listing._id} key={listing._id} onDelete={() => handleDelete(listing._id)} />) :
                     <View style={{justifyContent: 'center'}}>
                         <Text style={{fontSize: 30}}>You have no listings.</Text>
-                        <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
+                        {!userData.isReported && <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
                             <Text style={{color: '#14782f', textDecorationLine: 'underline', fontSize: 30}}>{'\n'}Make your first here!</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity>}
                     </View>
                     }
                     </View>

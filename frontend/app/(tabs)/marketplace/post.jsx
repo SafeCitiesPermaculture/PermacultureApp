@@ -39,6 +39,11 @@ const PostListingPage = () => {
             return;
         }
 
+        if (userData.isReported){
+            setMessage("Reported users cannot make new listings");
+            return;
+        }
+
         if (!title.trim()) {
             setMessage("Listing title is required.");
             return;

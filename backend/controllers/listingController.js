@@ -32,6 +32,10 @@ const createListing = async (req, res) => {
                 .json({ message: "Title must be a non-empty string." });
         }
 
+        if (!location.trim()) {
+            return res.status(400).json({ message: "Location must be a non-empty string" });
+        }
+
         if (!price) {
             return res.status(400).json({ message: "Price is required." });
         }
@@ -45,7 +49,7 @@ const createListing = async (req, res) => {
         const newListing = Listing({
             title: title.trim(),
             price,
-            location: location ? location.trim() : "",
+            location: location.trim(),
             description: description ? description.trim() : "",
             postedBy,
         });

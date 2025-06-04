@@ -60,9 +60,7 @@ const ReportPage = () => {
             <View style={{alignItems: 'center', marginBottom: 7}}>
                 <Text style={styles.header}>Report Details</Text>
             </View>
-            
-                {
-                loading ? 
+                {loading ? 
                 <View style={{alignItems: 'center'}}>
                     <ActivityIndicator size='large' color={Colors.greenRegular} />
                 </View> :

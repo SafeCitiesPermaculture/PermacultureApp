@@ -30,7 +30,11 @@ const ListingCard = ({ title, price, postedBy, listingId }) => {
     }, [listingId, router]);
 
     const reportListing = useCallback(() => {
-            router.push(`/marketplace/report/${postedBy.username}`);
+            router.push({
+                pathname: '/marketplace/report/',
+                params: {
+                    reportedUsername: postedBy.username
+                }});
         }, [router]);
      
     useEffect(() => {
