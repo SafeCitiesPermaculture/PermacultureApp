@@ -3,10 +3,18 @@ const Listing = require("../models/Listing");
 const createListing = async (req, res) => {
     try {
         // Verify user
-        if (!req.user || !req.user._id || !req.user.isVerified) {
+        if (!req.user.isVerified) {
             return res
                 .status(401)
                 .json({ message: "Unauthorized: User not authenticated" });
+        }
+
+        if (req.user.isReported) {
+            return res.status(401).json({ message: "Unauthorized: Reported users cannot make new listings" });
+        }
+
+        if (req.user.isRemoved) {
+            return res.status(401).json({ message: "Unauthorized: Removed users cannot make new listings" });
         }
 
         const postedBy = req.user._id;

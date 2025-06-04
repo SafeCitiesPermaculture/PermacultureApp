@@ -79,10 +79,9 @@ const ListingPage = () => {
         }
     };
 
-
     const reportListing = useCallback(() => {
-        router.push(`/marketplace/report/${listing.postedBy.username}`);
-    }, [router]);
+        router.push(`/marketplace/report/${listing?.postedBy.username}`);
+    }, [router, listing]);
 
     const isAdmin = userData.userRole === 'admin';
     const imageSource = isOwner || isAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");

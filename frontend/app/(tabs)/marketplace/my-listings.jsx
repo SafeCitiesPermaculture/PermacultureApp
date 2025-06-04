@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import AuthGuard from "@/components/AuthGuard";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
-import MyListingCard from "@/components/MyListingCard";
+import ListingCard from "@/components/ListingCard";
 import { AuthContext } from "@/context/AuthContext";
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -64,7 +64,7 @@ const myListingsPage = () => {
                     <View style={styles.grid}>
                     {listings.length !== 0 ?
                     listings.map((listing) => 
-                    <MyListingCard title={listing.title} price={listing.price} postedBy={userData.username} listingId={listing._id} key={listing._id} onDelete={() => handleDelete(listing._id)} />) :
+                    <ListingCard title={listing.title} price={listing.price} postedBy={userData.username} listingId={listing._id} key={listing._id} onDelete={() => handleDelete(listing._id)} />) :
                     <View style={{justifyContent: 'center'}}>
                         <Text style={{fontSize: 30}}>You have no listings.</Text>
                         <TouchableOpacity onPress={() => router.push('/marketplace/post')}>

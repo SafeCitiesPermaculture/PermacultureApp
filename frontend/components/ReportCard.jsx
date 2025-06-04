@@ -12,7 +12,7 @@ const ReportCard = ({ reported, reportedBy, description, reportId }) => {
             <View style={styles.background}>
                 <Text style={styles.label}>Reported: <Text style={{fontWeight: 'bold'}}>{reported}</Text></Text>
                 <Text style={styles.label}>Reported by: <Text style={{fontWeight: 'bold'}}>{reportedBy}</Text></Text>
-                <Text style={styles.label}>Description: {description}</Text>
+                <Text style={styles.label} numberOfLines={1}>Description: {description}</Text>
             </View>
         </TouchableOpacity>
     );

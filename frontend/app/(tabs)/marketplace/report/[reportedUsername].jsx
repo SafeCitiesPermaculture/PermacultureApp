@@ -36,7 +36,6 @@ const reportPage = () => {
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
-            //console.log(error.response);
             setMessage(error.message);
         } finally {
             setLoading(false);
@@ -48,12 +47,12 @@ const reportPage = () => {
             <View style={styles.container}>
                 <Text style={{fontSize: 30, fontWeight:'bold'}}>Reporting {reportedUsername}</Text>
                 <TextInput 
-                    placeholder="Enter a description of your report." 
+                    placeholder="Enter a description of your report. Mention specific listing(s) or message(s) if applicable." 
                     defaultvalue={description}
                     onChangeText={(newDescription) => setDescription(newDescription)}
                     maxLength={500}
                     multiline={true}
-                    numberOfLines={3}
+                    numberOfLines={6}
                     style={styles.textInput} />
                 <TouchableOpacity style={styles.button} onPress={handleSubmit}>
                     <Text style={styles.text}>Submit</Text>
