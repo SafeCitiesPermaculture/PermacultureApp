@@ -70,7 +70,7 @@ const ListingPage = () => {
             }
 
             const response = await API.post('/conversations', {
-                username: recipientUsername
+                usernames: [recipientUsername]
             });
 
             const conversationId = response.data._id;

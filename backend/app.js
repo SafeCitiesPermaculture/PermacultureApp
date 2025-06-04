@@ -52,7 +52,6 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("connected");
   console.log("User connected:", socket.id);
 
   // Join user-specific room
