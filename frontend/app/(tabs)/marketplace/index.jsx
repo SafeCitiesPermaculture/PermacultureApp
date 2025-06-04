@@ -120,7 +120,7 @@ const MarketplacePage = () => {
                 </ScrollView>
             )}
 
-            {!userData.isReported && <TouchableOpacity
+            {userData.timesReported < 3 && <TouchableOpacity
                 onPress={() => router.push("/marketplace/post")}
                 style={styles.postButton}
             >

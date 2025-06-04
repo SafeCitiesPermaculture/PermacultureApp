@@ -34,6 +34,7 @@ const ReportPage = () => {
 
     const handleIgnore = useCallback(async () => {
         try {
+            await API.put(`/reports/dismiss/${report.reportedUsername}`);
             await API.delete(`/reports/${reportId}`);
             setMessage("Report ignored.");
             setTimeout(() => router.dismiss(), 1000);
@@ -41,11 +42,11 @@ const ReportPage = () => {
             console.error("Error ignoring report:", error);
             setErrorMessage(error.message);
         }
-    }, [reportId, router]);
+    }, [reportId, router, report]);
 
     const handleRemove = useCallback(async () => {
         try {
-            await API.put(`/admin/remove/${report?.reportedUsername}`);
+            await API.put(`/admin/remove/${report.reportedUsername}`);
             setMessage(`${report?.reportedUsername} removed.`);
             await API.delete(`/reports/${reportId}`);
             setTimeout(() => router.dismiss(), 1000);

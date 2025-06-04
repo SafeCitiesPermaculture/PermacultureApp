@@ -18,7 +18,7 @@ const reportPage = () => {
     const handleSubmit = async () => {
         Keyboard.dismiss();
 
-        if (userData.isReported) {
+        if (userData.timesReported >= 3) {
             setMessage("Reported users cannot create reports");
             return;
         }
@@ -41,7 +41,7 @@ const reportPage = () => {
             setMessage("Report successfully created.");
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
-            console.error("Error creating listing: ", error);
+            console.error("Error creating report: ", error);
             setMessage(error.message);
         } finally {
             setLoading(false);

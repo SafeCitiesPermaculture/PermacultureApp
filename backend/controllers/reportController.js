@@ -1,4 +1,5 @@
 const Report = require("../models/Report");
+const User = require("../models/User");
 
 const makeReport = async (req, res) => {
     try {
@@ -6,7 +7,7 @@ const makeReport = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: User must be logged in to submit a report." });
         }
         
-        if (req.user.isReported || req.user.isRemoved) {
+        if (req.user.timesReported >= 3 || req.user.isRemoved) {
             return res.status(401).json({ message: "Unauthorized: Reported/Removed users cannot report users." });
         }
 
@@ -27,13 +28,22 @@ const makeReport = async (req, res) => {
         if(!description.trim()) {
             return res.status(400).json({ message: "Description is required." });
         }
+        
+        const reportedUser = await User.findOne({ username: reportedUsername.trim() });
+
+        if (!reportedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        reportedUser.timesReported++;
 
         const newReport = Report({
             reportedUsername: reportedUsername.trim(),
             reportedByUsername: reportedByUsername.trim(),
             description: description.trim()
         });
-
+        
+        await reportedUser.save();
         const savedReport = await newReport.save();
 
         res.status(201).json({
@@ -114,4 +124,23 @@ const deleteReport = async (req, res) => {
     }
 };
 
-module.exports = { makeReport, getAllReports, getReport, deleteReport };
+const dismissReport = async (req, res) => {
+    try {
+        if (req.user.userRole !== 'admin') {
+            return res.status(401).json({ message: "Unauthorized: Only admins can dismiss reports" });
+        }
+
+        const username = req.params.username;
+        const user = await User.findOne({ username: username });
+
+        user.timesReported--;
+        await user.save();
+
+        res.status(200).json({ message: "Report dismissed" });
+    } catch (error) {
+        console.error("Error in dismissReport:", error);
+        res.status(500).json({ message: "Error dismissing report", error: error.message});
+    }
+};
+
+module.exports = { makeReport, getAllReports, getReport, deleteReport, dismissReport };

@@ -9,7 +9,7 @@ const createListing = async (req, res) => {
                 .json({ message: "Unauthorized: User not authenticated" });
         }
 
-        if (req.user.isReported) {
+        if (req.user.timesReported >= 3) {
             return res.status(401).json({ message: "Unauthorized: Reported users cannot make new listings" });
         }
 
@@ -97,7 +97,7 @@ const getAllListings = async (req, res) => {
 
 const getMyListings = async (req, res) => {
     // Verify user
-    if (!req.user || !req.user.isVerified) {
+    if (!req.user.isVerified) {
         return res
             .status(401)
             .json({ message: "Unauthorized: User not authenticated." });
@@ -121,7 +121,7 @@ const getMyListings = async (req, res) => {
 const getListing = async(req, res) => {
     try {
          // Validate user
-         if (!req.user || !req.user.isVerified){
+         if (!req.user.isVerified){
             return res.status(401).json({ message: "Unauthorized: User not authenticated."});
         }
 
@@ -148,7 +148,7 @@ const getListing = async(req, res) => {
 const removeListing = async(req, res) => {
     try {
         // Validate user
-        if (!req.user || !req.user.isVerified){
+        if (!req.user.isVerified){
             return res.status(401).json({ message: "Unauthorized: User not authenticated."});
         }
         
