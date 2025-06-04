@@ -8,7 +8,7 @@ import {
     StyleSheet,
     Alert,
     TextInput,
-    Modal
+    Modal,
 } from "react-native";
 import API from "@/api/api";
 import { useRouter } from "expo-router";
@@ -50,22 +50,25 @@ const ConversationsPage = () => {
             console.log("Received conversationUpdated event:", update);
 
             setConversations((prev) => {
-            const updated = prev.map((c) =>
-                c._id === update.conversationId
-                ? { ...c, lastMessage: update.lastMessage, updatedAt: update.updatedAt }
-                : c
-            );
-            return updated.sort(
-                (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-            );
+                const updated = prev.map((c) =>
+                    c._id === update.conversationId
+                        ? {
+                              ...c,
+                              lastMessage: update.lastMessage,
+                              updatedAt: update.updatedAt,
+                          }
+                        : c
+                );
+                return updated.sort(
+                    (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+                );
             });
         });
 
         return () => {
             socket.off("conversationUpdated");
         };
-        }, []);
-
+    }, []);
 
     const getOtherUser = (participants) => {
         return participants.find((p) => p._id !== userId);
@@ -120,38 +123,63 @@ const ConversationsPage = () => {
             <Modal visible={modalVisible} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalBox}>
-                        <Text style={{ fontSize: 18, marginBottom: 10 }}>Start New Chat</Text>
+                        <Text style={{ fontSize: 18, marginBottom: 10 }}>
+                            Start New Chat
+                        </Text>
                         <TextInput
                             placeholder="Enter username"
                             value={targetUsername}
                             onChangeText={setTargetUsername}
                             style={styles.input}
                         />
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                            }}
+                        >
                             <TouchableOpacity
                                 onPress={async () => {
                                     try {
                                         if (!targetUsername.trim()) return;
-                                        const res = await API.post("/conversations", {
-                                            username: targetUsername.trim(),
-                                        });
+                                        const res = await API.post(
+                                            "/conversations",
+                                            {
+                                                username: targetUsername.trim(),
+                                            }
+                                        );
                                         setModalVisible(false);
                                         setTargetUsername("");
-                                        router.push(`/marketplace/${res.data._id}`);
+                                        router.push(
+                                            `/marketplace/${res.data._id}`
+                                        );
                                     } catch (err) {
-                                        console.error("Error starting chat:", err);
-                                        Alert.alert("Error", "User not found or cannot start chat.");
+                                        console.error(
+                                            "Error starting chat:",
+                                            err
+                                        );
+                                        Alert.alert(
+                                            "Error",
+                                            "User not found or cannot start chat."
+                                        );
                                     }
                                 }}
                                 style={styles.modalButton}
                             >
-                                <Text style={styles.modalButtonText}>Start</Text>
+                                <Text style={styles.modalButtonText}>
+                                    Start
+                                </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={() => setModalVisible(false)}
-                                style={[styles.modalButton, { backgroundColor: "#aaa" }]}
+                                style={[
+                                    styles.modalButton,
+                                    { backgroundColor: "#aaa" },
+                                ]}
                             >
-                                <Text style={styles.modalButtonText}>Cancel</Text>
+                                <Text style={styles.modalButtonText}>
+                                    Cancel
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -174,8 +202,8 @@ const styles = StyleSheet.create({
 
     newChatButton: {
         position: "absolute",
-        bottom: 30,
-        right: 30,
+        bottom: 100,
+        right: 20,
         width: 60,
         height: 60,
         borderRadius: 30,
