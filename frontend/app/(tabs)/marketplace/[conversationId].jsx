@@ -135,7 +135,7 @@ const ConversationDetailPage = () => {
 
       console.log("📡 Emitting sendMessage socket event with:", emitPayload);
 
-      // 🔥 EMIT SOCKET EVENT
+      //  SOCKET EVENT
       socket.emit("sendMessage", emitPayload);
 
       setMessages((prev) => [...prev, message]);
@@ -175,7 +175,15 @@ const ConversationDetailPage = () => {
               minute: "2-digit",
               hour12: false,
             })}
+
+            {isOwnMessage &&
+              (item.seenBy.length > 1
+                ? " ✓✓ Read"
+                : item.deliveredTo.length >= 1
+                ? " ✓ Delivered"
+                : "")}
           </Text>
+
         </View>
       </View>
     );

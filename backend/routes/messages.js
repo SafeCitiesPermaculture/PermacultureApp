@@ -93,9 +93,19 @@ router.post("/conversations", async (req, res) => {
  */
 router.get("/conversations/:conversationId/messages", async (req, res) => {
   try {
+    await Message.updateMany(
+      {
+        conversation: req.params.conversationId,
+        seenBy: { $ne: req.user._id },
+      },
+      {
+        $addToSet: { seenBy: req.user._id },
+      }
+    );
     const messages = await Message.find({ conversation: req.params.conversationId })
       .populate("sender", "username")
       .sort({ createdAt: 1 });
+
     res.json(messages);
   } catch (err) {
     console.error("Error fetching messages:", err);
@@ -137,6 +147,17 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
       lastMessage: text,
       updatedAt: new Date(),
     });
+
+    // Mark messages as delivered
+    await Message.updateMany(
+      {
+        conversation: req.params.conversationId,
+        deliveredTo: { $ne: req.user._id },
+      },
+      {
+        $addToSet: { deliveredTo: req.user._id },
+      }
+    );
 
     const populated = await message.populate("sender", "username");
     res.status(201).json(populated);
