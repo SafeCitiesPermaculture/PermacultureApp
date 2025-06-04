@@ -39,7 +39,7 @@ const PostListingPage = () => {
             return;
         }
 
-        if (userData.isReported){
+        if (userData.timesReported >= 3){
             setMessage("Reported users cannot make new listings");
             return;
         }

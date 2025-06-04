@@ -71,7 +71,7 @@ const myListingsPage = () => {
                     <ListingCard title={listing.title} price={listing.price} postedBy={postedBy} listingId={listing._id} key={listing._id} buttonFunction={() => handleDelete(listing._id)} buttonImage={require("@/assets/images/trash-can.png")} />) :
                     <View style={{justifyContent: 'center'}}>
                         <Text style={{fontSize: 30}}>You have no listings.</Text>
-                        {!userData.isReported && <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
+                        {userData.timesReported < 3 && <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
                             <Text style={{color: '#14782f', textDecorationLine: 'underline', fontSize: 30}}>{'\n'}Make your first here!</Text>
                         </TouchableOpacity>}
                     </View>

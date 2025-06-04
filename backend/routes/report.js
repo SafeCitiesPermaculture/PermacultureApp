@@ -6,5 +6,6 @@ router.post("/", reportController.makeReport);
 router.get("/", reportController.getAllReports);
 router.get("/:reportId", reportController.getReport);
 router.delete("/:reportId", reportController.deleteReport);
+router.put("/dismiss/:username", reportController.dismissReport)
 
 module.exports = router;
