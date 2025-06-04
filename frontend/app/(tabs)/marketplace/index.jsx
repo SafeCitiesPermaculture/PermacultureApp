@@ -33,7 +33,7 @@ const MarketplacePage = () => {
         setErrorMessage('');
         try {
             const response = await API.get('/listings/get');
-            setListings(response.data.listings || response.data);
+            setListings(response.data.listings);
         } catch (error) {
             console.error("Error fetching listings: ", error);
             setErrorMessage('Failed to fetch listings. Please try again.');
@@ -47,6 +47,25 @@ const MarketplacePage = () => {
             getListings();
         }, [getListings])
     );
+
+    const handleDelete = async (listingId) => {
+        try {
+            await API.delete(`/listings/remove/${listingId}`);
+            await getListings();
+        } catch (error) {
+            console.error("Error deleting listing: ", error);
+            setErrorMessage(error.message);
+        }
+    };
+
+    const handleReport = (postedByUsername) => {
+        router.push({
+            pathname: '/marketplace/report',
+            params: {
+                reportedUsername: postedByUsername
+            }
+        });
+    };
     
     return (
         <AuthGuard>
@@ -79,15 +98,19 @@ const MarketplacePage = () => {
                 <View style={styles.centerContainer}>
                     <Text style={styles.errorMessage}>Error: {errorMessage}</Text>
                     <TouchableOpacity onPress={getListings} style={styles.retryButton}>
-                        <Text>Retry</Text>
+                        <Text style={{color: 'white'}}>Retry</Text>
                     </TouchableOpacity>
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.listingArea}>
                     <View style={styles.grid}>
                     {
-                    listings.map((listing) => 
-                    <ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} />)
+                    listings.map((listing) => {
+                        const isOwnerAdmin = listing.postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
+                        const buttonImage = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
+                        const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy.username);
+                        return (<ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage} />);
+                    })
                     }
                     </View>
                 </ScrollView>
@@ -158,6 +181,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+    },
+    retryButton: {
+        padding: 10,
+        backgroundColor: Colors.greenButton
     }
 });
 

@@ -7,44 +7,10 @@ import {
     Image,
 } from "react-native";
 import Colors from "@/constants/Colors";
-import { useRouter } from "expo-router";
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { AuthContext } from "@/context/AuthContext";
-import API from "@/api/api";
 
 const { width } = Dimensions.get("window");
 
-const ListingCard = ({ title, price, postedBy, listingId }) => {
-    const router = useRouter();
-    const { userData } = useContext(AuthContext);
-    const isOwnerAdmin = postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
-    const imageSource = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
-    const [buttonFunction, setButtonFunction] = useState(null);
-    
-    const deleteListing = useCallback(async () => {
-        try {
-            await API.delete(`/listings/remove/${listingId}`);
-        } catch (error) {
-            console.error("Error deleting listing:", error);
-        }
-    }, [listingId, router]);
-
-    const reportListing = useCallback(() => {
-            router.push({
-                pathname: '/marketplace/report/',
-                params: {
-                    reportedUsername: postedBy.username
-                }});
-        }, [router]);
-     
-    useEffect(() => {
-            if (isOwnerAdmin) {
-                setButtonFunction(() => deleteListing);
-            } else {
-                setButtonFunction(() => reportListing);
-            }
-        }, [isOwnerAdmin, deleteListing, reportListing]);
-
+const ListingCard = ({ title, price, postedBy, listingId, buttonFunction, buttonImage }) => {
     return (
         <TouchableOpacity
             onPress={() => router.push(`/marketplace/listing/${listingId}`)}
@@ -60,7 +26,7 @@ const ListingCard = ({ title, price, postedBy, listingId }) => {
                         onPress={buttonFunction}
                     >
                         <Image
-                            source={imageSource}
+                            source={buttonImage}
                             style={{
                                 height: 15,
                                 width: 15,

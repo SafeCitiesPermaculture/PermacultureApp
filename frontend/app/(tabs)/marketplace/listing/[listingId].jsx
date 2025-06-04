@@ -47,15 +47,13 @@ const ListingPage = () => {
     }, [getListingDetails]);
     
     const deleteListing = useCallback(async () => {
-        setLoading(true);
         try {
+            setErrorMessage("Deleting...");
             await API.delete(`/listings/remove/${listingId}`);
-            router.dismiss();
+            setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error deleting listing:", error);
             setErrorMessage("Failed to delete listing:", error.message);
-        } finally {
-            setLoading(false);
         }
     }, [listingId, router]);
 
@@ -80,7 +78,11 @@ const ListingPage = () => {
     };
 
     const reportListing = useCallback(() => {
-        router.push(`/marketplace/report/${listing?.postedBy.username}`);
+        router.push({
+            pathname: '/marketplace/report',
+            params: {
+                reportedUsername: listing?.postedBy.username
+            }});
     }, [router, listing]);
 
     const isAdmin = userData.userRole === 'admin';

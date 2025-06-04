@@ -132,7 +132,7 @@ const getListing = async(req, res) => {
             return res.status(404).json({ message: "Listing not found." });
         }
 
-        return res.status(200).json({ 
+        res.status(200).json({ 
             message: "Listing retrieved successfully.", 
             listing: listing
         });
@@ -163,7 +163,7 @@ const removeListing = async(req, res) => {
         }
 
         await Listing.findByIdAndDelete(id);
-        return res.status(200).json({ message:"Listing deleted." });
+        res.status(200).json({ message:"Listing deleted." });
     } catch (error) {
         console.error("Error in removeListing: ", error);
         res.status(500).json({
