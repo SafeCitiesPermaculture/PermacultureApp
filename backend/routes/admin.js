@@ -7,6 +7,8 @@ router.get("/unverified", adminController.getUnverifiedUsers);
 router.get("/verified", adminController.getVerifiedUsers);
 router.get("/user/:id", adminController.getUser);
 router.put("/verify/:id", adminController.verifyUser);
+router.put("/remove/:id", adminController.removeUser);
+router.put("/user/update/:id", adminController.updateUser);
 router.delete("/denyverify/:id", adminController.denyVerification);
 
 //example route

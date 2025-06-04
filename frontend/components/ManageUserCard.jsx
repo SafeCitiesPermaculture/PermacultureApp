@@ -1,15 +1,20 @@
-import React from "react";
+import React, { useContext } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
+import { AuthContext } from "@/context/AuthContext";
 
 const ManageUserCard = ({ user }) => {
     const router = useRouter();
+    const { userData } = useContext(AuthContext);
 
     return (
         <TouchableOpacity
             style={styles.container}
-            onPress={() => router.push(`/profile/${user._id}`)}
+            onPress={() => {
+                if (user._id == userData._id) return;
+                router.push(`/profile/${user._id}`);
+            }}
         >
             <Text style={styles.nameText}>{user.username}</Text>
             <Text style={styles.emailText}>{user.email}</Text>
@@ -25,6 +30,9 @@ const ManageUserCard = ({ user }) => {
                     </Text>
                 </Text>
             </View>
+            {user.isReported && (
+                <Text style={styles.reportedText}>REPORTED</Text>
+            )}
         </TouchableOpacity>
     );
 };
@@ -63,6 +71,12 @@ const styles = StyleSheet.create({
     farmText: {},
     farmNameInnerText: {
         fontWeight: "bold",
+    },
+
+    reportedText: {
+        color: Colors.errorRed,
+        fontWeight: "bold",
+        marginTop: 3,
     },
 });
 

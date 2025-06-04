@@ -1,5 +1,5 @@
 import AdminGuard from "@/components/AdminGuard";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import Colors from "@/constants/Colors";
 import ManageUserCard from "@/components/ManageUserCard";
 import API from "@/api/api";
 import { useLoading } from "@/context/LoadingContext";
+import { useFocusEffect } from "expo-router";
 
 const ManageUsersPage = () => {
     const [searchText, setSearchText] = useState("");
@@ -34,9 +35,11 @@ const ManageUsersPage = () => {
         }
     };
 
-    useEffect(() => {
-        getUsers();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            getUsers();
+        }, [])
+    );
 
     //filter user list based on search bar
     useEffect(() => {

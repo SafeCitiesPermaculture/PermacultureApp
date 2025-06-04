@@ -45,6 +45,7 @@ const verifyUser = async (req, res) => {
     }
 };
 
+//returns a single user
 const getUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -71,10 +72,54 @@ const denyVerification = async (req, res) => {
     }
 };
 
+//remove a user
+const removeUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const targetUser = await User.findById(id);
+
+        if (!targetUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        targetUser.isRemoved = true;
+        res.json({ message: "User removed successfully" });
+        await targetUser.save();
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+//fully update a user
+const updateUser = async (req, res) => {
+    try {
+        const { updatedUserData } = req.body;
+        const { id } = req.params;
+
+        //mongo does NOT like when you change the _id field
+        delete updatedUserData._id;
+
+        const updatedUser = await User.findByIdAndUpdate(id, updatedUserData, {
+            new: true,
+            runValidators: true,
+        });
+
+        if (!updatedUser) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     getUnverifiedUsers,
     getVerifiedUsers,
     getUser,
     verifyUser,
     denyVerification,
+    removeUser,
+    updateUser,
 };
