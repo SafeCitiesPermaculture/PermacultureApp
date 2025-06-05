@@ -47,31 +47,35 @@ router.get("/conversations", async (req, res) => {
  */
 router.post("/conversations", async (req, res) => {
   try {
-    const { username } = req.body;
+    const { usernames } = req.body;
     const senderId = req.user._id;
 
-    if (!username) {
-      return res.status(400).json({ error: "Username is required" });
+    if (!Array.isArray(usernames) || usernames.length === 0) {
+      return res.status(400).json({ error: "Usernames array is required" });
     }
 
-    const recipient = await User.findOne({ username });
-    if (!recipient) {
-      return res.status(404).json({ error: "User not found" });
+    // Look up all users
+    const users = await User.find({ username: { $in: usernames } });
+
+    if (users.length !== usernames.length) {
+      return res.status(404).json({ error: "One or more users not found" });
     }
 
-    // Prevent chatting with yourself
-    if (recipient._id.equals(senderId)) {
-      return res.status(400).json({ error: "Cannot start a chat with yourself" });
+    // Create participant list including sender
+    const participantIds = [...new Set([senderId, ...users.map((u) => u._id.toString())])];
+
+    // Prevent creating conversation with just the sender
+    if (participantIds.length < 2) {
+      return res.status(400).json({ error: "At least one other user required" });
     }
 
+    // Check if a conversation with the exact same participants exists
     let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, recipient._id], $size: 2 },
+      participants: { $all: participantIds, $size: participantIds.length },
     });
 
     if (!conversation) {
-      conversation = new Conversation({
-        participants: [senderId, recipient._id],
-      });
+      conversation = new Conversation({ participants: participantIds });
       await conversation.save();
     }
 
@@ -83,14 +87,25 @@ router.post("/conversations", async (req, res) => {
   }
 });
 
+
 /**
  * GET /conversations/:conversationId/messages
  */
 router.get("/conversations/:conversationId/messages", async (req, res) => {
   try {
+    await Message.updateMany(
+      {
+        conversation: req.params.conversationId,
+        seenBy: { $ne: req.user._id },
+      },
+      {
+        $addToSet: { seenBy: req.user._id },
+      }
+    );
     const messages = await Message.find({ conversation: req.params.conversationId })
       .populate("sender", "username")
       .sort({ createdAt: 1 });
+
     res.json(messages);
   } catch (err) {
     console.error("Error fetching messages:", err);
@@ -98,9 +113,23 @@ router.get("/conversations/:conversationId/messages", async (req, res) => {
   }
 });
 
-/**
- * POST /conversations/:conversationId/messages
- */
+router.get("/conversations/:conversationId", async (req, res) => {
+  try {
+    const convo = await Conversation.findById(req.params.conversationId)
+      .populate("participants", "username");
+
+    if (!convo) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    res.json(convo);
+  } catch (err) {
+    console.error("Error fetching conversation:", err);
+    res.status(500).json({ error: "Failed to fetch conversation" });
+  }
+});
+
+ // POST /conversations/:conversationId/messages
 router.post("/conversations/:conversationId/messages", async (req, res) => {
   try {
     const { text } = req.body;
@@ -119,6 +148,17 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
       updatedAt: new Date(),
     });
 
+    // Mark messages as delivered
+    await Message.updateMany(
+      {
+        conversation: req.params.conversationId,
+        deliveredTo: { $ne: req.user._id },
+      },
+      {
+        $addToSet: { deliveredTo: req.user._id },
+      }
+    );
+
     const populated = await message.populate("sender", "username");
     res.status(201).json(populated);
   } catch (err) {
@@ -126,5 +166,24 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
     res.status(500).json({ error: "Failed to send message" });
   }
 });
+
+router.put("/conversations/:id/rename", async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: "Name required" });
+
+    const convo = await Conversation.findByIdAndUpdate(
+      req.params.id,
+      { name },
+      { new: true }
+    ).populate("participants", "username");
+
+    res.json(convo);
+  } catch (err) {
+    console.error("Rename error:", err);
+    res.status(500).json({ error: "Failed to rename group" });
+  }
+});
+
 
 module.exports = router;

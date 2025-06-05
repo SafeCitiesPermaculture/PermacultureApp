@@ -75,10 +75,8 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", ({ conversationId, message }) => {
     console.log(`📨 Socket ${socket.id} sending to ${conversationId}:`, message);
 
-    // Broadcast message to others in the conversation room
     socket.to(conversationId).emit("receiveMessage", message);
 
-    // Emit conversation preview update to all participants' user rooms
     if (Array.isArray(message.participants)) {
       message.participants.forEach((userId) => {
         io.to(userId).emit("conversationUpdated", {
@@ -86,9 +84,10 @@ io.on("connection", (socket) => {
           lastMessage: message.text,
           updatedAt: message.createdAt,
         });
+        console.log(`📤 Sent conversationUpdated to user room: ${userId}`);
       });
     } else {
-      console.warn("No participants array in message:", message);
+      console.warn("⚠️ No participants array in message:", message);
     }
   });
 
