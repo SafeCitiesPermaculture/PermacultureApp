@@ -6,6 +6,7 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
+const userRoutes = require("./routes/user");
 const Message = require("./models/Message"); // Make sure this is at the top
 
 const {
@@ -42,6 +43,7 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
+app.use("/api/user", userRoutes);
 
 //admin routes
 app.use(adminAuthMiddleware);
@@ -53,7 +55,7 @@ const { Server } = require("socket.io");
 
 const server = http.createServer(app); // attach app to HTTP server
 const io = new Server(server, {
-  cors: { origin: "*" }
+    cors: { origin: "*" },
 });
 
 io.on("connection", (socket) => {
@@ -75,10 +77,8 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", ({ conversationId, message }) => {
     console.log(`📨 Socket ${socket.id} sending to ${conversationId}:`, message);
 
-    // Broadcast message to others in the conversation room
     socket.to(conversationId).emit("receiveMessage", message);
 
-    // Emit conversation preview update to all participants' user rooms
     if (Array.isArray(message.participants)) {
       message.participants.forEach((userId) => {
         io.to(userId).emit("conversationUpdated", {
@@ -86,9 +86,10 @@ io.on("connection", (socket) => {
           lastMessage: message.text,
           updatedAt: message.createdAt,
         });
+        console.log(`📤 Sent conversationUpdated to user room: ${userId}`);
       });
     } else {
-      console.warn("No participants array in message:", message);
+      console.warn("⚠️ No participants array in message:", message);
     }
   });
 
@@ -109,7 +110,6 @@ io.on("connection", (socket) => {
   });
 });
 
-
 server.listen(PORT, () => {
-  console.log(`Server with Socket.IO running on port ${PORT}`);
+    console.log(`Server with Socket.IO running on port ${PORT}`);
 });
