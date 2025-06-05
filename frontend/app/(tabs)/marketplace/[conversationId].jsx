@@ -1,206 +1,381 @@
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState, useRef } from "react";
+import { useLocalSearchParams, useNavigation  } from "expo-router";
+import { useEffect, useState, useRef, useLayoutEffect  } from "react";
 import {
-    View,
-    Text,
-    FlatList,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Modal,
 } from "react-native";
 import API from "@/api/api";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken";
 import socket from "@/utils/socket";
 
 const ConversationDetailPage = () => {
-    const { conversationId } = useLocalSearchParams();
-    const [messages, setMessages] = useState([]);
-    const [input, setInput] = useState("");
-    const [userId, setUserId] = useState(null);
-    const flatListRef = useRef(null);
+  const { conversationId } = useLocalSearchParams();
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [userId, setUserId] = useState(null);
+  const flatListRef = useRef(null);
+  const navigation = useNavigation();
+  const [otherUser, setOtherUser] = useState(null);
+  const [conversation, setConversation] = useState(null);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
 
-    useEffect(() => {
-        let active = true;
-        let uid = null;
 
-        const handleReceiveMessage = (message) => {
-            console.log("Received message:", message);
-            if (!active) return;
+  useEffect(() => {
+    let active = true;
+    let uid = null;
 
-            setMessages((prev) => [...prev, message]);
-            scrollToBottom();
+    console.log("🔌 Socket connected?", socket.connected, "ID:", socket.id);
+    const handleReceiveMessage = (message) => {
+      console.log("Received message:", message);
+      if (!active) return;
 
-            // Acknowledge delivery
-            if (uid) {
-                socket.emit("messageDelivered", {
-                    messageId: message._id,
-                    userId: uid,
-                });
-            }
-        };
+      setMessages((prev) => [...prev, message]);
+      scrollToBottom();
 
-        const init = async () => {
-            uid = await getUserIdFromToken();
-            setUserId(uid);
-
-            socket.emit("joinConversation", conversationId);
-            console.log("Joined conversation room:", conversationId);
-
-            const res = await API.get(
-                `/conversations/${conversationId}/messages`
-            );
-            setMessages(res.data);
-            scrollToBottom();
-
-            // ⚠️ Move the listener here to ensure it's registered AFTER userId
-            socket.on("receiveMessage", handleReceiveMessage);
-        };
-
-        init();
-
-        return () => {
-            active = false;
-            socket.off("receiveMessage", handleReceiveMessage);
-        };
-    }, [conversationId]);
-
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+      // Acknowledge delivery
+      if (uid) {
+        socket.emit("messageDelivered", {
+          messageId: message._id,
+          userId: uid,
+        });
+      }
     };
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    const init = async () => {
+      uid = await getUserIdFromToken();
+      setUserId(uid);
 
-        try {
-            const res = await API.post(
-                `/conversations/${conversationId}/messages`,
-                {
-                    text: input,
-                }
-            );
+      socket.emit("joinConversation", conversationId);
+      console.log("Joined conversation room:", conversationId);
 
-            const message = res.data;
+      const res = await API.get(`/conversations/${conversationId}/messages`);
+      setMessages(res.data);
+      scrollToBottom();
 
-            setMessages((prev) => [...prev, message]);
-            scrollToBottom();
-            setInput("");
+      const convoRes = await API.get(`/conversations/${conversationId}`);
+      setConversation(convoRes.data);
+      const participants = convoRes.data.participants;
+      const other = participants.find((p) => p._id !== uid);
+      if (other) setOtherUser(other);
 
-            // Extract participant IDs from existing messages
-            const participantIds = [
-                message.sender._id,
-                ...new Set(
-                    messages
-                        .map((m) => m.sender._id)
-                        .filter((id) => id !== message.sender._id)
-                ),
-            ];
 
-            socket.emit("sendMessage", {
-                conversationId,
-                message: {
-                    ...message,
-                    participants: participantIds,
-                },
-            });
-        } catch (err) {
-            console.error("Failed to send message", err);
-        }
+      socket.on("receiveMessage", handleReceiveMessage);
     };
 
-    const renderItem = ({ item }) => (
-        <View
-            style={[
-                styles.messageBubble,
-                item.sender._id === userId ? styles.outgoing : styles.incoming,
-            ]}
-        >
-            <Text>{item.text}</Text>
-            <Text style={styles.timestamp}>
-                {new Date(item.createdAt).toLocaleTimeString()}
-            </Text>
-        </View>
-    );
+    init();
+
+    return () => {
+      active = false;
+      socket.off("receiveMessage", handleReceiveMessage);
+    };
+  }, [conversationId]);
+
+  useLayoutEffect(() => {
+    if (!conversation || !conversation.participants) return;
+
+    const otherUsers = conversation.participants.filter((p) => p._id !== userId);
+
+    const title = conversation.name
+      ? conversation.name
+      : otherUsers.length === 1
+      ? otherUsers[0].username
+      : otherUsers.map((u) => u.username).join(" & ");
+
+    navigation.setOptions({
+      title,
+      headerRight: () =>
+        conversation.participants.length > 2 ? (
+          <TouchableOpacity onPress={() => setRenameModalVisible(true)} style={{ marginRight: 10 }}>
+            <Text style={{ fontSize: 18 }}>✏️</Text>
+          </TouchableOpacity>
+        ) : null,
+    });
+  }, [conversation, userId]);
+
+
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    try {
+      const res = await API.post(`/conversations/${conversationId}/messages`, {
+        text: input,
+      });
+
+      const message = res.data;
+
+      // extract participant IDs from current messages
+      const participantIds = new Set([
+        message.sender._id,
+        ...messages.map((m) => m.sender._id),
+      ]);
+
+      const emitPayload = {
+        conversationId,
+        message: {
+          ...message,
+          participants: [...participantIds],
+        },
+      };
+
+      console.log("📡 Emitting sendMessage socket event with:", emitPayload);
+
+      //  SOCKET EVENT
+      socket.emit("sendMessage", emitPayload);
+
+      setMessages((prev) => [...prev, message]);
+      scrollToBottom();
+      setInput("");
+    } catch (err) {
+      console.error("❌ Failed to send message", err);
+    }
+  };
+
+
+
+  const renderItem = ({ item }) => {
+    const isOwnMessage = item.sender._id === userId;
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={90}
+      <View
+        style={[
+          styles.messageWrapper,
+          isOwnMessage ? styles.outgoingWrapper : styles.incomingWrapper,
+        ]}
+      >
+        {!isOwnMessage && (
+          <Text style={styles.senderLabel}>{item.sender.username}</Text>
+        )}
+
+        <View
+          style={[
+            styles.messageBubble,
+            isOwnMessage ? styles.outgoing : styles.incoming,
+          ]}
         >
-            <FlatList
-                ref={flatListRef}
-                data={messages}
-                keyExtractor={(item) => item._id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.messageList}
-            />
-            <View style={styles.inputContainer}>
-                <TextInput
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="Type a message..."
-                    style={styles.textInput}
-                />
-                <TouchableOpacity
-                    onPress={handleSend}
-                    style={styles.sendButton}
-                >
-                    <Text style={styles.sendText}>Send</Text>
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+          <Text>{item.text}</Text>
+          <Text style={styles.timestamp}>
+            {new Date(item.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}
+
+            {isOwnMessage &&
+              (item.seenBy.length > 1
+                ? " ✓✓ Read"
+                : item.deliveredTo.length >= 1
+                ? " ✓ Delivered"
+                : "")}
+          </Text>
+
+        </View>
+      </View>
     );
+  };
+
+
+  return (
+    <>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={90}
+      >
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item._id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.messageList}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Type a message..."
+            style={styles.textInput}
+          />
+          <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
+            <Text style={styles.sendText}>Send</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Rename Group Modal */}
+      <Modal visible={renameModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Rename Group</Text>
+
+            <TextInput
+              placeholder="Enter new name"
+              value={newTitle}
+              onChangeText={setNewTitle}
+              style={styles.input}
+            />
+
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity onPress={() => setRenameModalVisible(false)} style={[styles.modalButton, styles.cancelButton]}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    if (!newTitle.trim()) return;
+
+                    const res = await API.put(`/conversations/${conversationId}/rename`, {
+                      name: newTitle.trim(),
+                    });
+
+                    setConversation(res.data);
+                    setRenameModalVisible(false);
+                    setNewTitle("");
+                  } catch (err) {
+                    console.error("Rename failed", err);
+                    Alert.alert("Error", "Failed to rename group.");
+                  }
+                }}
+                style={styles.modalButton}
+              >
+                <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+    </>
+  );
+
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    messageList: { padding: 10 },
-    messageBubble: {
-        marginVertical: 5,
-        padding: 10,
-        borderRadius: 8,
-        maxWidth: "80%",
-    },
-    incoming: {
-        alignSelf: "flex-start",
-        backgroundColor: "#f0f0f0",
-    },
-    outgoing: {
-        alignSelf: "flex-end",
-        backgroundColor: "#dcf8c6",
-    },
-    timestamp: {
-        fontSize: 10,
-        color: "#666",
-        marginTop: 4,
-    },
-    inputContainer: {
-        flexDirection: "row",
-        padding: 10,
-        borderTopColor: "#ccc",
-        borderTopWidth: 1,
-        marginBottom: 90,
-    },
-    textInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 20,
-        paddingHorizontal: 15,
-        height: 40,
-    },
-    sendButton: {
-        justifyContent: "center",
-        paddingHorizontal: 15,
-    },
-    sendText: {
-        color: "blue",
-        fontWeight: "bold",
-    },
+  container: { flex: 1 },
+  messageList: { padding: 10 },
+  messageBubble: {
+    marginVertical: 5,
+    padding: 10,
+    borderRadius: 8,
+    maxWidth: "80%",
+  },
+  incoming: {
+    alignSelf: "flex-start",
+    backgroundColor: "#f0f0f0",
+  },
+  outgoing: {
+    alignSelf: "flex-end",
+    backgroundColor: "#dcf8c6",
+  },
+  timestamp: {
+    fontSize: 10,
+    color: "#666",
+    marginTop: 4,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    padding: 10,
+    borderTopColor: "#ccc",
+    borderTopWidth: 1,
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    height: 40,
+  },
+  sendButton: {
+    justifyContent: "center",
+    paddingHorizontal: 15,
+  },
+  sendText: {
+    color: "blue",
+    fontWeight: "bold",
+  },
+  messageWrapper: {
+    marginVertical: 5,
+    maxWidth: "80%",
+  },
+
+  incomingWrapper: {
+    alignSelf: "flex-start",
+    alignItems: "flex-start",
+  },
+
+  outgoingWrapper: {
+    alignSelf: "flex-end",
+    alignItems: "flex-end",
+  },
+
+  senderLabel: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#444",
+    marginBottom: 2,
+  },
+
+  modalOverlay: {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+},
+
+  modalBox: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 20,
+    elevation: 5,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+  },
+
+  modalButton: {
+    backgroundColor: "#28a745",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+
+  cancelButton: {
+    backgroundColor: "#aaa",
+  },
+
+  modalButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
 });
 
 export default ConversationDetailPage;

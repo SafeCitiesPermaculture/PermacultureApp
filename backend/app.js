@@ -59,62 +59,55 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+  console.log("User connected:", socket.id);
 
-    // Join user-specific room
-    socket.on("joinUserRoom", (userId) => {
-        socket.join(userId);
-        console.log(`Socket ${socket.id} joined user room: ${userId}`);
-    });
+  // Join user-specific room
+  socket.on("joinUserRoom", (userId) => {
+    socket.join(userId);
+    console.log(`Socket ${socket.id} joined user room: ${userId}`);
+  });
 
-    // Join conversation room
-    socket.on("joinConversation", (conversationId) => {
-        socket.join(conversationId);
-        console.log(
-            `Socket ${socket.id} joined conversation room: ${conversationId}`
-        );
-    });
+  // Join conversation room
+  socket.on("joinConversation", (conversationId) => {
+    socket.join(conversationId);
+    console.log(`Socket ${socket.id} joined conversation room: ${conversationId}`);
+  });
 
-    // Send message to conversation AND notify user rooms
-    socket.on("sendMessage", ({ conversationId, message }) => {
-        console.log(
-            `📨 Socket ${socket.id} sending to ${conversationId}:`,
-            message
-        );
+  // Send message to conversation AND notify user rooms
+  socket.on("sendMessage", ({ conversationId, message }) => {
+    console.log(`📨 Socket ${socket.id} sending to ${conversationId}:`, message);
 
-        // Broadcast message to others in the conversation room
-        socket.to(conversationId).emit("receiveMessage", message);
+    socket.to(conversationId).emit("receiveMessage", message);
 
-        // Emit conversation preview update to all participants' user rooms
-        if (Array.isArray(message.participants)) {
-            message.participants.forEach((userId) => {
-                io.to(userId).emit("conversationUpdated", {
-                    conversationId,
-                    lastMessage: message.text,
-                    updatedAt: message.createdAt,
-                });
-            });
-        } else {
-            console.warn("No participants array in message:", message);
-        }
-    });
+    if (Array.isArray(message.participants)) {
+      message.participants.forEach((userId) => {
+        io.to(userId).emit("conversationUpdated", {
+          conversationId,
+          lastMessage: message.text,
+          updatedAt: message.createdAt,
+        });
+        console.log(`📤 Sent conversationUpdated to user room: ${userId}`);
+      });
+    } else {
+      console.warn("⚠️ No participants array in message:", message);
+    }
+  });
 
-    socket.on("messageDelivered", async ({ messageId, userId }) => {
-        try {
-            await Message.findByIdAndUpdate(messageId, {
-                $addToSet: { deliveredTo: userId },
-            });
-            console.log(
-                `Marked message ${messageId} as delivered to user ${userId}`
-            );
-        } catch (err) {
-            console.error("Failed to mark as delivered:", err);
-        }
-    });
+  socket.on("messageDelivered", async ({ messageId, userId }) => {
+    try {
+      await Message.findByIdAndUpdate(messageId, {
+        $addToSet: { deliveredTo: userId },
+      });
+      console.log(`Marked message ${messageId} as delivered to user ${userId}`);
+    } catch (err) {
+      console.error("Failed to mark as delivered:", err);
+    }
+  });
 
-    socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id);
-    });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });
 
 server.listen(PORT, () => {
