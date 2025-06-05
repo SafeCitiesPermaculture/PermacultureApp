@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
-import { login as apiLogin, logout as apiLogout } from "@/api/api";
+import API, { login as apiLogin, logout as apiLogout } from "@/api/api";
 
 /**
  * Combination of these two provides Auth functions to all components
@@ -45,6 +45,12 @@ const AuthProvider = ({ children }) => {
         setIsLoggedIn(false);
     };
 
+    const refreshUserData = async () => {
+        const res = await API.get("/auth/userdata");
+        const { user } = res.data;
+        setUserData(user);
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -55,6 +61,7 @@ const AuthProvider = ({ children }) => {
                 userData,
                 isAdmin,
                 isLoggedIn,
+                refreshUserData,
             }}
         >
             {children}
