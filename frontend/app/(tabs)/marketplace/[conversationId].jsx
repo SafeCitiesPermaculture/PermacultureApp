@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useNavigation  } from "expo-router";
-import { useEffect, useState, useRef, useLayoutEffect  } from "react";
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import API from "@/api/api";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken";
 import socket from "@/utils/socket";
@@ -28,20 +29,14 @@ const ConversationDetailPage = () => {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
-
   useEffect(() => {
     let active = true;
     let uid = null;
 
-    console.log("🔌 Socket connected?", socket.connected, "ID:", socket.id);
     const handleReceiveMessage = (message) => {
-      console.log("Received message:", message);
       if (!active) return;
-
       setMessages((prev) => [...prev, message]);
       scrollToBottom();
-
-      // Acknowledge delivery
       if (uid) {
         socket.emit("messageDelivered", {
           messageId: message._id,
@@ -53,26 +48,19 @@ const ConversationDetailPage = () => {
     const init = async () => {
       uid = await getUserIdFromToken();
       setUserId(uid);
-
       socket.emit("joinConversation", conversationId);
-      console.log("Joined conversation room:", conversationId);
-
       const res = await API.get(`/conversations/${conversationId}/messages`);
       setMessages(res.data);
       scrollToBottom();
-
       const convoRes = await API.get(`/conversations/${conversationId}`);
       setConversation(convoRes.data);
       const participants = convoRes.data.participants;
       const other = participants.find((p) => p._id !== uid);
       if (other) setOtherUser(other);
-
-
       socket.on("receiveMessage", handleReceiveMessage);
     };
 
     init();
-
     return () => {
       active = false;
       socket.off("receiveMessage", handleReceiveMessage);
@@ -81,9 +69,7 @@ const ConversationDetailPage = () => {
 
   useLayoutEffect(() => {
     if (!conversation || !conversation.participants) return;
-
     const otherUsers = conversation.participants.filter((p) => p._id !== userId);
-
     const title = conversation.name
       ? conversation.name
       : otherUsers.length === 1
@@ -101,8 +87,6 @@ const ConversationDetailPage = () => {
     });
   }, [conversation, userId]);
 
-
-
   const scrollToBottom = () => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -111,20 +95,15 @@ const ConversationDetailPage = () => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
-
     try {
       const res = await API.post(`/conversations/${conversationId}/messages`, {
         text: input,
       });
-
       const message = res.data;
-
-      // extract participant IDs from current messages
       const participantIds = new Set([
         message.sender._id,
         ...messages.map((m) => m.sender._id),
       ]);
-
       const emitPayload = {
         conversationId,
         message: {
@@ -132,12 +111,7 @@ const ConversationDetailPage = () => {
           participants: [...participantIds],
         },
       };
-
-      console.log("📡 Emitting sendMessage socket event with:", emitPayload);
-
-      //  SOCKET EVENT
       socket.emit("sendMessage", emitPayload);
-
       setMessages((prev) => [...prev, message]);
       scrollToBottom();
       setInput("");
@@ -146,11 +120,8 @@ const ConversationDetailPage = () => {
     }
   };
 
-
-
   const renderItem = ({ item }) => {
     const isOwnMessage = item.sender._id === userId;
-
     return (
       <View
         style={[
@@ -158,10 +129,7 @@ const ConversationDetailPage = () => {
           isOwnMessage ? styles.outgoingWrapper : styles.incomingWrapper,
         ]}
       >
-        {!isOwnMessage && (
-          <Text style={styles.senderLabel}>{item.sender.username}</Text>
-        )}
-
+        {!isOwnMessage && <Text style={styles.senderLabel}>{item.sender.username}</Text>}
         <View
           style={[
             styles.messageBubble,
@@ -175,7 +143,6 @@ const ConversationDetailPage = () => {
               minute: "2-digit",
               hour12: false,
             })}
-
             {isOwnMessage &&
               (item.seenBy.length > 1
                 ? " ✓✓ Read"
@@ -183,19 +150,17 @@ const ConversationDetailPage = () => {
                 ? " ✓ Delivered"
                 : "")}
           </Text>
-
         </View>
       </View>
     );
   };
 
-
   return (
-    <>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={90}
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 70}
       >
         <FlatList
           ref={flatListRef}
@@ -205,7 +170,7 @@ const ConversationDetailPage = () => {
           contentContainerStyle={styles.messageList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 0 }]}>
           <TextInput
             value={input}
             onChangeText={setInput}
@@ -218,33 +183,27 @@ const ConversationDetailPage = () => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Rename Group Modal */}
       <Modal visible={renameModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Rename Group</Text>
-
             <TextInput
               placeholder="Enter new name"
               value={newTitle}
               onChangeText={setNewTitle}
               style={styles.input}
             />
-
             <View style={styles.modalButtonRow}>
               <TouchableOpacity onPress={() => setRenameModalVisible(false)} style={[styles.modalButton, styles.cancelButton]}>
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={async () => {
                   try {
                     if (!newTitle.trim()) return;
-
                     const res = await API.put(`/conversations/${conversationId}/rename`, {
                       name: newTitle.trim(),
                     });
-
                     setConversation(res.data);
                     setRenameModalVisible(false);
                     setNewTitle("");
@@ -261,10 +220,8 @@ const ConversationDetailPage = () => {
           </View>
         </View>
       </Modal>
-
-    </>
+    </SafeAreaView>
   );
-
 };
 
 const styles = StyleSheet.create({
@@ -315,31 +272,26 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     maxWidth: "80%",
   },
-
   incomingWrapper: {
     alignSelf: "flex-start",
     alignItems: "flex-start",
   },
-
   outgoingWrapper: {
     alignSelf: "flex-end",
     alignItems: "flex-end",
   },
-
   senderLabel: {
     fontSize: 12,
     fontWeight: "bold",
     color: "#444",
     marginBottom: 2,
   },
-
   modalOverlay: {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: "rgba(0, 0, 0, 0.5)",
-},
-
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
   modalBox: {
     width: "85%",
     backgroundColor: "white",
@@ -347,31 +299,26 @@ const styles = StyleSheet.create({
     padding: 20,
     elevation: 5,
   },
-
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
     textAlign: "center",
   },
-
   modalButtonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 15,
   },
-
   modalButton: {
     backgroundColor: "#28a745",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
-
   cancelButton: {
     backgroundColor: "#aaa",
   },
-
   modalButtonText: {
     color: "white",
     fontWeight: "bold",
