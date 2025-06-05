@@ -114,6 +114,31 @@ const updateUser = async (req, res) => {
     }
 };
 
+//mark user as removed
+const markRemoved = async (req, res) => {
+    try {
+        if (req.user.userRole !== 'admin'){
+            return res.status(401).json({ message: "Unauthorized: Only admins can remove users" });
+        }
+
+        const { username } = req.params;
+        const targetUser = await User.findOne({ username: username });
+
+        if (!targetUser) {
+            return res.status(404).json({ message: `Could not find user ${username}`});
+        }
+
+        targetUser.isRemoved = true;
+        targetUser.removedDate = new Date();
+        await targetUser.save();
+
+        res.status(200).json({ message: "User sucessfully removed" });
+    } catch (error) {
+        console.error("Error in markRemoved:", error);
+        res.status(500).json({ message: "Error removing user", error: error.message });
+    }
+};
+
 module.exports = {
     getUnverifiedUsers,
     getVerifiedUsers,
@@ -122,4 +147,5 @@ module.exports = {
     denyVerification,
     removeUser,
     updateUser,
+    markRemoved
 };

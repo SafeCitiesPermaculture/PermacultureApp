@@ -27,6 +27,7 @@ const MarketplaceLayout = () => {
             <Stack.Screen name="[conversationId]" options={{ title: "Chat" }} />
             <Stack.Screen name="my-listings" options={{ title: "My Listings" }} />
             <Stack.Screen name="listing/[listingId]" options={{ title: "Listing" }} />
+            <Stack.Screen name="report" options={{ title: "Report" }} />
         </Stack>
     );
 };
