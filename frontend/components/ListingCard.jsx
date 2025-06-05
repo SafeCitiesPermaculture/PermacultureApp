@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     username: {
+        flex: -1,
         fontSize: 12,
     },
 });

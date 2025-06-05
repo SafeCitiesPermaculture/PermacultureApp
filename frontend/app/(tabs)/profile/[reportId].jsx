@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import AdminGuard from "@/components/AdminGuard";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import API from "@/api/api";
@@ -45,15 +45,29 @@ const ReportPage = () => {
     }, [reportId, router, report]);
 
     const handleRemove = useCallback(async () => {
-        try {
-            await API.put(`/admin/remove/${report.reportedUsername}`);
-            setMessage(`${report?.reportedUsername} removed.`);
-            await API.delete(`/reports/${reportId}`);
-            setTimeout(() => router.dismiss(), 1000);
-        } catch (error) {
-            console.error("Error removing user:", error);
-            setErrorMessage(error.message);
-        }
+        Alert.alert(
+            "Remove Usert",
+            "Are you sure you want to remove this user?",
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Remove User',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await API.put(`/admin/remove/${report.reportedUsername}`);
+                            setMessage(`${report?.reportedUsername} removed.`);
+                            await API.delete(`/reports/${reportId}`);
+                            setTimeout(() => router.dismiss(), 1000);
+                        } catch (error) {
+                            console.error("Error removing user:", error);
+                            setErrorMessage(error.message);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
     }, [report, router, reportId]);
 
     return (
@@ -115,11 +129,14 @@ const styles = StyleSheet.create({
         width: width / 2 - 40,
         alignItems: 'center',
         paddingVertical: 50,
-        borderRadius: 10
+        borderRadius: 10,
+        justifyContent: 'center'
     },
     buttonText: {
         color: 'white',
-        fontSize: 20
+        fontSize: 20,
+        textAlign: 'center',
+        textAlignVertical: 'center'
     }
 });
 

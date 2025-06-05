@@ -29,10 +29,17 @@ const makeReport = async (req, res) => {
             return res.status(400).json({ message: "Description is required." });
         }
         
-        const reportedUser = await User.findOne({ username: reportedUsername.trim() });
+        const reportedUser = await User.findOne({ username: reportedUsername });
 
         if (!reportedUser) {
             return res.status(404).json({ message: "User not found" });
+        }
+
+        // Prevent the same person reporting someone multiple times
+        const existingReport = await Report.findOne({ reportedUsername: reportedUsername, reportedByUsername: reportedByUsername });
+        
+        if (existingReport) {
+            return res.status(409).json({ message: "You have already reported this user" });
         }
 
         reportedUser.timesReported++;

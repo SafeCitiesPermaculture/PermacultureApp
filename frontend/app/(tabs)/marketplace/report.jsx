@@ -42,7 +42,7 @@ const reportPage = () => {
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating report: ", error);
-            setMessage(error.message);
+            setMessage(error.status == 409 ? 'You have already reported this user' : error.message);
         } finally {
             setLoading(false);
         }
@@ -51,7 +51,9 @@ const reportPage = () => {
     return (
         <AuthGuard>
             <View style={styles.container}>
-                <Text style={{fontSize: 30, fontWeight:'bold'}}>Reporting {reportedUsername}</Text>
+                <View style={{alignItems: 'center', justifyContent: 'center'}}>
+                    <Text style={{textAlign: 'center', fontSize: 30, fontWeight:'bold'}}>Reporting {reportedUsername}</Text>
+                </View>
                 <TextInput 
                     placeholder="Enter a description of your report. Mention specific listing(s) or message(s) if applicable." 
                     defaultvalue={description}
