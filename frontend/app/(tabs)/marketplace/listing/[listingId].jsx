@@ -96,7 +96,8 @@ const ListingPage = () => {
         router.push({
             pathname: '/marketplace/report',
             params: {
-                reportedUsername: listing?.postedBy.username
+                reportedUsername: listing?.postedBy.username,
+                reported: listing?.postedBy._id
             }});
     }, [router, listing]);
 

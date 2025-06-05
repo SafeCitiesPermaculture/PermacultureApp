@@ -7,7 +7,7 @@ import Colors from "@/constants/Colors";
 
 const { width } = Dimensions.get('window')
 
-const ReportPage = () => {
+const HandleReportPage = () => {
     const { reportId } = useLocalSearchParams();
     const [loading, setLoading] = useState(false);
     const [report, setReport] = useState(null);
@@ -34,7 +34,7 @@ const ReportPage = () => {
 
     const handleIgnore = useCallback(async () => {
         try {
-            await API.put(`/reports/dismiss/${report.reportedUsername}`);
+            await API.put(`/reports/dismiss/${report.reported._id}`);
             await API.delete(`/reports/${reportId}`);
             setMessage("Report ignored.");
             setTimeout(() => router.dismiss(), 1000);
@@ -46,7 +46,7 @@ const ReportPage = () => {
 
     const handleRemove = useCallback(async () => {
         Alert.alert(
-            "Remove Usert",
+            "Remove User",
             "Are you sure you want to remove this user?",
             [
                 {text: 'Cancel', style: 'cancel'},
@@ -55,8 +55,8 @@ const ReportPage = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await API.put(`/admin/remove/${report.reportedUsername}`);
-                            setMessage(`${report?.reportedUsername} removed.`);
+                            await API.put(`/admin/remove/${report.reportedId}`);
+                            setMessage(`${report?.reported.username} removed.`);
                             await API.delete(`/reports/${reportId}`);
                             setTimeout(() => router.dismiss(), 1000);
                         } catch (error) {
@@ -81,8 +81,8 @@ const ReportPage = () => {
                 </View> :
                 report ? 
                 <ScrollView contentContainerStyle={{marginLeft: 2, height: 'auto'}}>
-                    <Text style={styles.text}>Reported: <Text style={styles.username}>{report.reportedUsername}</Text></Text>
-                    <Text style={styles.text}>Reported by: <Text style={styles.username}>{report.reportedByUsername}</Text></Text>
+                    <Text style={styles.text}>Reported: <Text style={styles.username}>{report.reported.username}</Text></Text>
+                    <Text style={styles.text}>Reported by: <Text style={styles.username}>{report.reportedBy.username}</Text></Text>
                     <Text style={{fontSize: 16, fontWeight: 'bold', textDecorationLine: 'underline', marginTop: 5}}>Description</Text>
                     <Text style={styles.description}>{report.description}</Text>
                     <View style={{flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 50}}>
@@ -90,7 +90,7 @@ const ReportPage = () => {
                             <Text style={styles.buttonText}>Ignore</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.button, {backgroundColor: 'red'}]} onPress={handleRemove}>
-                            <Text style={styles.buttonText}>Remove {report.reportedUsername}</Text>
+                            <Text style={styles.buttonText}>Remove {report.reported.username}</Text>
                         </TouchableOpacity>
                     </View>
                     {message &&
@@ -140,4 +140,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ReportPage;
+export default HandleReportPage;

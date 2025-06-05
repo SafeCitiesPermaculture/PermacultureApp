@@ -7,7 +7,7 @@ import Colors from "@/constants/Colors";
 import { AuthContext } from "@/context/AuthContext";
 
 const reportPage = () => {
-    const { reportedUsername } = useLocalSearchParams();
+    const { reportedUsername, reported } = useLocalSearchParams();
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -32,9 +32,9 @@ const reportPage = () => {
         setMessage("");
         try {
             const reportData = {
-                reportedUsername: reportedUsername,
-                reportedByUsername: userData?.username,
-                description: description
+                reported,
+                reportedBy: userData?._id,
+                description: description.trim()
             };
 
             const response = await API.post('/reports', reportData);

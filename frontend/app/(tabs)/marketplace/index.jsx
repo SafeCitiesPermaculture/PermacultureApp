@@ -74,11 +74,12 @@ const MarketplacePage = () => {
         );
     }, [getListings]);
 
-    const handleReport = (postedByUsername) => {
+    const handleReport = (postedBy) => {
         router.push({
             pathname: '/marketplace/report',
             params: {
-                reportedUsername: postedByUsername
+                reportedUsername: postedBy.username,
+                reported: postedBy._id
             }
         });
     };
@@ -128,7 +129,7 @@ const MarketplacePage = () => {
                     listings.map((listing) => {
                         const isOwnerAdmin = listing.postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
                         const buttonImage = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
-                        const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy.username);
+                        const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy);
                         return (<ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage} />);
                     })
                     }
