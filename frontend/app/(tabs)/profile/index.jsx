@@ -8,6 +8,7 @@ import { useLoading } from "@/context/LoadingContext";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import API from "@/api/api";
+import RemoteImage from "@/components/RemoteImage";
 
 const ProfilePage = () => {
     const { userData, isAdmin, logout, refreshUserData } =
@@ -84,9 +85,10 @@ const ProfilePage = () => {
     return (
         <View style={styles.container}>
             <View style={styles.profileImageContainer}>
-                <Image
-                    style={styles.profileImage}
-                    source={
+                <RemoteImage
+                    containerStyle={styles.profileImageWrapper}
+                    imgStyle={styles.profileImage}
+                    imgSource={
                         userData.profilePicture !== ""
                             ? { uri: userData.profilePicture }
                             : DefaultProfilePicture
@@ -132,6 +134,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         minHeight: 250,
     },
+
+    profileImageWrapper: {
+        width: 200,
+        height: 200,
+    },
+
     profileImage: {
         width: 200,
         height: 200,
