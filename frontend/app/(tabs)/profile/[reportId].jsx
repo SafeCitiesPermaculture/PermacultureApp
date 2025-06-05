@@ -55,7 +55,7 @@ const HandleReportPage = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await API.put(`/admin/remove/${report.reportedId}`);
+                            await API.put(`/admin/remove/${report.reported._id}`);
                             setMessage(`${report?.reported.username} removed.`);
                             await API.delete(`/reports/${reportId}`);
                             setTimeout(() => router.dismiss(), 1000);
@@ -117,12 +117,11 @@ const HandleReportPage = () => {
                             </Text>
                         </View>
                     )}
-                </ScrollView>
-            ) : (
+                </ScrollView> :
                 <Text style={styles.errorMessage}>
                     {errorMessage || "Error fetching report"}
                 </Text>
-            )}
+            }
         </AdminGuard>
     );
 };

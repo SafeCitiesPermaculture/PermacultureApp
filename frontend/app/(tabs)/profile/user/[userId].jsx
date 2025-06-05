@@ -68,7 +68,7 @@ const UserPage = () => {
     const removeUser = async () => {
         try {
             showLoading();
-            await API.put(`/admin/removeid/${user._id}`);
+            await API.put(`/admin/remove/${user._id}`);
         } catch (err) {
             console.log("Error deleting user", err);
         } finally {
