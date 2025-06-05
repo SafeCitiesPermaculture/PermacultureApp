@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import API from '@/api/api';
 import Colors from '@/constants/Colors';
@@ -47,14 +47,29 @@ const ListingPage = () => {
     }, [getListingDetails]);
     
     const deleteListing = useCallback(async () => {
-        try {
-            setErrorMessage("Deleting...");
-            await API.delete(`/listings/remove/${listingId}`);
-            setTimeout(() => router.dismiss(), 1000);
-        } catch (error) {
-            console.error("Error deleting listing:", error);
-            setErrorMessage("Failed to delete listing:", error.message);
-        }
+        Alert.alert(
+            "Delete listing",
+            "Are you sure you want to delete this listing?",
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setErrorMessage("Deleting...");
+                            await API.delete(`/listings/remove/${listingId}`);
+                            setTimeout(() => router.dismiss(), 1000);
+                        } catch (error) {
+                            console.error("Error deleting listing: ", error);
+                            setErrorMessage(error.message);
+                            Alert.alert(error.message);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
     }, [listingId, router]);
 
     const handleSendMessage = async () => {
@@ -152,7 +167,8 @@ const styles = StyleSheet.create({
         fontSize: 20
     },
     title: {
-        fontSize: 40
+        fontSize: 40,
+        flex: -1
     },
     price: {
         fontSize: 40

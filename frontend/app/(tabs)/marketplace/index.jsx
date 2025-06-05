@@ -7,6 +7,7 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
+    Alert,
 } from "react-native";
 import AuthGuard from "@/components/AuthGuard";
 import { useRouter } from "expo-router";
@@ -48,15 +49,30 @@ const MarketplacePage = () => {
         }, [getListings])
     );
 
-    const handleDelete = async (listingId) => {
-        try {
-            await API.delete(`/listings/remove/${listingId}`);
-            await getListings();
-        } catch (error) {
-            console.error("Error deleting listing: ", error);
-            setErrorMessage(error.message);
-        }
-    };
+    const handleDelete = useCallback(async (listingId) => {
+        Alert.alert(
+            "Delete listing",
+            "Are you sure you want to delete this listing?",
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await API.delete(`/listings/remove/${listingId}`);
+                            await getListings();
+                        } catch (error) {
+                            console.error("Error deleting listing: ", error);
+                            setErrorMessage(error.message);
+                            Alert.alert(error.message);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }, [getListings]);
 
     const handleReport = (postedByUsername) => {
         router.push({
