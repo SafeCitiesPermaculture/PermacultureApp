@@ -107,13 +107,12 @@ const deleteReport = async (req, res) => {
         }
 
         const reportId = req.params.reportId;
-        const report = await Report.findById(reportId);
+        const report = await Report.findByIdAndDelete(reportId);
 
         if (!report) {
             return res.status(404).json({ message: "Report not found" });
         }
 
-        await Report.findByIdAndDelete(reportId);
         return res.status(200).json({ message: "Report deleted" });
     } catch (error) {
         console.error("Error in deleteReport:", error);

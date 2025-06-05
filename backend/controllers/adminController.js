@@ -48,8 +48,8 @@ const markRemoved = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: Only admins can remove users" });
         }
 
-        const { username } = req.params;
-        const targetUser = await User.findOne({ username: username });
+        const { id } = req.params;
+        const targetUser = await User.findById(id);
 
         if (!targetUser) {
             return res.status(404).json({ message: `Could not find user ${username}`});
