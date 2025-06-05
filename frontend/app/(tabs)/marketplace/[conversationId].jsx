@@ -34,15 +34,29 @@ const ConversationDetailPage = () => {
     let uid = null;
 
     const handleReceiveMessage = (message) => {
-      if (!active) return;
-      setMessages((prev) => [...prev, message]);
-      scrollToBottom();
-      if (uid) {
-        socket.emit("messageDelivered", {
-          messageId: message._id,
-          userId: uid,
-        });
-      }
+    if (!active) return;
+
+    setMessages((prev) => [message, ...prev]);
+
+    // ✅ Emit delivery event back to server
+    if (userId) {
+      socket.emit("messageDelivered", {
+        messageId: message._id,
+        userId: userId,
+      });
+    }
+  };
+
+
+    const handleMessageDelivered = ({ messageId, userId }) => {
+      console.log("message delivered");
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg._id === messageId && !msg.deliveredTo.includes(userId)
+            ? { ...msg, deliveredTo: [...msg.deliveredTo, userId] }
+            : msg
+        )
+      );
     };
 
     const init = async () => {
@@ -50,20 +64,22 @@ const ConversationDetailPage = () => {
       setUserId(uid);
       socket.emit("joinConversation", conversationId);
       const res = await API.get(`/conversations/${conversationId}/messages`);
-      setMessages(res.data);
-      scrollToBottom();
+      setMessages(res.data.reverse());
       const convoRes = await API.get(`/conversations/${conversationId}`);
       setConversation(convoRes.data);
       const participants = convoRes.data.participants;
       const other = participants.find((p) => p._id !== uid);
       if (other) setOtherUser(other);
       socket.on("receiveMessage", handleReceiveMessage);
+      console.log("calling functions");
+      socket.on("messageDelivered", handleMessageDelivered);
     };
 
     init();
     return () => {
       active = false;
       socket.off("receiveMessage", handleReceiveMessage);
+      socket.off("messageDelivered", handleMessageDelivered);
     };
   }, [conversationId]);
 
@@ -87,12 +103,6 @@ const ConversationDetailPage = () => {
     });
   }, [conversation, userId]);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  };
-
   const handleSend = async () => {
     if (!input.trim()) return;
     try {
@@ -102,7 +112,7 @@ const ConversationDetailPage = () => {
       const message = res.data;
       const participantIds = new Set([
         message.sender._id,
-        ...messages.map((m) => m.sender._id),
+        ...conversation.participants.map(p => p._id),
       ]);
       const emitPayload = {
         conversationId,
@@ -112,8 +122,7 @@ const ConversationDetailPage = () => {
         },
       };
       socket.emit("sendMessage", emitPayload);
-      setMessages((prev) => [...prev, message]);
-      scrollToBottom();
+      setMessages((prev) => [message, ...prev]);
       setInput("");
     } catch (err) {
       console.error("❌ Failed to send message", err);
@@ -131,10 +140,7 @@ const ConversationDetailPage = () => {
       >
         {!isOwnMessage && <Text style={styles.senderLabel}>{item.sender.username}</Text>}
         <View
-          style={[
-            styles.messageBubble,
-            isOwnMessage ? styles.outgoing : styles.incoming,
-          ]}
+          style={[styles.messageBubble, isOwnMessage ? styles.outgoing : styles.incoming]}
         >
           <Text>{item.text}</Text>
           <Text style={styles.timestamp}>
@@ -168,7 +174,7 @@ const ConversationDetailPage = () => {
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
           contentContainerStyle={styles.messageList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          inverted
         />
         <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 0 }]}>
           <TextInput
