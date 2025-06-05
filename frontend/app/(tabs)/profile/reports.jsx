@@ -40,7 +40,7 @@ const ViewReportsPage = () => {
                 errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> :
                 reports.length === 0 ? <Text>No active reports!</Text> :
                 reports.map((report) => 
-                <ReportCard reportedBy={report.reportedByUsername} reported={report.reportedUsername} reportId={report._id} key={report._id} description={report.description} />)}
+                <ReportCard reportedBy={report.reportedBy.username} reported={report.reported.username} reportId={report._id} key={report._id} description={report.description} />)}
             </ScrollView>
         </AdminGuard>
     );

@@ -10,7 +10,7 @@ router.put("/verify/:id", adminController.verifyUser);
 router.put("/removeid/:id", adminController.removeUserById);
 router.put("/user/update/:id", adminController.updateUser);
 router.delete("/denyverify/:id", adminController.denyVerification);
-router.put("/removename/:username", adminController.removeUserByName);
+router.put("/remove/:id", adminController.markRemoved);
 
 //example route
 router.get("/admintest", (req, res) => {

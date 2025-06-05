@@ -123,8 +123,8 @@ const removeUserByName = async (req, res) => {
             });
         }
 
-        const { username } = req.params;
-        const targetUser = await User.findOne({ username: username });
+        const { id } = req.params;
+        const targetUser = await User.findById(id);
 
         if (!targetUser) {
             return res

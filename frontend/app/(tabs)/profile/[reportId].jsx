@@ -1,12 +1,4 @@
-import {
-    View,
-    Text,
-    StyleSheet,
-    ActivityIndicator,
-    ScrollView,
-    TouchableOpacity,
-    Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import AdminGuard from "@/components/AdminGuard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import API from "@/api/api";
@@ -15,7 +7,7 @@ import Colors from "@/constants/Colors";
 
 const { width } = Dimensions.get("window");
 
-const ReportPage = () => {
+const HandleReportPage = () => {
     const { reportId } = useLocalSearchParams();
     const [loading, setLoading] = useState(false);
     const [report, setReport] = useState(null);
@@ -42,7 +34,7 @@ const ReportPage = () => {
 
     const handleIgnore = useCallback(async () => {
         try {
-            await API.put(`/reports/dismiss/${report.reportedUsername}`);
+            await API.put(`/reports/dismiss/${report.reported._id}`);
             await API.delete(`/reports/${reportId}`);
             setMessage("Report ignored.");
             setTimeout(() => router.dismiss(), 1000);
@@ -53,15 +45,29 @@ const ReportPage = () => {
     }, [reportId, router, report]);
 
     const handleRemove = useCallback(async () => {
-        try {
-            await API.put(`/admin/removename/${report.reportedUsername}`);
-            setMessage(`${report?.reportedUsername} removed.`);
-            await API.delete(`/reports/${reportId}`);
-            setTimeout(() => router.dismiss(), 1000);
-        } catch (error) {
-            console.error("Error removing user:", error);
-            setErrorMessage(error.message);
-        }
+        Alert.alert(
+            "Remove User",
+            "Are you sure you want to remove this user?",
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Remove User',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await API.put(`/admin/remove/${report.reportedId}`);
+                            setMessage(`${report?.reported.username} removed.`);
+                            await API.delete(`/reports/${reportId}`);
+                            setTimeout(() => router.dismiss(), 1000);
+                        } catch (error) {
+                            console.error("Error removing user:", error);
+                            setErrorMessage(error.message);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
     }, [report, router, reportId]);
 
     return (
@@ -69,39 +75,15 @@ const ReportPage = () => {
             <View style={{ alignItems: "center", marginBottom: 7 }}>
                 <Text style={styles.header}>Report Details</Text>
             </View>
-            {loading ? (
-                <View style={{ alignItems: "center" }}>
-                    <ActivityIndicator
-                        size="large"
-                        color={Colors.greenRegular}
-                    />
-                </View>
-            ) : report ? (
-                <ScrollView
-                    contentContainerStyle={{ marginLeft: 2, height: "auto" }}
-                >
-                    <Text style={styles.text}>
-                        Reported:{" "}
-                        <Text style={styles.username}>
-                            {report.reportedUsername}
-                        </Text>
-                    </Text>
-                    <Text style={styles.text}>
-                        Reported by:{" "}
-                        <Text style={styles.username}>
-                            {report.reportedByUsername}
-                        </Text>
-                    </Text>
-                    <Text
-                        style={{
-                            fontSize: 16,
-                            fontWeight: "bold",
-                            textDecorationLine: "underline",
-                            marginTop: 5,
-                        }}
-                    >
-                        Description
-                    </Text>
+                {loading ? 
+                <View style={{alignItems: 'center'}}>
+                    <ActivityIndicator size='large' color={Colors.greenRegular} />
+                </View> :
+                report ? 
+                <ScrollView contentContainerStyle={{marginLeft: 2, height: 'auto'}}>
+                    <Text style={styles.text}>Reported: <Text style={styles.username}>{report.reported.username}</Text></Text>
+                    <Text style={styles.text}>Reported by: <Text style={styles.username}>{report.reportedBy.username}</Text></Text>
+                    <Text style={{fontSize: 16, fontWeight: 'bold', textDecorationLine: 'underline', marginTop: 5}}>Description</Text>
                     <Text style={styles.description}>{report.description}</Text>
                     <View
                         style={{
@@ -119,13 +101,8 @@ const ReportPage = () => {
                         >
                             <Text style={styles.buttonText}>Ignore</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.button, { backgroundColor: "red" }]}
-                            onPress={handleRemove}
-                        >
-                            <Text style={styles.buttonText}>
-                                Remove {report.reportedUsername}
-                            </Text>
+                        <TouchableOpacity style={[styles.button, {backgroundColor: 'red'}]} onPress={handleRemove}>
+                            <Text style={styles.buttonText}>Remove {report.reported.username}</Text>
                         </TouchableOpacity>
                     </View>
                     {message && (
@@ -176,11 +153,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: 50,
         borderRadius: 10,
+        justifyContent: 'center'
     },
     buttonText: {
-        color: "white",
+        color: 'white',
         fontSize: 20,
-    },
+        textAlign: 'center',
+        textAlignVertical: 'center'
+    }
 });
 
-export default ReportPage;
+export default HandleReportPage;

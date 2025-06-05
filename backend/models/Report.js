@@ -3,15 +3,15 @@ const mongoose = require("mongoose");
 /** Model for user reports */
 
 const reportSchema = mongoose.Schema({
-        reportedUsername: {
-            type: String,
-            required: [true, "Reported username is required."],
-            trim: true
-        },
-        reportedByUsername: {
-            type: String,
+        reported: {
+            type: mongoose.Schema.Types.ObjectId,
             required: true,
-            trim: true
+            ref: "User"
+        },
+        reportedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+            ref: "User"
         },
         description: {
             type: String,

@@ -7,6 +7,7 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
+    Alert,
 } from "react-native";
 import AuthGuard from "@/components/AuthGuard";
 import { useRouter } from "expo-router";
@@ -48,21 +49,37 @@ const MarketplacePage = () => {
         }, [getListings])
     );
 
-    const handleDelete = async (listingId) => {
-        try {
-            await API.delete(`/listings/remove/${listingId}`);
-            await getListings();
-        } catch (error) {
-            console.error("Error deleting listing: ", error);
-            setErrorMessage(error.message);
-        }
-    };
+    const handleDelete = useCallback(async (listingId) => {
+        Alert.alert(
+            "Delete listing",
+            "Are you sure you want to delete this listing?",
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await API.delete(`/listings/remove/${listingId}`);
+                            await getListings();
+                        } catch (error) {
+                            console.error("Error deleting listing: ", error);
+                            setErrorMessage(error.message);
+                            Alert.alert(error.message);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }, [getListings]);
 
-    const handleReport = (postedByUsername) => {
+    const handleReport = (postedBy) => {
         router.push({
             pathname: '/marketplace/report',
             params: {
-                reportedUsername: postedByUsername
+                reportedUsername: postedBy.username,
+                reported: postedBy._id
             }
         });
     };
@@ -112,7 +129,7 @@ const MarketplacePage = () => {
                     listings.map((listing) => {
                         const isOwnerAdmin = listing.postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
                         const buttonImage = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
-                        const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy.username);
+                        const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy);
                         return (<ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage} />);
                     })
                     }

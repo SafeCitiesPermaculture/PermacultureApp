@@ -1,5 +1,5 @@
 import React, { useState, useContext, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import AuthGuard from "@/components/AuthGuard";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
@@ -35,15 +35,30 @@ const myListingsPage = () => {
             getListings();
         }, [userData]));
 
-    const handleDelete = async (listingId) => {
-        try {
-            await API.delete(`/listings/remove/${listingId}`);
-            await getListings();
-        } catch (error) {
-            console.error("Error deleting listing: ", error);
-            setErrorMessage(error.message);
-        }
-    };
+    const handleDelete = useCallback(async (listingId) => {
+        Alert.alert(
+            "Delete listing",
+            "Are you sure you want to delete this listing?",
+            [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await API.delete(`/listings/remove/${listingId}`);
+                            await getListings();
+                        } catch (error) {
+                            console.error("Error deleting listing: ", error);
+                            setErrorMessage(error.message);
+                            Alert.alert(error.message);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }, [getListings]);
 
     const postedBy = {
         _id: userData._id,

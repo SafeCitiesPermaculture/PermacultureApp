@@ -7,7 +7,7 @@ import Colors from "@/constants/Colors";
 import { AuthContext } from "@/context/AuthContext";
 
 const reportPage = () => {
-    const { reportedUsername } = useLocalSearchParams();
+    const { reportedUsername, reported } = useLocalSearchParams();
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -32,9 +32,9 @@ const reportPage = () => {
         setMessage("");
         try {
             const reportData = {
-                reportedUsername: reportedUsername,
-                reportedByUsername: userData?.username,
-                description: description
+                reported,
+                reportedBy: userData?._id,
+                description: description.trim()
             };
 
             const response = await API.post('/reports', reportData);
@@ -42,7 +42,7 @@ const reportPage = () => {
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating report: ", error);
-            setMessage(error.message);
+            setMessage(error.status == 409 ? 'You have already reported this user' : error.message);
         } finally {
             setLoading(false);
         }
@@ -51,7 +51,9 @@ const reportPage = () => {
     return (
         <AuthGuard>
             <View style={styles.container}>
-                <Text style={{fontSize: 30, fontWeight:'bold'}}>Reporting {reportedUsername}</Text>
+                <View style={{alignItems: 'center', justifyContent: 'center'}}>
+                    <Text style={{textAlign: 'center', fontSize: 30, fontWeight:'bold'}}>Reporting {reportedUsername}</Text>
+                </View>
                 <TextInput 
                     placeholder="Enter a description of your report. Mention specific listing(s) or message(s) if applicable." 
                     defaultvalue={description}
