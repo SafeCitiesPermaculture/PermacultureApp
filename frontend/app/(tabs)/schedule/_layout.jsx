@@ -2,7 +2,7 @@ import React from "react";
 import { Stack } from "expo-router";
 import Colors from "@/constants/Colors";
 
-const MarketplaceLayout = () => {
+const ScheduleLayout = () => {
     return (
         <Stack
             screenOptions={{
@@ -21,15 +21,9 @@ const MarketplaceLayout = () => {
                 },
             }}
         >
-            <Stack.Screen name="index" options={{ title: "Marketplace" }} />
-            <Stack.Screen name="post" options={{ title: "Add a Post" }} />
-            <Stack.Screen name="messages" options={{ title: "Messages" }} />
-            <Stack.Screen name="[conversationId]" options={{ title: "" }} />
-            <Stack.Screen name="my-listings" options={{ title: "My Listings" }} />
-            <Stack.Screen name="listing/[listingId]" options={{ title: "Listing" }} />
-            <Stack.Screen name="report" options={{ title: "Report" }} />
+            <Stack.Screen name="index" options={{ title: "Schedule" }} />
         </Stack>
     );
 };
 
-export default MarketplaceLayout;
+export default ScheduleLayout;

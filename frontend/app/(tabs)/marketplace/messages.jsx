@@ -36,7 +36,7 @@ const ConversationsPage = () => {
 
         socket.on("conversationUpdated", (update) => {
           console.log("📬 Received conversationUpdated event:", update);
-
+          
           setConversations((prev) => {
             const exists = prev.find((c) => c._id === update.conversationId);
             let newList;
@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
   timestamp: { fontSize: 12, color: "#888" },
   newChatButton: {
     position: "absolute",
-    bottom: 30,
-    right: 30,
+    bottom: 100,
+    right: 20,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -236,6 +236,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
+
 });
 
 export default ConversationsPage;

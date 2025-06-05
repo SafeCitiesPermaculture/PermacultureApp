@@ -1,19 +1,24 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { AuthContext } from "@/context/AuthContext";
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
+import { useLoading } from "@/context/LoadingContext";
 
 const ProfilePage = () => {
     const { userData, isAdmin, logout } = useContext(AuthContext);
     const router = useRouter();
+    const { showLoading, hideLoading } = useLoading();
 
     const logoutButton = async () => {
         try {
+            showLoading();
             await logout();
         } catch (err) {
             console.log("Error when logging out", err);
+        } finally {
+            hideLoading();
         }
     };
 
