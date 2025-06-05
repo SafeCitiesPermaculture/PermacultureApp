@@ -91,4 +91,28 @@ const handleLogout = async (req, res) => {
     res.sendStatus(204);
 };
 
-module.exports = { handleLogin, handleSignup, handleRefresh, handleLogout };
+//gets the users data for refresh purposes
+const refreshUserData = async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    try {
+        const payload = jwt.verify(token, ACCESS_TOKEN_SECRET);
+        const user = await User.findById(payload.userId);
+        res.json({ user });
+    } catch (err) {
+        console.log(err);
+        return res.status(401).json({ message: "Invalid token" });
+    }
+};
+
+module.exports = {
+    handleLogin,
+    handleSignup,
+    handleRefresh,
+    handleLogout,
+    refreshUserData,
+};
