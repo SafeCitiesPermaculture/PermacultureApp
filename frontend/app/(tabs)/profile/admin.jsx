@@ -1,31 +1,51 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import AdminGuard from "@/components/AdminGuard";
-import { Link } from "expo-router";
 import Colors from "@/constants/Colors";
+import { useRouter } from "expo-router";
 
 const AdminPage = () => {
+    const router = useRouter();
+
     return (
         <AdminGuard>
-            <View>
-                <Text>This Page Should only be accessible for admin users</Text>
-                <Text>STILL A WORK IN PROGRESS</Text>
-                <Link href={"/profile/approval"}>
-                    <Text style={styles.linkText}>Approval Page</Text>
-                </Link>
-                <Link href={"/profile/reports"}>
-                    <Text style={styles.linkText}>View Reports</Text>
-                </Link>
+            <View style={styles.container}>
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => router.push("/profile/approval")}
+                    >
+                        <Text style={styles.buttonText}>Approve Users</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => router.push("/profile/manageUsers")}
+                    >
+                        <Text style={styles.buttonText}>Manage Users</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </AdminGuard>
     );
 };
 
 const styles = StyleSheet.create({
-    linkText: {
-        fontSize: 30,
-        textAlign: "center",
+    container: {},
+
+    buttonContainer: {
+        flex: 1,
+        paddingVertical: 25,
+    },
+    button: {
         backgroundColor: Colors.greenButton,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 10,
+        minHeight: 50,
+    },
+    buttonText: {
+        fontSize: 25,
     },
 });
 

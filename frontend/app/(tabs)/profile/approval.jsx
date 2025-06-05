@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import Colors from "@/constants/Colors";
 import VerifyUserPanel from "@/components/VerifyUserPanel";
 import API from "@/api/api";
+import AdminGuard from "@/components/AdminGuard";
 
 const AdminApprovalPage = () => {
     const [unverifiedUsers, setUnverifiedUsers] = useState([]);
 
     const getUnverified = async () => {
         try {
-            const res = await API.post("/admin/unverified");
+            const res = await API.get("/admin/unverified");
             setUnverifiedUsers(res.data);
         } catch (err) {
             console.log("Error when getting unverified:", err);
@@ -21,34 +22,36 @@ const AdminApprovalPage = () => {
     }, []);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.headerContainer}>
-                <Text style={styles.headerText}>Verify Users</Text>
-                <Text style={styles.descriptionText}>
-                    Use this area to approve or deny requests to join the Safe
-                    Cities Permaculture App
-                </Text>
-            </View>
-            {/* Check if we have users waiting to be verified */}
-            {unverifiedUsers.length > 0 ? (
-                <ScrollView style={styles.userContainer}>
-                    {/* Loop through users and display a panel for each */}
-                    {unverifiedUsers.map((item) => (
-                        <VerifyUserPanel
-                            user={item}
-                            getUnverified={getUnverified}
-                            key={item._id}
-                        />
-                    ))}
-                </ScrollView>
-            ) : (
-                <View style={styles.messageContainer}>
-                    <Text style={styles.messageText}>
-                        No users waiting to be verified
+        <AdminGuard>
+            <View style={styles.container}>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerText}>Verify Users</Text>
+                    <Text style={styles.descriptionText}>
+                        Use this area to approve or deny requests to join the
+                        Safe Cities Permaculture App
                     </Text>
                 </View>
-            )}
-        </View>
+                {/* Check if we have users waiting to be verified */}
+                {unverifiedUsers.length > 0 ? (
+                    <ScrollView style={styles.userContainer}>
+                        {/* Loop through users and display a panel for each */}
+                        {unverifiedUsers.map((item) => (
+                            <VerifyUserPanel
+                                user={item}
+                                getUnverified={getUnverified}
+                                key={item._id}
+                            />
+                        ))}
+                    </ScrollView>
+                ) : (
+                    <View style={styles.messageContainer}>
+                        <Text style={styles.messageText}>
+                            No users waiting to be verified
+                        </Text>
+                    </View>
+                )}
+            </View>
+        </AdminGuard>
     );
 };
 
@@ -84,13 +87,13 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.brownLight,
         flex: 1,
         width: "90%",
-        marginBottom: 30,
+        marginBottom: 100,
     },
     messageContainer: {
         backgroundColor: Colors.brownLight,
         flex: 1,
         width: "90%",
-        marginBottom: 30,
+        marginBottom: 100,
         alignItems: "center",
         justifyContent: "center",
     },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useLoading } from "@/context/LoadingContext";
 import {
     View,
@@ -26,6 +26,7 @@ import searchGlass from "@/assets/images/maginfying glass icon.png";
 import addIcon from "@/assets/images/Add _ plus icon.png";
 import backArrow from "@/assets/images/back_arrow.png";
 import folders from "@/assets/images/folder 2 icon.png";
+import { AuthContext } from "@/context/AuthContext";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -40,6 +41,7 @@ const InformationPage = () => {
     const [newFolderName, setNewFolderName] = useState("");
 
     const { showLoading, hideLoading } = useLoading();
+    const { isAdmin } = useContext(AuthContext);
 
     //get the file from the file picker
     const pickFile = async () => {
@@ -313,105 +315,113 @@ const InformationPage = () => {
             </SafeAreaView>
 
             {/* Add Button */}
-            <View style={styles.addContainer}>
-                <TouchableOpacity
-                    style={styles.add}
-                    onPress={() => setFileModalVisible(true)}
-                >
-                    <Image source={addIcon} style={styles.plusIcon} />
-                </TouchableOpacity>
-            </View>
+            {isAdmin && (
+                <View style={styles.addContainer}>
+                    <TouchableOpacity
+                        style={styles.add}
+                        onPress={() => setFileModalVisible(true)}
+                    >
+                        <Image source={addIcon} style={styles.plusIcon} />
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Add File Modal */}
-            <Modal
-                visible={fileModalVisible}
-                transparent
-                onRequestClose={() => setFileModalVisible(false)}
-            >
-                <Pressable
-                    style={styles.modalBackground}
-                    onPress={() => setFileModalVisible(false)}
+            {isAdmin && (
+                <Modal
+                    visible={fileModalVisible}
+                    transparent
+                    onRequestClose={() => setFileModalVisible(false)}
                 >
-                    <View style={styles.modalContainer}>
-                        <TouchableOpacity
-                            onPress={() => setFileModalVisible(false)}
-                            style={styles.modalBackButton}
-                        >
-                            <Image
-                                source={backArrow}
-                                style={styles.backArrowIcon}
-                            />
-                        </TouchableOpacity>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalHeaderText}>Create</Text>
-                        </View>
-                        <View style={styles.pickFileContainer}>
-                            <Text style={styles.uploadFileText}>
-                                Upload File:
+                    <Pressable
+                        style={styles.modalBackground}
+                        onPress={() => setFileModalVisible(false)}
+                    >
+                        <View style={styles.modalContainer}>
+                            <TouchableOpacity
+                                onPress={() => setFileModalVisible(false)}
+                                style={styles.modalBackButton}
+                            >
+                                <Image
+                                    source={backArrow}
+                                    style={styles.backArrowIcon}
+                                />
+                            </TouchableOpacity>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalHeaderText}>
+                                    Create
+                                </Text>
+                            </View>
+                            <View style={styles.pickFileContainer}>
+                                <Text style={styles.uploadFileText}>
+                                    Upload File:
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={pickFile}
+                                    style={styles.pickFileButton}
+                                >
+                                    <Text style={styles.pickFileText}>
+                                        Pick File
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.selectedFileText}>
+                                Selected File:{" "}
+                                {uploadedFile
+                                    ? uploadedFile.assets[0].name
+                                    : "N/A"}
                             </Text>
-                            <TouchableOpacity
-                                onPress={pickFile}
-                                style={styles.pickFileButton}
-                            >
-                                <Text style={styles.pickFileText}>
-                                    Pick File
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                        <Text style={styles.selectedFileText}>
-                            Selected File:{" "}
-                            {uploadedFile ? uploadedFile.assets[0].name : "N/A"}
-                        </Text>
 
-                        <View style={styles.uploadContainer}>
-                            <TouchableOpacity
-                                onPress={sendFile}
-                                style={[
-                                    styles.uploadButton,
-                                    !uploadedFile
-                                        ? styles.disabledButton
-                                        : null,
-                                ]}
-                                disabled={!uploadedFile}
-                            >
-                                <Text style={styles.uploadText}>
-                                    Upload File
+                            <View style={styles.uploadContainer}>
+                                <TouchableOpacity
+                                    onPress={sendFile}
+                                    style={[
+                                        styles.uploadButton,
+                                        !uploadedFile
+                                            ? styles.disabledButton
+                                            : null,
+                                    ]}
+                                    disabled={!uploadedFile}
+                                >
+                                    <Text style={styles.uploadText}>
+                                        Upload File
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.modalDivider} />
+                            <View style={styles.newFolderContainer}>
+                                <Text style={styles.newFolderText}>
+                                    New Folder:
                                 </Text>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={styles.modalDivider} />
-                        <View style={styles.newFolderContainer}>
-                            <Text style={styles.newFolderText}>
-                                New Folder:
-                            </Text>
-                            <TextInput
-                                style={styles.newFolderInput}
-                                value={newFolderName}
-                                onChangeText={setNewFolderName}
-                                placeholder="Enter new folder name..."
-                                placeholderTextColor="#888"
-                            />
-                        </View>
+                                <TextInput
+                                    style={styles.newFolderInput}
+                                    value={newFolderName}
+                                    onChangeText={setNewFolderName}
+                                    placeholder="Enter new folder name..."
+                                    placeholderTextColor="#888"
+                                />
+                            </View>
 
-                        <View style={styles.createFolderContainer}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.createFolderButton,
-                                    newFolderName.length <= 0
-                                        ? styles.disabledButton
-                                        : null,
-                                ]}
-                                disabled={newFolderName.length <= 0}
-                                onPress={createFolder}
-                            >
-                                <Text style={styles.createFolderText}>
-                                    Create Folder
-                                </Text>
-                            </TouchableOpacity>
+                            <View style={styles.createFolderContainer}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.createFolderButton,
+                                        newFolderName.length <= 0
+                                            ? styles.disabledButton
+                                            : null,
+                                    ]}
+                                    disabled={newFolderName.length <= 0}
+                                    onPress={createFolder}
+                                >
+                                    <Text style={styles.createFolderText}>
+                                        Create Folder
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
-                </Pressable>
-            </Modal>
+                    </Pressable>
+                </Modal>
+            )}
         </>
     );
 };

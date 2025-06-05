@@ -14,6 +14,7 @@ export default function TabLayout() {
                     headerShown: false,
                 }}
                 tabBar={(props) => <Menu {...props} />} // Spread props to ensure proper tab behavior
+                preserveNavigationState
             >
                 <Tabs.Screen name="home" />
                 <Tabs.Screen name="information" />
