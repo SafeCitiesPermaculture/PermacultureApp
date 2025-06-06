@@ -118,8 +118,11 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(PORT, () => {
-    console.log(`Server with Socket.IO running on port ${PORT}`);
-});
+//this section is only needed for local development
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log(`Server with Socket.IO running on port ${PORT}`);
+    });
+}
 
 module.exports = app;
