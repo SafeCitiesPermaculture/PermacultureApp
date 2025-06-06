@@ -1,5 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const path = require("path");
+
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const listingRoutes = require("./routes/listings");
@@ -30,6 +32,11 @@ mongoose
     .connect(process.env.MONGODB_URI)
     .then(() => console.log("Connected to MongoDB"))
     .catch((err) => console.error("MongoDB error", err));
+
+//serve the privacy policy page
+app.get("/privacy-policy", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
 
 //routes
 app.use("/api/auth", authRoutes);
