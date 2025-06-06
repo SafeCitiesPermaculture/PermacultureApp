@@ -8,10 +8,11 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useRouter } from 'expo-router';
+import RemoteImage from "@/components/RemoteImage";
 
 const { width } = Dimensions.get("window");
 
-const ListingCard = ({ title, price, postedBy, listingId, buttonFunction, buttonImage }) => {
+const ListingCard = ({ title, price, postedBy, listingId, buttonFunction, buttonImage, pfpSource }) => {
     const router = useRouter();
 
     return (
@@ -24,9 +25,13 @@ const ListingCard = ({ title, price, postedBy, listingId, buttonFunction, button
                     <Text style={styles.price}>R{price}</Text>
                 </View>
                 <View style={styles.bottomRow}>
-                    <Text style={styles.username}>{postedBy.username}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <RemoteImage containerStyle={{height: 20, width: 20, marginRight: 3}} imgStyle={styles.profilePic} imgSource={pfpSource} />
+                        <Text style={styles.username}>{postedBy.username}</Text>
+                    </View>
                     <TouchableOpacity
                         onPress={buttonFunction}
+                        style={{justifyContent: 'center'}}
                     >
                         <Image
                             source={buttonImage}
@@ -78,6 +83,11 @@ const styles = StyleSheet.create({
         flex: -1,
         fontSize: 12,
     },
+    profilePic: {
+        height: 20,
+        width: 20,
+        borderRadius: 10
+    }
 });
 
 export default ListingCard;

@@ -81,7 +81,44 @@ const createListing = async (req, res) => {
 
 const getAllListings = async (req, res) => {
     try{
-        const listings = await Listing.find().sort({ createdAt: -1 }).populate('postedBy', 'username');
+        //const listings = await Listing.find().sort({ createdAt: -1 }).populate('postedBy', 'username');
+
+        const listings = await Listing.aggregate([
+            {
+                $lookup: { // Find user from postedBy field
+                    from: 'users',
+                    localField: 'postedBy',
+                    foreignField: '_id',
+                    as: 'postedByUser'
+                }
+            },
+            { // Flatten postedByUser array
+                $unwind: '$postedByUser' 
+            },
+            {
+                $match: { // Only select users with less than 3 active reports
+                    'postedByUser.timesReported': { $lt: 3} 
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $project: {
+                    postedBy: {
+                        _id: '$postedByUser._id',
+                        username: '$postedByUser.username',
+                        profilePicture: '$postedByUser.profilePicture'
+                    },
+                    title: 1,
+                    price: 1,
+                    location: 1,
+                    description: 1,
+                    createdAt: 1
+                }
+            }
+        ]);
+
         res.status(200).json({
             message: 'Listings retrieved successfully.',
             listings: listings
@@ -127,7 +164,9 @@ const getListing = async(req, res) => {
 
         // Get listing
         const id = req.params.id;
-        const listing = await Listing.findById(id).populate('postedBy', 'username');
+        const listing = await Listing.findById(id).populate([
+            { path: 'postedBy', select: 'username profilePicture'}
+        ]);
         if (!listing) {
             return res.status(404).json({ message: "Listing not found." });
         }

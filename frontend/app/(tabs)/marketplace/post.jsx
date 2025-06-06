@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Keyboard,
     ActivityIndicator,
+    Image
 } from "react-native";
 import React, { useState, useContext } from "react";
 import AuthGuard from "@/components/AuthGuard";
@@ -13,6 +14,8 @@ import { AuthContext } from "@/context/AuthContext";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 
 const PostListingPage = () => {
     const [title, setTitle] = useState("");
@@ -20,6 +23,7 @@ const PostListingPage = () => {
     const [description, setDescription] = useState("");
     const [location, setLocation] = useState("");
     const [message, setMessage] = useState("");
+    const [image, setImage] = useState(null);
     const [loading, setLoading] = useState(false);
     const { userData, isAuthenticated } = useContext(AuthContext);
     const router = useRouter();
@@ -27,6 +31,29 @@ const PostListingPage = () => {
     const handlePriceChange = (newPrice) => {
         const cleanedPrice = newPrice.replace(/[^0-9]/g, "");
         setPrice(cleanedPrice);
+    };
+
+    const changeImage = async () => {
+        //ask for permission
+        const permissionResult =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.status !== "granted") {
+            alert("Permission to access camera roll is required!");
+            return;
+        }
+
+        //open image picker
+        const result = await ImagePicker.launchImageLibraryAsync({
+            quality: 1,
+            allowsEditing: false,
+            mediaTypes: ['images']
+        });
+
+        if (result.canceled || !result.assets?.length) return;
+
+        const asset = result.assets[0];
+
+        setImage(asset);
     };
 
     const handleSubmit = async () => {
@@ -123,6 +150,10 @@ const PostListingPage = () => {
             <View style={styles.header}>
                 <View style={styles.form}>
                     <Text style={styles.title}>Create new listing</Text>
+                    <TouchableOpacity style={styles.imageButton}>
+                        <Text style={styles.chooseImageText} onPress={changeImage}>Choose image*</Text>
+                    </TouchableOpacity>
+                    {image && <Image source={{uri: image.uri}} style={{width: 100, height: 100, marginVertical: 10}} />}
                     <TextInput
                         placeholder="Listing title*"
                         onChangeText={(newTitle) => setTitle(newTitle)}
@@ -215,7 +246,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     message: {
-        marginTop: 10,
+        marginVertical: 10,
         fontSize: 14,
         color: "red",
         textAlign: "center",
@@ -228,6 +259,15 @@ const styles = StyleSheet.create({
         height: "auto",
         padding: 20,
     },
+    imageButton: {
+        padding: 10,
+        backgroundColor: Colors.greenButton,
+        borderRadius: 5,
+        marginVertical: 10
+    },
+    chooseImageText: {
+        fontSize: 20
+    }
 });
 
 export default PostListingPage;

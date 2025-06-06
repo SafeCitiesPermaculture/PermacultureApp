@@ -5,6 +5,8 @@ import API from '@/api/api';
 import Colors from '@/constants/Colors';
 import AuthGuard from "@/components/AuthGuard";
 import { AuthContext } from "@/context/AuthContext";
+import RemoteImage from '@/components/RemoteImage';
+import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 
 
 const ListingPage = () => {
@@ -127,7 +129,14 @@ const ListingPage = () => {
                         <Text style={styles.price}>R{listing.price}</Text>
                 </View>
                 <View style={styles.splitRow}>
-                    <Text style={styles.username}>{listing.postedBy.username}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <RemoteImage imgStyle={styles.profilePic} containerStyle={styles.profilePic} imgSource={
+                            listing.postedBy.profilePicture !== ""
+                            ? { uri: userData.profilePicture }
+                            : DefaultProfilePicture
+                        } />
+                        <Text style={styles.username}>{listing.postedBy.username}</Text>
+                    </View>
                     <TouchableOpacity onPress={buttonFunction}>
                         <Image style={styles.image} source={imageSource}/>
                     </TouchableOpacity>
@@ -181,7 +190,13 @@ const styles = StyleSheet.create({
         marginVertical: 5,
     },
     username: {
-        fontSize: 30
+        fontSize: 30,
+        marginLeft: 3
+    },
+    profilePic: {
+        height: 30,
+        width: 30,
+        borderRadius: 15
     },
     image: {
         width: 30,

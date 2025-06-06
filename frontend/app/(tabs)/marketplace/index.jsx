@@ -16,6 +16,8 @@ import ListingCard from "@/components/ListingCard";
 import API from "@/api/api";
 import { useFocusEffect } from "@react-navigation/native";
 import { AuthContext } from "@/context/AuthContext";
+import RemoteImage from "@/components/RemoteImage";
+import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 
 const MarketplacePage = () => {
     const router = useRouter();
@@ -87,10 +89,9 @@ const MarketplacePage = () => {
     return (
         <AuthGuard>
             <View style={styles.header}>
-                <View style={{ flex: 1 , justifyContent: 'center', alignItems: 'center'}} >
+                <View style={{ flex: 1 , justifyContent: 'center', alignItems: 'flex-start'}} >
                     <TouchableOpacity onPress={() => router.push('/marketplace/my-listings')}>
                         <Text style={{fontSize: 14, textAlignVertical: 'center'}}>My listings</Text>
-
                     </TouchableOpacity>
                 </View>
                 <View style={styles.titleContainer}>
@@ -122,7 +123,11 @@ const MarketplacePage = () => {
                         <Text style={{color: 'white'}}>Retry</Text>
                     </TouchableOpacity>
                 </View>
-            ) : (
+            ) : listings.length === 0 ?
+                <Text style={{fontSize: 24, color: '#14782f', textAlign: 'center'}}>
+                    No listings yet. Make the first one!
+                </Text> :
+            (
                 <ScrollView contentContainerStyle={styles.listingArea}>
                     <View style={styles.grid}>
                     {
@@ -130,7 +135,13 @@ const MarketplacePage = () => {
                         const isOwnerAdmin = listing.postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
                         const buttonImage = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
                         const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy);
-                        return (<ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage} />);
+                        console.log(listing.title, ":", listing.postedBy);
+                        return (<ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage}
+                            pfpSource={
+                                listing.postedBy.profilePicture !== "" ?
+                                { uri: listing.postedBy.profilePicture} :
+                                DefaultProfilePicture
+                            } />);
                     })
                     }
                     </View>
