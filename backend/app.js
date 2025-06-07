@@ -38,6 +38,11 @@ app.get("/privacy-policy", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
+//serve the contact page
+app.get("/contact", (req, res) => {
+    res.sendFile(path.join(__dirname, "contact.html"));
+});
+
 //routes
 app.use("/api/auth", authRoutes);
 
