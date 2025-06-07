@@ -136,41 +136,17 @@ const PostListingPage = () => {
                 }
             });
 
-            setMessage("Listing created successfully");
+            
             setTitle("");
             setPrice("");
             setLocation("");
             setDescription("");
             setImage(null);
+            setMessage("Listing created successfully");
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
-
-            if (error.response) {
-                // Handle axios errors
-                const statusCode = error.response.status;
-                const backendMessage =
-                    error.response.data.message ||
-                    "An unknown error occurred on the server.";
-                const backendErrors = error.response.data.errors;
-
-                let displayMessage = `Error ${statusCode}: ${backendMessage}`;
-
-                if (backendErrors && backendErrors.length > 0) {
-                    displayMessage += `\nDetails:\n${backendErrors.join("\n")}`;
-                } else if (statusCode === 401) {
-                    displayMessage =
-                        "Authentication failed. Please log in again.";
-
-                    router.push("/login");
-                }
-
-                setMessage(displayMessage);
-            } else if (error.request) {
-                setMessage("Network error");
-            } else {
-                setMessage(`Error creating listing: ${error.message}`);
-            }
+            setMessage(error.message);
         } finally {
             setLoading(false);
         }
@@ -215,6 +191,7 @@ const PostListingPage = () => {
                         placeholder="Longer description"
                         defaultValue={description}
                         style={styles.inputField}
+                        textAlignVertical="center"
                         onChangeText={(newDescription) =>
                             setDescription(newDescription)
                         }

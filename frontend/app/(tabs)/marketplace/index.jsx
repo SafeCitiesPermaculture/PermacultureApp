@@ -140,7 +140,7 @@ const MarketplacePage = () => {
                     listings.map((listing) => {
                         if (listing._id.toString() === deletingId?.toString()) {
                             return (
-                                <View style={styles.deletingListingBackground}>
+                                <View style={styles.deletingListingBackground} key={listing._id}>
                                     <ActivityIndicator size='large' color='red' />
                                 </View>
                             )
