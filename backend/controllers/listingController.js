@@ -1,4 +1,48 @@
 const Listing = require("../models/Listing");
+const { google } = require("googleapis");
+const { Readable } = require("stream");
+const path = require("path");
+
+//set up google drive api
+const auth = new google.auth.GoogleAuth({
+    keyFile: path.join(
+        __dirname,
+        "../credentials/google_drive_credentials.json"
+    ),
+    scopes: ["https://www.googleapis.com/auth/drive"],
+});
+const drive = google.drive({ version: "v3", auth });
+
+const uploadImageToDrive = async (file) => {
+    const bufferStream = Readable.from(file.buffer);
+
+    const response = await drive.files.create({
+        requestBody: {
+            name: file.originalname,
+            mimeType: file.mimetype,
+        },
+        media: {
+            mimeType: file.mimetype,
+            body: bufferStream,
+        },
+        fields: "id",
+    });
+
+    const fileId = response.data.id;
+
+    //share with main safe cities gmail
+    await drive.permissions.create({
+        fileId,
+        requestBody: {
+            type: "user",
+            role: "writer",
+            emailAddress: "safecitiespermaculture@gmail.com",
+        },
+    });
+
+    const publicUrl = `https://drive.google.com/uc?id=${fileId}`;
+    return publicUrl;
+};
 
 const createListing = async (req, res) => {
     try {
@@ -46,12 +90,21 @@ const createListing = async (req, res) => {
                 .json({ message: "Price must be a non-negative number." });
         }
 
+        let imageUrl = "";
+        try {
+            imageUrl = await uploadImageToDrive(req.file);
+        } catch (uploadError) {
+            console.error("Error in uploadImageToDrive:", uploadError);
+            return res.status(500).json({ message: "Failed to upload image.", error: uploadError.message });
+        }
+
         const newListing = Listing({
             title: title.trim(),
             price,
             location: location.trim(),
             description: description ? description.trim() : "",
             postedBy,
+            picture: imageUrl
         });
 
         const savedListing = await newListing.save();
@@ -114,7 +167,8 @@ const getAllListings = async (req, res) => {
                     price: 1,
                     location: 1,
                     description: 1,
-                    createdAt: 1
+                    createdAt: 1,
+                    picture: 1
                 }
             }
         ]);
@@ -199,6 +253,20 @@ const removeListing = async(req, res) => {
 
         if (listing.postedBy.toString() != req.user._id.toString() && req.user.userRole !== 'admin') {
             return res.status(403).json({ message: "You cannot remove this listing." });
+        }
+
+        // Delete image from google drive
+        if (listing.picture && listing.picture.includes("drive.google.com")) {
+            const match = listing.picture.match(/id=([^&]+)/);
+            const fileId = match ? match[0].substring(3) : null;
+
+            if (fileId) {
+                try {
+                    await drive.files.delete({ fileId });
+                } catch (driveError) {
+                    console.error("Failed to delete image from drive:", driveError);
+                }
+            }
         }
 
         await Listing.findByIdAndDelete(id);

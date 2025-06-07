@@ -33,7 +33,7 @@ const PostListingPage = () => {
         setPrice(cleanedPrice);
     };
 
-    const changeImage = async () => {
+    const chooseImage = async () => {
         //ask for permission
         const permissionResult =
             await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -51,9 +51,22 @@ const PostListingPage = () => {
 
         if (result.canceled || !result.assets?.length) return;
 
-        const asset = result.assets[0];
+        const selected = result.assets[0];
+        const fileSize = selected.fileSize || selected.file?.size;
+        const fileType = selected.type || selected.mimeType;
 
-        setImage(asset);
+        if (fileSize > 5 * 1024 * 1024) {
+            setMessage("Image must be less than 5MB");
+            return;
+        }
+
+        if (!fileType.startsWith("image")) {
+            setMessage("Only image files can be uploaded");
+            console.log(fileType);
+            return;
+        }
+
+        setImage(selected);
     };
 
     const handleSubmit = async () => {
@@ -86,6 +99,11 @@ const PostListingPage = () => {
             return;
         }
 
+        if (!image) {
+            setMessage("Image is required.");
+            return;
+        }
+
         const numericPrice = parseInt(price);
         if (isNaN(numericPrice) || numericPrice <= 0) {
             setMessage("Please enter a positive, numeric price.");
@@ -96,21 +114,34 @@ const PostListingPage = () => {
         setMessage("");
 
         try {
-            const listingData = {
-                title: title.trim(),
-                price: numericPrice,
-                location: location.trim(),
-                description: description.trim(),
-                postedBy: userData._id,
-            };
+            const fileName = image.uri.split('/').pop();
+            const fileType = image.type || 'image/jpeg';
 
-            const response = await API.post("/listings/post", listingData);
+            // populate form data
+            const listingData = new FormData();
+            listingData.append("image", {
+                uri: image.uri,
+                name: fileName,
+                type: fileType,
+            });
+            listingData.append("title", title.trim());
+            listingData.append("price", numericPrice);
+            listingData.append("location", location.trim());
+            listingData.append("description", description.trim());
+
+            const response = await API.post("/listings/post", listingData, 
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
 
             setMessage("Listing created successfully");
             setTitle("");
             setPrice("");
             setLocation("");
             setDescription("");
+            setImage(null);
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
@@ -151,7 +182,7 @@ const PostListingPage = () => {
                 <View style={styles.form}>
                     <Text style={styles.title}>Create new listing</Text>
                     <TouchableOpacity style={styles.imageButton}>
-                        <Text style={styles.chooseImageText} onPress={changeImage}>Choose image*</Text>
+                        <Text style={styles.chooseImageText} onPress={chooseImage}>Choose image*</Text>
                     </TouchableOpacity>
                     {image && <Image source={{uri: image.uri}} style={{width: 100, height: 100, marginVertical: 10}} />}
                     <TextInput

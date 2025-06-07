@@ -9,11 +9,13 @@ import {
 import Colors from "@/constants/Colors";
 import { useRouter } from 'expo-router';
 import RemoteImage from "@/components/RemoteImage";
+import React, { useState } from 'react';
 
 const { width } = Dimensions.get("window");
 
 const ListingCard = ({ title, price, postedBy, listingId, buttonFunction, buttonImage, pfpSource }) => {
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
     return (
         <TouchableOpacity

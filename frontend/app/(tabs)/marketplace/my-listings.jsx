@@ -46,6 +46,7 @@ const myListingsPage = () => {
                     text: 'Delete', 
                     style: 'destructive',
                     onPress: async () => {
+                        setLoading(true);
                         try {
                             await API.delete(`/listings/remove/${listingId}`);
                             await getListings();
@@ -53,6 +54,8 @@ const myListingsPage = () => {
                             console.error("Error deleting listing: ", error);
                             setErrorMessage(error.message);
                             Alert.alert(error.message);
+                        } finally {
+                            setLoading(false);
                         }
                     }
                 }

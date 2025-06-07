@@ -114,16 +114,18 @@ const ListingPage = () => {
         }
     }, [isOwner, isAdmin, deleteListing, reportListing]);
     
-    
     return (
         <AuthGuard>
-            <ScrollView>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, flexDirection: 'column', alignItems: 'center' }}>
                 {loading ? <ActivityIndicator size="large" color={Colors.greenRegular} /> :
                 errorMessage ? (
                 <View style={{ alignItems: 'center' }}>
                     <Text style={styles.errorMessageText}>{errorMessage}</Text>
                 </View>) : 
                 <>
+                <View style={styles.imageContainer}>
+                    <RemoteImage containerStyle={{margin: 5 }} imgSource={{uri: listing.postedBy.profilePicture}} imgStyle={styles.displayImage} />
+                </View>
                 <View style={styles.splitRow}>
                         <Text style={styles.title}>{listing.title}</Text>
                         <Text style={styles.price}>R{listing.price}</Text>
@@ -132,7 +134,7 @@ const ListingPage = () => {
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
                         <RemoteImage imgStyle={styles.profilePic} containerStyle={styles.profilePic} imgSource={
                             listing.postedBy.profilePicture !== ""
-                            ? { uri: userData.profilePicture }
+                            ? { uri: listing.postedBy.profilePicture }
                             : DefaultProfilePicture
                         } />
                         <Text style={styles.username}>{listing.postedBy.username}</Text>
@@ -161,9 +163,7 @@ const ListingPage = () => {
                         <Text style={styles.descriptionText}>{listing.description}</Text>
                     </View>
                 </>) : null}
-                
-                </>
-                }
+                </>} 
             </ScrollView>
         </AuthGuard>
     );
@@ -220,6 +220,15 @@ const styles = StyleSheet.create({
     descriptionText: {
         fontSize: 20,
         marginLeft: 5
+    },
+    displayImage: {
+        height: 300,
+        width: 300,
+        borderRadius: 10
+    },
+    imageContainer: {
+        alignItems: 'center',
+        marginVertical: 10
     }
 });
 
