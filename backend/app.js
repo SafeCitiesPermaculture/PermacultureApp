@@ -6,7 +6,7 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
-const Message = require("./models/Message"); // Make sure this is at the top
+const Message = require("./models/Message");
 
 const {
     userAuthMiddleware,
@@ -51,7 +51,7 @@ app.use("/api/admin", adminRoutes);
 const http = require("http");
 const { Server } = require("socket.io");
 
-const server = http.createServer(app); // attach app to HTTP server
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*" }
 });
