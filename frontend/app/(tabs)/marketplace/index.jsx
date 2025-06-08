@@ -148,12 +148,7 @@ const MarketplacePage = () => {
                         const isOwnerAdmin = listing.postedBy.username === userData.username || userData.userRole === 'admin'; // If user is owner or admin
                         const buttonImage = isOwnerAdmin ? require("@/assets/images/trash-can.png") : require("@/assets/images/report-flag.png");
                         const buttonFunction = isOwnerAdmin ? () => handleDelete(listing._id) : () => handleReport(listing.postedBy);
-                        return (<ListingCard title={listing.title} price={listing.price} postedBy={listing.postedBy} listingId={listing._id} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage}
-                            pfpSource={
-                                listing.postedBy.profilePicture !== "" ?
-                                { uri: listing.postedBy.profilePicture} :
-                                DefaultProfilePicture
-                            } />);
+                        return (<ListingCard listing={listing} key={listing._id} buttonFunction={buttonFunction} buttonImage={buttonImage} />);
                     })
                     }
                     </View>
@@ -235,11 +230,12 @@ const styles = StyleSheet.create({
         padding: 5,
         margin: 10,
         flexShrink: 1,
-        width: width / 3 + 25,
+        width: width / 2 - 40,
         height: 'auto',
         minHeight: 100,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderRadius: 10
     },
 });
 

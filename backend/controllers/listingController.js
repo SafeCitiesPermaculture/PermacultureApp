@@ -30,6 +30,15 @@ const uploadImageToDrive = async (file) => {
 
     const fileId = response.data.id;
 
+    //make file public
+    await drive.permissions.create({
+        fileId,
+        requestBody: {
+            role: "reader",
+            type: "anyone",
+        },
+    });
+
     //share with main safe cities gmail
     await drive.permissions.create({
         fileId,
@@ -195,7 +204,9 @@ const getMyListings = async (req, res) => {
     }
 
     try{
-        const listings = await Listing.find({ postedBy: req.user._id }).sort({ createdAt: -1 });
+        const listings = await Listing.find({ postedBy: req.user._id }).sort({ createdAt: -1 }).populate({
+            path: 'postedBy', select: 'username profilePicture'
+        });
         res.status(200).json({
             message: 'Listings retrieved successfully.',
             listings: listings

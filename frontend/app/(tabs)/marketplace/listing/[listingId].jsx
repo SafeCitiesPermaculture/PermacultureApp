@@ -129,7 +129,7 @@ const ListingPage = () => {
                     <View style={styles.imageWrapper}>
                     <RemoteImage
                         containerStyle={styles.imageContainer}
-                        imgSource={{ uri: listing.postedBy.profilePicture }}
+                        imgSource={{ uri: listing.DefaultProfilePicture }}
                         imgStyle={styles.displayImage}
                     />
                     </View>
