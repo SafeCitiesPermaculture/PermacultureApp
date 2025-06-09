@@ -9,6 +9,7 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
+const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
 
@@ -51,6 +52,9 @@ app.get("/privacy-policy", (req, res) => {
 app.get("/contact", (req, res) => {
     res.sendFile(path.join(__dirname, "contact.html"));
 });
+
+//unprotected file proxy route
+app.get("/api/files/file-proxy", filesController.proxyGetFile);
 
 //routes
 app.use("/api/auth", authRoutes);
