@@ -36,6 +36,10 @@ const listingSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
+        picture: {
+            type: String,
+            required: true
+        }
     },
     {
         timestamps: true,

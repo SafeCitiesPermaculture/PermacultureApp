@@ -72,7 +72,11 @@ const getAllReports = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: Only admins are permitted to see reports" });
         }
 
-        const reports = await Report.find().sort({ createdAt: 1 }).populate('reported', 'username').populate('reportedBy', 'username');
+        const reports = await Report.find().sort({ createdAt: 1 }).populate([
+            { path: 'reported', select: 'username' }, 
+            { path: 'reportedBy', select: 'username' }
+        ]);
+        
         res.status(200).json({ message: "Reports fetched successfully.", reports: reports });
     } catch (error) {
         console.error("Error in getAllReports:", error);
@@ -87,7 +91,10 @@ const getReport = async (req, res) => {
         }
 
         const reportId = req.params.reportId;
-        const report = await Report.findById(reportId).populate('reported', 'username').populate('reportedBy', 'username');
+        const report = await Report.findById(reportId).populate([
+            { path: 'reported', select: 'username' },
+            { path: 'reportedBy', select: 'username' }
+        ]);
 
         if (!report) {
             return res.status(404).json({ message: "Report not found"});

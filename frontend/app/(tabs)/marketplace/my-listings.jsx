@@ -45,6 +45,7 @@ const myListingsPage = () => {
                     text: 'Delete', 
                     style: 'destructive',
                     onPress: async () => {
+                        setLoading(true);
                         try {
                             await API.delete(`/listings/remove/${listingId}`);
                             await getListings();
@@ -52,6 +53,8 @@ const myListingsPage = () => {
                             console.error("Error deleting listing: ", error);
                             setErrorMessage(error.message);
                             Alert.alert(error.message);
+                        } finally {
+                            setLoading(false);
                         }
                     }
                 }
@@ -59,11 +62,6 @@ const myListingsPage = () => {
             { cancelable: true }
         );
     }, [getListings]);
-
-    const postedBy = {
-        _id: userData._id,
-        username: userData.username
-    };
 
     return (
         <AuthGuard>
@@ -83,8 +81,8 @@ const myListingsPage = () => {
                     <View style={styles.grid}>
                     {listings.length !== 0 ?
                     listings.map((listing) => 
-                    <ListingCard title={listing.title} price={listing.price} postedBy={postedBy} listingId={listing._id} key={listing._id} buttonFunction={() => handleDelete(listing._id)} buttonImage={require("@/assets/images/trash-can.png")} />) :
-                    <View style={{justifyContent: 'center'}}>
+                    <ListingCard key={listing._id} listing={listing} buttonFunction={() => handleDelete(listing._id)} buttonImage={require("@/assets/images/trash-can.png")} />) :
+                    <View style={{justifyContent: 'center'}} key={'No Listings'}>
                         <Text style={{fontSize: 30}}>You have no listings.</Text>
                         {userData.timesReported < 3 && <TouchableOpacity onPress={() => router.push('/marketplace/post')}>
                             <Text style={{color: '#14782f', textDecorationLine: 'underline', fontSize: 30}}>{'\n'}Make your first here!</Text>
