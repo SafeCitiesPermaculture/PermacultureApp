@@ -54,7 +54,7 @@ const ListingPage = () => {
             "Delete listing",
             "Are you sure you want to delete this listing?",
             [
-                {text: 'Cancel', style: 'cancel'},
+                { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Delete', 
                     style: 'destructive',

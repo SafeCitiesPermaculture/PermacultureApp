@@ -6,7 +6,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     Switch,
-    Image,
+    Alert
 } from "react-native";
 import API from "@/api/api";
 import { useLoading } from "@/context/LoadingContext";
@@ -66,15 +66,28 @@ const UserPage = () => {
 
     //soft deletes the user
     const removeUser = async () => {
-        try {
-            showLoading();
-            await API.put(`/admin/remove/${user._id}`);
-        } catch (err) {
-            console.log("Error deleting user", err);
-        } finally {
-            hideLoading();
-            router.back();
-        }
+        Alert.alert(
+            "Delete user",
+            "Are you sure you want to delete this user?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete", style: "destructive",
+                    onPress: async () => {
+                        try {
+                            showLoading();
+                            await API.put(`/admin/remove/${user._id}`);
+                        } catch (err) {
+                            console.log("Error deleting user", err);
+                        } finally {
+                            hideLoading();
+                            router.back();
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
     };
 
     //updates the user
