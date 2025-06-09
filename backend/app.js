@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
+const cors = require("cors");
 
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
@@ -9,7 +10,7 @@ const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
 const userRoutes = require("./routes/user");
-const Message = require("./models/Message"); // Make sure this is at the top
+const Message = require("./models/Message");
 
 const {
     userAuthMiddleware,
@@ -18,7 +19,7 @@ const {
 require("dotenv").config();
 
 const app = express();
-const PORT = 6000;
+const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,6 +27,14 @@ app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
 });
+
+// Allow requests from frontend (adjust the origin as needed)
+app.use(
+    cors({
+        origin: "http://localhost:8081",
+        credentials: true,
+    })
+);
 
 //connect to mongodb
 mongoose

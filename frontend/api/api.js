@@ -1,6 +1,8 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
-const BACKEND_URL = "http://localhost:6000/api";
+import { Platform } from "react-native";
+const BACKEND_URL = "http://localhost:3000/api";
+const STORAGE_KEY = "tokens";
 
 //initliaze the API
 const API = axios.create({
@@ -9,21 +11,34 @@ const API = axios.create({
 
 //Store auth tokens in a secure storage
 const storeTokens = async (accessToken, refreshToken) => {
-    await SecureStore.setItemAsync(
-        "tokens",
-        JSON.stringify({ accessToken, refreshToken })
-    );
+    const tokenData = JSON.stringify({ accessToken, refreshToken });
+
+    if (Platform.OS === "web") {
+        localStorage.setItem(STORAGE_KEY, tokenData);
+    } else {
+        await SecureStore.setItemAsync(STORAGE_KEY, tokenData);
+    }
 };
 
 //Retrieve tokens from storage
 const getTokens = async () => {
-    const tokens = await SecureStore.getItemAsync("tokens");
-    return tokens ? JSON.parse(tokens) : null;
+    let tokenData;
+
+    if (Platform.OS === "web") {
+        tokenData = localStorage.getItem(STORAGE_KEY);
+    } else {
+        tokenData = await SecureStore.getItemAsync(STORAGE_KEY);
+    }
+    return tokenData ? JSON.parse(tokenData) : null;
 };
 
 //clear tokens
 const clearTokens = async () => {
-    await SecureStore.deleteItemAsync("tokens");
+    if (Platform.OS === "web") {
+        localStorage.removeItem(STORAGE_KEY);
+    } else {
+        await SecureStore.deleteItemAsync(STORAGE_KEY);
+    }
 };
 
 //Attach tokens to all sent requests automatically
@@ -113,6 +128,6 @@ const logout = async () => {
     await clearTokens();
 };
 
-export { login, logout };
+export { login, logout, getTokens };
 
 export default API;
