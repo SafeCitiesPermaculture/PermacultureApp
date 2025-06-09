@@ -29,7 +29,8 @@ const RemoteImage = ({ imgSource, containerStyle, imgStyle }) => {
                     resizeMode="cover"
                     onLoadStart={() => setLoading(true)}
                     onLoadEnd={() => setLoading(false)}
-                    onError={() => {
+                    onError={(e) => {
+                        //console.log(e);
                         setLoading(false);
                         setError(true);
                     }}

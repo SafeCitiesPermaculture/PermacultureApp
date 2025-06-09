@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Keyboard,
     ActivityIndicator,
+    Image
 } from "react-native";
 import React, { useState, useContext } from "react";
 import AuthGuard from "@/components/AuthGuard";
@@ -13,6 +14,8 @@ import { AuthContext } from "@/context/AuthContext";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 
 const PostListingPage = () => {
     const [title, setTitle] = useState("");
@@ -20,6 +23,7 @@ const PostListingPage = () => {
     const [description, setDescription] = useState("");
     const [location, setLocation] = useState("");
     const [message, setMessage] = useState("");
+    const [image, setImage] = useState(null);
     const [loading, setLoading] = useState(false);
     const { userData, isAuthenticated } = useContext(AuthContext);
     const router = useRouter();
@@ -27,6 +31,42 @@ const PostListingPage = () => {
     const handlePriceChange = (newPrice) => {
         const cleanedPrice = newPrice.replace(/[^0-9]/g, "");
         setPrice(cleanedPrice);
+    };
+
+    const chooseImage = async () => {
+        //ask for permission
+        const permissionResult =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.status !== "granted") {
+            alert("Permission to access camera roll is required!");
+            return;
+        }
+
+        //open image picker
+        const result = await ImagePicker.launchImageLibraryAsync({
+            quality: 1,
+            allowsEditing: false,
+            mediaTypes: ['images']
+        });
+
+        if (result.canceled || !result.assets?.length) return;
+
+        const selected = result.assets[0];
+        const fileSize = selected.fileSize || selected.file?.size;
+        const fileType = selected.type || selected.mimeType;
+
+        if (fileSize > 5 * 1024 * 1024) {
+            setMessage("Image must be less than 5MB");
+            return;
+        }
+
+        if (!fileType.startsWith("image")) {
+            setMessage("Only image files can be uploaded");
+            console.log(fileType);
+            return;
+        }
+
+        setImage(selected);
     };
 
     const handleSubmit = async () => {
@@ -59,6 +99,11 @@ const PostListingPage = () => {
             return;
         }
 
+        if (!image) {
+            setMessage("Image is required.");
+            return;
+        }
+
         const numericPrice = parseInt(price);
         if (isNaN(numericPrice) || numericPrice <= 0) {
             setMessage("Please enter a positive, numeric price.");
@@ -69,50 +114,39 @@ const PostListingPage = () => {
         setMessage("");
 
         try {
-            const listingData = {
-                title: title.trim(),
-                price: numericPrice,
-                location: location.trim(),
-                description: description.trim(),
-                postedBy: userData._id,
-            };
+            const fileName = image.uri.split('/').pop();
+            const fileType = image.type || 'image/jpeg';
 
-            const response = await API.post("/listings/post", listingData);
+            // populate form data
+            const listingData = new FormData();
+            listingData.append("image", {
+                uri: image.uri,
+                name: fileName,
+                type: fileType,
+            });
+            listingData.append("title", title.trim());
+            listingData.append("price", numericPrice);
+            listingData.append("location", location.trim());
+            listingData.append("description", description.trim());
 
-            setMessage("Listing created successfully");
+            const response = await API.post("/listings/post", listingData, 
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+
+            
             setTitle("");
             setPrice("");
             setLocation("");
             setDescription("");
+            setImage(null);
+            setMessage("Listing created successfully");
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
-
-            if (error.response) {
-                // Handle axios errors
-                const statusCode = error.response.status;
-                const backendMessage =
-                    error.response.data.message ||
-                    "An unknown error occurred on the server.";
-                const backendErrors = error.response.data.errors;
-
-                let displayMessage = `Error ${statusCode}: ${backendMessage}`;
-
-                if (backendErrors && backendErrors.length > 0) {
-                    displayMessage += `\nDetails:\n${backendErrors.join("\n")}`;
-                } else if (statusCode === 401) {
-                    displayMessage =
-                        "Authentication failed. Please log in again.";
-
-                    router.push("/login");
-                }
-
-                setMessage(displayMessage);
-            } else if (error.request) {
-                setMessage("Network error");
-            } else {
-                setMessage(`Error creating listing: ${error.message}`);
-            }
+            setMessage(error.message);
         } finally {
             setLoading(false);
         }
@@ -123,6 +157,10 @@ const PostListingPage = () => {
             <View style={styles.header}>
                 <View style={styles.form}>
                     <Text style={styles.title}>Create new listing</Text>
+                    <TouchableOpacity style={styles.imageButton}>
+                        <Text style={styles.chooseImageText} onPress={chooseImage}>Choose image*</Text>
+                    </TouchableOpacity>
+                    {image && <Image source={{uri: image.uri}} style={{width: 100, height: 100, marginVertical: 10}} />}
                     <TextInput
                         placeholder="Listing title*"
                         onChangeText={(newTitle) => setTitle(newTitle)}
@@ -153,6 +191,7 @@ const PostListingPage = () => {
                         placeholder="Longer description"
                         defaultValue={description}
                         style={styles.inputField}
+                        textAlignVertical="center"
                         onChangeText={(newDescription) =>
                             setDescription(newDescription)
                         }
@@ -215,7 +254,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     message: {
-        marginTop: 10,
+        marginVertical: 10,
         fontSize: 14,
         color: "red",
         textAlign: "center",
@@ -228,6 +267,15 @@ const styles = StyleSheet.create({
         height: "auto",
         padding: 20,
     },
+    imageButton: {
+        padding: 10,
+        backgroundColor: Colors.greenButton,
+        borderRadius: 5,
+        marginVertical: 10
+    },
+    chooseImageText: {
+        fontSize: 20
+    }
 });
 
 export default PostListingPage;
