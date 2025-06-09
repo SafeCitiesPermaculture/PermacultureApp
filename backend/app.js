@@ -5,6 +5,8 @@ const adminRoutes = require("./routes/admin");
 const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const filesRoutes = require("./routes/files");
+const schedulePersonalRoutes = require('./routes/schedulePersonalRoutes');
+
 
 const {
     userAuthMiddleware,
@@ -39,6 +41,8 @@ app.get("/api/protected", (req, res) => {
 app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/files", filesRoutes);
+app.use('/api/schedulePersonal', require('./routes/schedulePersonalRoutes'));
+
 
 //admin routes
 app.use(adminAuthMiddleware);

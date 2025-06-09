@@ -24,8 +24,8 @@ export default function SchedulePage() {
     {
       label: "Schedule Workers",
       onPress: () => {
-        if (pathname !== "/schedule/TaskManager") {
-          router.push("/schedule/TaskManager");
+        if (pathname !== "/schedule/ScheduleWorkers") {
+          router.push("/schedule/ScheduleWorkers");
         }
       },
     },
