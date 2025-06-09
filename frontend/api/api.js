@@ -128,6 +128,6 @@ const logout = async () => {
     await clearTokens();
 };
 
-export { login, logout, getTokens };
+export { login, logout, getTokens, BACKEND_URL };
 
 export default API;
