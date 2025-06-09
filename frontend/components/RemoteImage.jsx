@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Image, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import ErrorImage from "@/assets/images/errorImage.jpg";
+import { Image } from "expo-image";
 
 //This image component is meant to be used in places where an image may take a while to load
 const RemoteImage = ({ imgSource, containerStyle, imgStyle }) => {
@@ -26,7 +27,7 @@ const RemoteImage = ({ imgSource, containerStyle, imgStyle }) => {
                 <Image
                     source={imgSource}
                     style={[StyleSheet.absoluteFill, imgStyle]}
-                    resizeMode="cover"
+                    contentFit="cover"
                     onLoadStart={() => setLoading(true)}
                     onLoadEnd={() => setLoading(false)}
                     onError={(e) => {
