@@ -78,7 +78,7 @@ app.use("/api/admin", adminRoutes);
 const http = require("http");
 const { Server } = require("socket.io");
 
-const server = http.createServer(app); // attach app to HTTP server
+const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*" },
 });
