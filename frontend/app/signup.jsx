@@ -1,6 +1,5 @@
 import { useRouter } from "expo-router";
 import React, { useContext, useState } from "react";
-import { AuthContext } from "@/context/AuthContext.js";
 import {
     View,
     Text,
@@ -91,7 +90,6 @@ const SignupPage = () => {
                 password,
                 email,
             });
-            console.log(res.status);
             if (res.status == 201) {
                 setErrorMessage("Wait for an admin to approve you before logging in.");
                 setTimeout(() => router.dismissTo("/login"), 10000);
@@ -146,6 +144,14 @@ const SignupPage = () => {
                 <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
             {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+            <View style={{flexDirection: 'row', marginTop: 5}}>
+                <Text>Already have an account? </Text>
+                <TouchableOpacity onPress={() => router.push("/login")}>
+                    <Text style={{color: 'blue', textDecorationLine: 'underline'}}>Log in here!</Text>
+                </TouchableOpacity>
+            </View>
+            
+            
         </View>
     );
 };
@@ -184,7 +190,8 @@ const styles = StyleSheet.create({
     },
     passwordDescription: {
         textAlign: 'center',
-        marginBottom: 8
+        marginBottom: 8,
+        marginHorizontal: 10
     }
 });
 
