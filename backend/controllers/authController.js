@@ -18,18 +18,42 @@ const generateRefreshToken = (user) => {
     });
 };
 
+const checkUsernameEmailAvailable = async (username, email) => {
+    try {
+        const usernameTaken = await User.findOne({ username });
+        const emailTaken = await User.findOne({ email });
+
+        return {
+            usernameTaken: !!usernameTaken,
+            emailTaken: !!emailTaken
+        };
+    } catch (err) {
+        res.status(500);
+    }
+};
+
+
 /**
  * Signup handler
  */
 const handleSignup = async (req, res) => {
     const { username, email, password } = req.body;
     try {
+        const availabilityCheck = await checkUsernameEmailAvailable(username, email);
+        if (availabilityCheck.usernameTaken && availabilityCheck.emailTaken) {
+            return res.status(409).json({ message: "Username and email already taken" });
+        } else if (availabilityCheck.usernameTaken) {
+            return res.status(409).json({ message: "Username already taken" });
+        } else if (availabilityCheck.emailTaken) {
+            return res.status(409).json({ message: "Email already taken" }); 
+        }
+
         const user = User({ username, email, password });
         await user.save();
         res.status(201).json({ message: "User created" });
     } catch (err) {
-        res.status(400).json({
-            error: `Username might be taken or data invalid. Full Error: ${err}`,
+        res.status(500).json({
+            error: err,
         });
     }
 };

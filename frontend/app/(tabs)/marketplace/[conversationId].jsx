@@ -71,7 +71,6 @@ const ConversationDetailPage = () => {
       const other = participants.find((p) => p._id !== uid);
       if (other) setOtherUser(other);
       socket.on("receiveMessage", handleReceiveMessage);
-      console.log("calling functions");
       socket.on("messageDelivered", handleMessageDelivered);
     };
 
@@ -176,7 +175,7 @@ const ConversationDetailPage = () => {
           contentContainerStyle={styles.messageList}
           inverted
         />
-        <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 0 }]}>
+        <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 50 }]}>
           <TextInput
             value={input}
             onChangeText={setInput}
