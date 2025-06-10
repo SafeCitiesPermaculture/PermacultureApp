@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { useLoading } from "@/context/LoadingContext";
 import {
     View,
     ScrollView,
     Text,
     Image,
-    Button,
     StyleSheet,
     SafeAreaView,
     TouchableOpacity,
-    onPress,
+    Pressable,
     TextInput,
     Dimensions,
+    Modal,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
@@ -21,18 +22,26 @@ import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import FileListing from "@/components/FileListing";
 import safeCitiesLogo from "@/assets/images/logo.png";
-import folders from "@/assets/images/folder 2 icon.png";
 import searchGlass from "@/assets/images/maginfying glass icon.png";
 import addIcon from "@/assets/images/Add _ plus icon.png";
+import backArrow from "@/assets/images/back_arrow.png";
+import folders from "@/assets/images/folder 2 icon.png";
+import { AuthContext } from "@/context/AuthContext";
 
 const screenWidth = Dimensions.get("window").width;
 
 const InformationPage = () => {
     const [uploadedFile, setUploadedFile] = useState(null);
+    const [fileModalVisible, setFileModalVisible] = useState(false);
     const [fileList, setFileList] = useState([]);
+    const [filteredFileList, setFilteredFileList] = useState([]);
     const [currentFolder, setCurrentFolder] = useState(null);
     const [folderStack, setFolderStack] = useState([]);
     const [searchText, setSearchText] = useState("");
+    const [newFolderName, setNewFolderName] = useState("");
+
+    const { showLoading, hideLoading } = useLoading();
+    const { isAdmin } = useContext(AuthContext);
 
     //get the file from the file picker
     const pickFile = async () => {
@@ -80,21 +89,27 @@ const InformationPage = () => {
         formData.append("parent", currentFolder?._id || null);
 
         try {
+            showLoading();
+            setFileModalVisible(false);
+
             const res = await API.post("/files/upload", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
-
+            setUploadedFile(null);
             await getFileList();
         } catch (err) {
             console.error("Upload error:", error.response || error.message);
+        } finally {
+            hideLoading();
         }
     };
 
     //get file from backend and open it on frontend
     const displayFile = async (fileId) => {
         try {
+            showLoading();
             //get data
             const res = await API.post(
                 `/files/${fileId}`,
@@ -138,21 +153,27 @@ const InformationPage = () => {
             }
         } catch (err) {
             console.error("Download or open failed:", error);
+        } finally {
+            hideLoading();
         }
     };
 
     const deleteFile = async (fileId) => {
         try {
+            showLoading();
             await API.delete(`/files/delete/${fileId}`);
             await getFileList();
         } catch (err) {
             console.error("Error when deleting file", err);
+        } finally {
+            hideLoading();
         }
     };
 
     //populate file list
     const getFileList = async () => {
         try {
+            showLoading();
             const res = await API.get("/files/list", {
                 params: {
                     parent: currentFolder?._id || null,
@@ -172,6 +193,26 @@ const InformationPage = () => {
             );
         } catch (err) {
             console.log("Error populating list", err);
+        } finally {
+            hideLoading();
+        }
+    };
+
+    const createFolder = async () => {
+        try {
+            showLoading();
+            setFileModalVisible(false);
+            const res = await API.post("/files/folder/create", {
+                name: newFolderName,
+                parent: currentFolder?._id || null,
+            });
+
+            setNewFolderName("");
+            await getFileList();
+        } catch (err) {
+            console.log("Error creating folder:", err);
+        } finally {
+            hideLoading();
         }
     };
 
@@ -194,108 +235,211 @@ const InformationPage = () => {
         getFileList();
     }, [currentFolder]);
 
+    useEffect(() => {
+        const filtered = fileList.filter((file) =>
+            file.name.toLowerCase().includes(searchText.toLowerCase())
+        );
+        setFilteredFileList(filtered);
+    }, [searchText, fileList]);
+
     return (
-        <SafeAreaView style={styles.informationMainScreen}>
-            <ScrollView style={styles.informationMainScreen}>
-                {/* header with logo and search box */}
-                <View style={styles.headerContainer}>
-                    <Image source={safeCitiesLogo} style={styles.logo} />
+        <>
+            <SafeAreaView style={styles.informationMainScreen}>
+                <ScrollView style={styles.informationMainScreen}>
+                    {/* header with logo and search box */}
+                    <View style={styles.headerContainer}>
+                        <View style={styles.searchContainer}>
+                            <Image
+                                source={safeCitiesLogo}
+                                style={styles.logo}
+                            />
 
-                    <View style={styles.searchBox}>
-                        <TextInput
-                            style={styles.textInput}
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            placeholder="Search Information"
-                            placeholderTextColor="#888"
-                        />
-                        {/* magnfiying image*/}
-                        <Image source={searchGlass} style={styles.searchIcon} />
+                            <View style={styles.searchBox}>
+                                <TextInput
+                                    style={styles.textInput}
+                                    value={searchText}
+                                    onChangeText={setSearchText}
+                                    placeholder="Search Information"
+                                    placeholderTextColor="#888"
+                                />
+                                {/* magnfiying image*/}
+                                <Image
+                                    source={searchGlass}
+                                    style={styles.searchIcon}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.currentFolderContainer}>
+                            {currentFolder && (
+                                <>
+                                    <TouchableOpacity onPress={exitFolder}>
+                                        <Image
+                                            source={backArrow}
+                                            style={styles.backArrowIcon}
+                                        />
+                                    </TouchableOpacity>
+                                    <View style={styles.currentFolderText}>
+                                        <Image
+                                            source={folders}
+                                            style={styles.folderIcons}
+                                        />
+                                        <Text>
+                                            {currentFolder
+                                                ? currentFolder.name
+                                                : "N/A"}
+                                        </Text>
+                                    </View>
+                                </>
+                            )}
+                        </View>
                     </View>
-                </View>
 
-                {/*file folders */}
-                <View style={styles.scrollContent}>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>Livestock</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>Plants</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>
-                                Plant Calendar
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.button} onPress={onPress}>
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                        >
-                            <Image
-                                source={folders}
-                                style={styles.folderIcons}
-                            />
-                            <Text style={styles.searchText}>Insects</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
+                    {/*file folders */}
+                    <View style={styles.scrollContent}>
+                        {filteredFileList.length > 0 ? (
+                            filteredFileList.map((item) => (
+                                <FileListing
+                                    key={item._id}
+                                    file={item}
+                                    displayFile={displayFile}
+                                    deleteFile={deleteFile}
+                                    enterFolder={enterFolder}
+                                />
+                            ))
+                        ) : (
+                            <Text>No files available</Text>
+                        )}
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
 
-                <View>
-                    <TouchableOpacity style={styles.add}>
+            {/* Add Button */}
+            {isAdmin && (
+                <View style={styles.addContainer}>
+                    <TouchableOpacity
+                        style={styles.add}
+                        onPress={() => setFileModalVisible(true)}
+                    >
                         <Image source={addIcon} style={styles.plusIcon} />
                     </TouchableOpacity>
                 </View>
-            </ScrollView>
-        </SafeAreaView>
+            )}
+
+            {/* Add File Modal */}
+            {isAdmin && (
+                <Modal
+                    visible={fileModalVisible}
+                    transparent
+                    onRequestClose={() => setFileModalVisible(false)}
+                >
+                    <Pressable
+                        style={styles.modalBackground}
+                        onPress={() => setFileModalVisible(false)}
+                    >
+                        <View style={styles.modalContainer}>
+                            <TouchableOpacity
+                                onPress={() => setFileModalVisible(false)}
+                                style={styles.modalBackButton}
+                            >
+                                <Image
+                                    source={backArrow}
+                                    style={styles.backArrowIcon}
+                                />
+                            </TouchableOpacity>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalHeaderText}>
+                                    Create
+                                </Text>
+                            </View>
+                            <View style={styles.pickFileContainer}>
+                                <Text style={styles.uploadFileText}>
+                                    Upload File:
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={pickFile}
+                                    style={styles.pickFileButton}
+                                >
+                                    <Text style={styles.pickFileText}>
+                                        Pick File
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={styles.selectedFileText}>
+                                Selected File:{" "}
+                                {uploadedFile
+                                    ? uploadedFile.assets[0].name
+                                    : "N/A"}
+                            </Text>
+
+                            <View style={styles.uploadContainer}>
+                                <TouchableOpacity
+                                    onPress={sendFile}
+                                    style={[
+                                        styles.uploadButton,
+                                        !uploadedFile
+                                            ? styles.disabledButton
+                                            : null,
+                                    ]}
+                                    disabled={!uploadedFile}
+                                >
+                                    <Text style={styles.uploadText}>
+                                        Upload File
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.modalDivider} />
+                            <View style={styles.newFolderContainer}>
+                                <Text style={styles.newFolderText}>
+                                    New Folder:
+                                </Text>
+                                <TextInput
+                                    style={styles.newFolderInput}
+                                    value={newFolderName}
+                                    onChangeText={setNewFolderName}
+                                    placeholder="Enter new folder name..."
+                                    placeholderTextColor="#888"
+                                />
+                            </View>
+
+                            <View style={styles.createFolderContainer}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.createFolderButton,
+                                        newFolderName.length <= 0
+                                            ? styles.disabledButton
+                                            : null,
+                                    ]}
+                                    disabled={newFolderName.length <= 0}
+                                    onPress={createFolder}
+                                >
+                                    <Text style={styles.createFolderText}>
+                                        Create Folder
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Pressable>
+                </Modal>
+            )}
+        </>
     );
 };
 
 const styles = StyleSheet.create({
+    addContainer: {
+        position: "absolute",
+        right: 20,
+        bottom: 100,
+    },
+
     add: {
         flex: 1,
-        marginLeft: screenWidth * 0.82,
-        marginTop: screenWidth * 0.99,
     },
     plusIcon: {
         flex: 1,
         width: 45,
-        height: 55,
+        height: 59,
     },
     informationMainScreen: {
         flex: 1,
@@ -309,15 +453,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 20,
     },
-    folderIcons: {
-        width: 40,
-        height: 40,
-        alignItems: "center",
-        resizeMode: "contain",
-        marginRight: 10,
-        padding: 10,
-    },
-    headerContainer: {
+
+    headerContainer: {},
+
+    searchContainer: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
@@ -345,31 +484,188 @@ const styles = StyleSheet.create({
         height: 20,
         marginLeft: 8,
     },
-    searchText: {
-        color: "#555",
-        fontSize: 16,
-    },
+
     searchIcon: {
         width: 20,
         height: 20,
         resizeMode: "contain",
-    },
-    button: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: Colors.brownLight,
-        borderRadius: 5,
-        height: 45,
-        justifyContent: "space-between",
-        borderWidth: 1, // Thickness of the border
-        borderColor: "black",
     },
     textInput: {
         flex: 1,
         paddingVertical: 6,
         paddingHorizontal: 8,
         fontSize: 16,
+    },
+
+    currentFolderContainer: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: 15,
+    },
+
+    backArrowIcon: {
+        width: 20,
+        height: 20,
+        resizeMode: "contain",
+        marginRight: 10,
+    },
+
+    folderIcons: {
+        width: 30,
+        height: 30,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        resizeMode: "contain",
+        marginTop: 10,
+    },
+
+    currentFolderText: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "start",
+    },
+
+    modalBackground: {
+        flex: 1,
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.8)",
+        padding: 20,
+    },
+    modalContainer: {
+        backgroundColor: "#fff",
+        padding: 10,
+        borderRadius: 12,
+    },
+
+    modalBackButton: {
+        position: "absolute",
+        top: 20,
+        left: 15,
+    },
+
+    modalHeader: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 10,
+    },
+
+    modalHeaderText: {
+        fontSize: 30,
+        fontWeight: "bold",
+    },
+
+    pickFileContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-evenly",
+        flexDirection: "row",
+        marginHorizontal: 50,
+    },
+
+    uploadFileText: {
+        fontSize: 20,
+    },
+
+    pickFileButton: {
+        backgroundColor: Colors.greenButton,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 5,
+    },
+
+    pickFileText: {
+        fontSize: 20,
+    },
+
+    selectedFileText: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        marginTop: 10,
+        fontSize: 20,
+    },
+
+    uploadContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    uploadButton: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: Colors.greenButton,
+        padding: 10,
+        borderRadius: 10,
+        marginTop: 20,
+    },
+    uploadText: {
+        fontSize: 20,
+        fontWeight: "bold",
+    },
+
+    modalDivider: {
+        borderBottomColor: Colors.greenRegular,
+        borderBottomWidth: 3,
+        marginVertical: 30,
+    },
+
+    newFolderContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+        marginHorizontal: 20,
+    },
+
+    newFolderText: {
+        marginRight: 10,
+        fontSize: 20,
+    },
+
+    newFolderInput: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: Colors.greyTextBox,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        height: 40,
+        justifyContent: "space-between",
+        flex: 1,
+    },
+
+    createFolderContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    createFolderButton: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: Colors.greenButton,
+        padding: 10,
+        borderRadius: 10,
+        marginTop: 20,
+    },
+
+    createFolderText: {
+        fontSize: 20,
+        fontWeight: "bold",
+    },
+
+    disabledButton: {
+        opacity: 0.3,
+        backgroundColor: Colors.greyTextBox,
     },
 });
 

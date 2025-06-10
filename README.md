@@ -17,5 +17,5 @@
 -   Open a terminal
 -   Run `cd backend` to move into the backend directory
 -   Run `npm run dev` to launch the backend
--   The backend is now running on [http://localhost:6000](http://localhost:6000)
+-   The backend is now running on [http://localhost:3000](http://localhost:3000)
 -   There's no need to access the backend from your browser, it just needs to be running so the frontend will work

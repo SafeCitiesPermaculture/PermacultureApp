@@ -3,12 +3,19 @@ const { Readable } = require("stream");
 const path = require("path");
 const File = require("../models/File");
 
+require("dotenv").config();
+const googleDriveCredentials = JSON.parse(
+    process.env.GOOGLE_DRIVE_CREDENTIALS_JSON || "{}"
+);
+googleDriveCredentials.private_key = googleDriveCredentials.private_key.replace(
+    /\\n/g,
+    "\n"
+);
+
 //set up google drive api
-const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(
-        __dirname,
-        "../credentials/google_drive_credentials.json"
-    ),
+const auth = new google.auth.JWT({
+    email: googleDriveCredentials.client_email,
+    key: googleDriveCredentials.private_key,
     scopes: ["https://www.googleapis.com/auth/drive"],
 });
 const drive = google.drive({ version: "v3", auth });
@@ -18,7 +25,8 @@ const handleUpload = async (req, res) => {
     try {
         //get parent folder
         const { parent } = req.body;
-        const parentFolder = await File.findById(parent);
+        const parentFolder =
+            parent !== "null" ? await File.findById(parent) : null;
 
         //construct metadata
         const fileMetadata = {
@@ -197,10 +205,42 @@ const createFolder = async (req, res) => {
     }
 };
 
+const proxyGetFile = async (req, res) => {
+    const driveUrl = req.query.url;
+    if (!driveUrl) {
+        console.log("No url");
+        return res.status(400).send("Missing 'url' query parameter");
+    }
+
+    if (!driveUrl.startsWith("https://drive.google.com/uc?")) {
+        console.log("Not google drive");
+        return res.status(400).send("Only Google Drive URLs are allowed");
+    }
+
+    try {
+        const response = await fetch(driveUrl);
+        if (!response.ok) {
+            console.log("Failed to fetch image");
+            return res.status(response.status).send("Failed to fetch image");
+        }
+
+        res.set(
+            "Content-Type",
+            response.headers.get("content-type") || "image/jpeg"
+        );
+        const stream = Readable.fromWeb(response.body);
+        stream.pipe(res);
+    } catch (err) {
+        console.error("Error fetching file:", err);
+        res.status(500).send("Proxy error");
+    }
+};
+
 module.exports = {
     handleUpload,
     listFiles,
     getFileById,
     deleteFile,
     createFolder,
+    proxyGetFile,
 };
