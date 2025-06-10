@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
     isSafeCities: { type: Boolean, default: false },
     profilePicture: { type: String, default: "" },
     farmName: { type: String, default: "" },
-    isReported: { type: Boolean, default: false },
+    timesReported: { type: Number, default: 0 },
     isRemoved: { type: Boolean, default: false },
     removedDate: { type: Date, default: null }, //(to be deleted after 30 days)
 });

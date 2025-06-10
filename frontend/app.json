@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.safecities.permaculture"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +38,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3d20f1f9-675d-4bc0-9587-bda2fecbc774"
+      }
     }
   }
 }

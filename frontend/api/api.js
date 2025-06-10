@@ -1,6 +1,8 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
-const BACKEND_URL = "http://localhost:6000/api";
+import { Platform } from "react-native";
+const BACKEND_URL = "http://localhost:3000/api";
+const STORAGE_KEY = "tokens";
 
 //initliaze the API
 const API = axios.create({
@@ -9,21 +11,34 @@ const API = axios.create({
 
 //Store auth tokens in a secure storage
 const storeTokens = async (accessToken, refreshToken) => {
-    await SecureStore.setItemAsync(
-        "tokens",
-        JSON.stringify({ accessToken, refreshToken })
-    );
+    const tokenData = JSON.stringify({ accessToken, refreshToken });
+
+    if (Platform.OS === "web") {
+        localStorage.setItem(STORAGE_KEY, tokenData);
+    } else {
+        await SecureStore.setItemAsync(STORAGE_KEY, tokenData);
+    }
 };
 
 //Retrieve tokens from storage
 const getTokens = async () => {
-    const tokens = await SecureStore.getItemAsync("tokens");
-    return tokens ? JSON.parse(tokens) : null;
+    let tokenData;
+
+    if (Platform.OS === "web") {
+        tokenData = localStorage.getItem(STORAGE_KEY);
+    } else {
+        tokenData = await SecureStore.getItemAsync(STORAGE_KEY);
+    }
+    return tokenData ? JSON.parse(tokenData) : null;
 };
 
 //clear tokens
 const clearTokens = async () => {
-    await SecureStore.deleteItemAsync("tokens");
+    if (Platform.OS === "web") {
+        localStorage.removeItem(STORAGE_KEY);
+    } else {
+        await SecureStore.deleteItemAsync(STORAGE_KEY);
+    }
 };
 
 //Attach tokens to all sent requests automatically
@@ -44,6 +59,7 @@ API.interceptors.response.use(
     (res) => res,
     async (error) => {
         const originalRequest = error.config;
+        console.log("Error when sending request:", error);
         // Don't refresh if it's login or refresh token request
         if (
             originalRequest.url.includes("/login") ||
@@ -56,12 +72,15 @@ API.interceptors.response.use(
             originalRequest._retry = true;
             const refreshed = await tryRefreshToken();
             if (refreshed) {
+                console.log("Got new tokens");
                 return API(originalRequest);
             } else {
-                //await clearTokens();
+                console.log("Did not get new tokens");
+                await clearTokens();
                 return Promise.reject("Session expired. Please log in again.");
             }
         }
+        console.log("Didn't try again");
         return Promise.reject(error);
     }
 );
@@ -73,14 +92,15 @@ const tryRefreshToken = async () => {
 
     try {
         const res = await axios.post(`${BACKEND_URL}/auth/refresh`, {
-            token: tokens.refreshToken,
+            refreshToken: tokens.refreshToken,
         });
 
         const newAccessToken = res.data.accessToken;
         await storeTokens(newAccessToken, tokens.refreshToken);
 
         return true;
-    } catch {
+    } catch (err) {
+        console.log("Refresh failed:", err);
         return false;
     }
 };
@@ -108,6 +128,6 @@ const logout = async () => {
     await clearTokens();
 };
 
-export { login, logout };
+export { login, logout, getTokens, BACKEND_URL };
 
 export default API;

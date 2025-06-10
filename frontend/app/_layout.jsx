@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/context/AuthContext";
+import { LoadingProvider } from "@/context/LoadingContext";
 import RootLayout from "./RootLayout";
 
 /**
@@ -6,9 +7,11 @@ import RootLayout from "./RootLayout";
  */
 const RootLayoutWrapper = () => {
     return (
-        <AuthProvider>
-            <RootLayout />
-        </AuthProvider>
+        <LoadingProvider>
+            <AuthProvider>
+                <RootLayout />
+            </AuthProvider>
+        </LoadingProvider>
     );
 };
 

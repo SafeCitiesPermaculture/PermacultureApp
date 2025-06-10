@@ -16,6 +16,16 @@ const messageSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        deliveredTo: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: [],
+        }],
+        seenBy: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: [],
+        }],
     },
     { timestamps: true }
 );

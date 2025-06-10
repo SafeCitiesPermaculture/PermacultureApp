@@ -6,31 +6,45 @@ import {
     Dimensions,
     Image,
 } from "react-native";
-import AuthGuard from "@/components/AuthGuard";
 import Colors from "@/constants/Colors";
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
+import RemoteImage from "@/components/RemoteImage";
+import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
-const listingCard = ({ title, price, postedBy, listingId }) => {
+const ListingCard = ({ listing, buttonFunction, buttonImage }) => {
     const router = useRouter();
 
     return (
         <TouchableOpacity
-            onPress={() => router.push(`/marketplace/listing/${listingId}`)}
+            onPress={() => router.push(`/marketplace/listing/${listing._id}`)}
         >
             <View style={styles.background}>
+                <RemoteImage
+                    containerStyle={styles.imageContainer}
+                    imgStyle={styles.listingImage}
+                    imgSource={{ uri: listing.picture }}
+                />
                 <View style={styles.topRow}>
-                    <Text style={styles.title}>{title}</Text>
-                    <Text style={styles.price}>R{price}</Text>
+                    <Text style={styles.title} numberOfLines={2}>{listing.title}</Text>
+                    <Text style={styles.price}>R{listing.price}</Text>
                 </View>
                 <View style={styles.bottomRow}>
-                    <Text style={styles.username}>{postedBy}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <RemoteImage containerStyle={styles.profilePicContainer} imgStyle={styles.profilePic} 
+                        imgSource={listing.postedBy.profilePicture !== "" ?
+                            { uri: listing.postedBy.profilePicture } :
+                            DefaultProfilePicture
+                         } />
+                        <Text style={styles.username}>{listing.postedBy.username}</Text>
+                    </View>
                     <TouchableOpacity
-                        onPress={() => router.push(`/report?user=${postedBy}`)}
+                        onPress={buttonFunction}
+                        style={{justifyContent: 'center'}}
                     >
                         <Image
-                            source={require("@/assets/images/report-flag.png")}
+                            source={buttonImage}
                             style={{
                                 height: 15,
                                 width: 15,
@@ -49,35 +63,61 @@ const styles = StyleSheet.create({
         padding: 5,
         margin: 10,
         flexShrink: 1,
-        width: width / 3 + 15,
-        height: 100,
+        width: width / 2 - 40,
+        borderRadius: 10,
     },
-    title: {
-        flex: -1,
-        fontSize: 20,
-        textAlignVertical: "center",
+    imageContainer: {
+        width: "100%",
+        aspectRatio: 1,
+        borderRadius: 10,
+        overflow: 'hidden',
+        marginBottom: 5,
+    },
+    listingImage: {
+        width: "100%",
+        height: "100%",
     },
     topRow: {
-        flex: 2,
-        justifyContent: "space-between",
         flexDirection: "row",
-        padding: 5,
+        justifyContent: "space-between",
+        paddingHorizontal: 5,
+        marginBottom: 5,
+    },
+    title: {
+        flex: 1,
+        fontSize: 16,
     },
     price: {
-        flex: 1,
         fontSize: 14,
-        textAlignVertical: "center",
         textAlign: "right",
     },
     bottomRow: {
-        flex: 1,
-        justifyContent: "space-between",
         flexDirection: "row",
-        padding: 5,
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 5,
+    },
+    userInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    profilePicContainer: {
+        height: 20,
+        width: 20,
+        marginRight: 3,
+    },
+    profilePic: {
+        height: 20,
+        width: 20,
+        borderRadius: 10,
     },
     username: {
         fontSize: 12,
     },
+    buttonIcon: {
+        height: 15,
+        width: 15,
+    }
 });
 
-export default listingCard;
+export default ListingCard;

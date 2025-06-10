@@ -1,6 +1,6 @@
 export default {
     backgroundTan: "#FCFBF4", //background color for the app
-    brownLight: "#D0AE90", //color for files in information secction
+    brownLight: "#F3EADD", //color for files in information secction
     menuBrown: "#A09A7C", //color for menu fooder
     brownMedium: "#AC8155", //brown for markeplace listing
     greenRegular: "#CBD2A4", //green background for chat messages
