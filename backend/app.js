@@ -9,6 +9,7 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
+const schedulePersonalRoutes = require('./routes/schedulePersonalRoutes');
 const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
@@ -68,6 +69,9 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
+app.use('/api/schedulePersonal', require('./routes/schedulePersonalRoutes'));
+
+
 app.use("/api/user", userRoutes);
 
 //admin routes
