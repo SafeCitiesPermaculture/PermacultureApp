@@ -13,6 +13,7 @@ const schedulePersonalRoutes = require('./routes/schedulePersonalRoutes');
 const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
+const Conversation = require("./models/Conversation");
 
 const {
     userAuthMiddleware,
@@ -91,9 +92,28 @@ io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
     // Join user-specific room
-    socket.on("joinUserRoom", (userId) => {
+    socket.on("joinUserRoom", async (userId) => {
         socket.join(userId);
         console.log(`Socket ${socket.id} joined user room: ${userId}`);
+        try {
+            const conversations = await Conversation.find({ participants: userId })
+            .populate("participants", "username")
+            .sort({ updatedAt: -1 });
+
+            for (const convo of conversations) {
+            const lastMessage = await Message.findOne({ conversation: convo._id })
+                .sort({ createdAt: -1 });
+
+            io.to(userId).emit("conversationUpdated", {
+                conversationId: convo._id.toString(),
+                name: convo.name,
+                updatedAt: convo.updatedAt,
+                lastMessage: lastMessage?.text ?? "",
+            });
+            }
+        } catch (err) {
+            console.error("Failed to emit conversations on joinUserRoom:", err);
+        }
     });
 
     // Join conversation room
@@ -105,7 +125,7 @@ io.on("connection", (socket) => {
     });
 
     // Send message to conversation AND notify user rooms
-    socket.on("sendMessage", ({ conversationId, message }) => {
+    socket.on("sendMessage", async ({ conversationId, message }) => {
         console.log(
             `📨 Socket ${socket.id} sending to ${conversationId}:`,
             message
@@ -113,12 +133,15 @@ io.on("connection", (socket) => {
 
         socket.to(conversationId).emit("receiveMessage", message);
 
+        const conversation = await Conversation.findById(conversationId);
+
         if (Array.isArray(message.participants)) {
             message.participants.forEach((userId) => {
                 io.to(userId).emit("conversationUpdated", {
                     conversationId,
                     lastMessage: message.text,
                     updatedAt: message.createdAt,
+                    name: conversation.name,
                 });
                 console.log(
                     `📤 Sent conversationUpdated to user room: ${userId}`
