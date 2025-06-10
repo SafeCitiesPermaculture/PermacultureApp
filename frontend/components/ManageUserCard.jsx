@@ -13,7 +13,7 @@ const ManageUserCard = ({ user }) => {
             style={styles.container}
             onPress={() => {
                 if (user._id == userData._id) return;
-                router.push(`/profile/${user._id}`);
+                router.push(`/profile/user/${user._id}`);
             }}
         >
             <Text style={styles.nameText}>{user.username}</Text>

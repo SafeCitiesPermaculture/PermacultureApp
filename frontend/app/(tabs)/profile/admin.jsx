@@ -23,6 +23,12 @@ const AdminPage = () => {
                     >
                         <Text style={styles.buttonText}>Manage Users</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => router.push("/profile/reports")}
+                    >
+                        <Text style={styles.buttonText}>View Reports</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </AdminGuard>

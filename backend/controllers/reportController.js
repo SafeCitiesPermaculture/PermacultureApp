@@ -11,35 +11,42 @@ const makeReport = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: Reported/Removed users cannot report users." });
         }
 
-        const { reportedUsername, reportedByUsername, description } = req.body;
+        const { reported, reportedBy, description } = req.body;
 
-        if (!reportedUsername.trim()) {
-            return res.status(400).json({ message: "Reported username is required." });
+        if (!reported) {
+            return res.status(400).json({ message: "Reported id is required." });
         }
 
-        if (!reportedByUsername.trim()) {
-            return res.status(400).json({ message: "Username of reporter is required." });
+        if (!reportedBy) {
+            return res.status(400).json({ message: "Id of reporter is required." });
         }
 
-        if(reportedUsername == reportedByUsername) {
-            return res.status(401).json({ message: "User cannot report themself" });
+        if(reported.toString() == reportedBy.toString()) {
+            return res.status(409).json({ message: "User cannot report themself" });
         }
 
         if(!description.trim()) {
             return res.status(400).json({ message: "Description is required." });
         }
         
-        const reportedUser = await User.findOne({ username: reportedUsername.trim() });
+        const reportedUser = await User.findById(reported);
 
         if (!reportedUser) {
             return res.status(404).json({ message: "User not found" });
         }
 
+        // Prevent the same person reporting someone multiple times
+        const existingReport = await Report.findOne({ reported, reportedBy });
+        
+        if (existingReport) {
+            return res.status(409).json({ message: "You have already reported this user" });
+        }
+
         reportedUser.timesReported++;
 
         const newReport = Report({
-            reportedUsername: reportedUsername.trim(),
-            reportedByUsername: reportedByUsername.trim(),
+            reported,
+            reportedBy,
             description: description.trim()
         });
         
@@ -52,16 +59,6 @@ const makeReport = async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating report:", error);
-
-        // Handle mongoose validation errors
-        if (error.name === "ValidationError") {
-            const errors = Object.values(error.errors).map(
-                (err) => err.message
-            );
-            return res
-                .status(400)
-                .json({ message: "Validation failed", errors });
-        }
         res.status(500).json({
             message: "Failed to create report.",
             error: error.message,
@@ -75,7 +72,11 @@ const getAllReports = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: Only admins are permitted to see reports" });
         }
 
-        const reports = await Report.find().sort({ createdAt: 1 });
+        const reports = await Report.find().sort({ createdAt: 1 }).populate([
+            { path: 'reported', select: 'username' }, 
+            { path: 'reportedBy', select: 'username' }
+        ]);
+        
         res.status(200).json({ message: "Reports fetched successfully.", reports: reports });
     } catch (error) {
         console.error("Error in getAllReports:", error);
@@ -90,7 +91,10 @@ const getReport = async (req, res) => {
         }
 
         const reportId = req.params.reportId;
-        const report = await Report.findById(reportId);
+        const report = await Report.findById(reportId).populate([
+            { path: 'reported', select: 'username' },
+            { path: 'reportedBy', select: 'username' }
+        ]);
 
         if (!report) {
             return res.status(404).json({ message: "Report not found"});
@@ -110,13 +114,12 @@ const deleteReport = async (req, res) => {
         }
 
         const reportId = req.params.reportId;
-        const report = await Report.findById(reportId);
+        const report = await Report.findByIdAndDelete(reportId);
 
         if (!report) {
             return res.status(404).json({ message: "Report not found" });
         }
 
-        await Report.findByIdAndDelete(reportId);
         return res.status(200).json({ message: "Report deleted" });
     } catch (error) {
         console.error("Error in deleteReport:", error);
@@ -130,8 +133,12 @@ const dismissReport = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized: Only admins can dismiss reports" });
         }
 
-        const username = req.params.username;
-        const user = await User.findOne({ username: username });
+        const id = req.params.id;
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: "Reported user not found" });
+        }
 
         user.timesReported--;
         await user.save();

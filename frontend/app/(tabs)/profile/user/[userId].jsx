@@ -12,6 +12,7 @@ import API from "@/api/api";
 import { useLoading } from "@/context/LoadingContext";
 import Colors from "@/constants/Colors";
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
+import RemoteImage from "@/components/RemoteImage";
 
 const UserPage = () => {
     const { userId } = useLocalSearchParams();
@@ -22,7 +23,6 @@ const UserPage = () => {
     const [originalFarmName, setOriginalFarmName] = useState(null);
     const [roleSwitch, setRoleSwitch] = useState(false);
     const [safeCitiesSwitch, setSafeCitiesSwitch] = useState(false);
-    const [reportedSwitch, setReportedSwitch] = useState(false);
 
     const setRole = (val) => {
         setRoleSwitch(val);
@@ -33,11 +33,6 @@ const UserPage = () => {
         setSafeCitiesSwitch(val);
         user.isSafeCities = val;
         user.farmName = val ? "Safe Cities" : originalFarmName;
-    };
-
-    const setReported = (val) => {
-        setReportedSwitch(val);
-        user.isReported = val;
     };
 
     //retrieves the users data
@@ -67,7 +62,6 @@ const UserPage = () => {
         if (!user) return;
         setRoleSwitch(user.userRole === "admin");
         setSafeCitiesSwitch(user.isSafeCities);
-        setReportedSwitch(user.isReported);
     }, [user]);
 
     //soft deletes the user
@@ -102,11 +96,12 @@ const UserPage = () => {
 
     return (
         <View style={styles.container}>
-            <Image
-                style={styles.profileImage}
-                source={
+            <RemoteImage
+                containerStyle={styles.profileImageWrapper}
+                imgStyle={styles.profileImage}
+                imgSource={
                     user.profilePicture !== ""
-                        ? { uri: userData.profilePicture }
+                        ? { uri: user.profilePicture }
                         : DefaultProfilePicture
                 }
             />
@@ -127,13 +122,6 @@ const UserPage = () => {
                         onValueChange={setSafeCities}
                     />
                 </View>
-                <View style={styles.switchWrapper}>
-                    <Text style={styles.switchText}>Reported:</Text>
-                    <Switch
-                        value={reportedSwitch}
-                        onValueChange={setReported}
-                    />
-                </View>
             </View>
 
             <TouchableOpacity style={styles.removeButton} onPress={removeUser}>
@@ -148,11 +136,18 @@ const UserPage = () => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        display: "flex",
         backgroundColor: Colors.backgroundTan,
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "end",
+    },
+
+    profileImageWrapper: {
+        width: 200,
+        height: 200,
+        marginBottom: 10,
+        marginTop: 5,
     },
 
     profileImage: {
@@ -161,8 +156,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(0,0,0, 0.3)",
         borderRadius: 10,
-        marginTop: 50,
-        marginBottom: 10,
     },
 
     nameText: {
