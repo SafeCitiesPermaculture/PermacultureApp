@@ -1,19 +1,22 @@
-const Schedule = require('../models/WorkersModel');
+const WorkersSchedule = require('../models/WorkersModel');
 
 exports.createSchedule = async (req, res) => {
   try {
-    const {schedule} = req.body;
-    console.log(schedule);
+    const { task, date, time } = req.body;
+
     const newSchedule = await Schedule.create({
-    task: schedule.task,
-    date: schedule.date,
-    time: schedule.time,
-    })
+      task,
+      date: new Date(date),
+      time: new Date(time), // stored as Date object, safe
+    });
+
     res.status(201).json(newSchedule);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
+
+
 
 exports.getAllSchedules = async (req, res) => {
   try {

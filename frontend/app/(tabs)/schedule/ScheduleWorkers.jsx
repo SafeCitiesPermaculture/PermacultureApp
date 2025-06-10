@@ -33,7 +33,7 @@ export default function ScheduleWorkersPage() {
     const newSchedule = { task, date, time };
 
     try {
-      const response = await API.post("WorkersSchedule", { schedule: newSchedule });
+      const response =  await API.post("ScheduleWorkers", newSchedule);
       await fetchSchedules();
     } catch (error) {
       console.error("Error saving schedule:", error);
@@ -46,16 +46,16 @@ export default function ScheduleWorkersPage() {
 
   const fetchSchedules = async () => {
     try {
-      const response = await API.get("/WorkersSchedule");
+      const response = await API.get("/ScheduleWorkers");
       setSchedules(response.data);
     } catch (error) {
       console.error("Error fetching schedules:", error.message);
     }
   };
 
-  useEffect(() => {
-    fetchSchedules();
-  }, []);
+//   useEffect(() => {
+//     fetchSchedules();
+//   }, []);
 
   const onChange = (event, selectedDateTime) => {
     setShowPicker(false); // hide picker after selection
@@ -78,8 +78,10 @@ export default function ScheduleWorkersPage() {
   };
 
   const formatDate = (d) => (d ? d.toDateString() : "No date selected");
-  const formatTime = (t) =>
-    t ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "No time selected";
+const formatTime = (t) =>
+  t
+    ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+    : "No time selected";
 
   return (
     <SafeAreaView style={styles.page}>
@@ -115,7 +117,7 @@ export default function ScheduleWorkersPage() {
           )}
         </View>
 
-        <TouchableOpacity onPress={handleSaveSchedule} style={styles.closeButton}>
+        <TouchableOpacity onPress={handleSaveSchedule} style={styles.saveButton}>
           <Text style={{ color: "white" }}>Save Task</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -172,4 +174,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
+  saveButton: {
+          backgroundColor: "black",
+          padding: 10,
+          borderRadius: 5,
+          marginTop: 10,
+          width: "100%",
+          alignItems: "center",
+      },
 });

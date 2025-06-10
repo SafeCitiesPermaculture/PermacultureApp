@@ -108,7 +108,7 @@ export default function PersonalSchedulePage() {
     const formatDate = (d) => (d ? d.toDateString() : "No date selected");
     const formatTime = (t) =>
         t
-            ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" ,hour12: false })
             : "No time selected";
 
     return (
