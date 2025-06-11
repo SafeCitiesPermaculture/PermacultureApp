@@ -7,9 +7,6 @@ const BACKEND_URL = NEXT_PUBLIC_PROD_URL ?? "http://localhost:3000/api";
 
 const STORAGE_KEY = "tokens";
 
-console.log("Prod:", NEXT_PUBLIC_PROD_URL);
-console.log("Backend:", BACKEND_URL);
-
 //initliaze the API
 const API = axios.create({
     baseURL: BACKEND_URL,
