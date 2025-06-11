@@ -1,9 +1,11 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { NEXT_PUBLIC_PROD_URL } from "@env";
 
-const BACKEND_URL = NEXT_PUBLIC_PROD_URL ?? "http://localhost:3000/api";
+const devUrl = "http://localhost:3000/api";
+const prodUrl = "https://permacultureapp.onrender.com/api";
+
+const BACKEND_URL = __DEV__ ? devUrl : prodUrl;
 
 const STORAGE_KEY = "tokens";
 
