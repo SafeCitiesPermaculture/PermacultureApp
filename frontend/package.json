@@ -9,7 +9,7 @@
         "ios": "expo start --ios",
         "web": "expo start --web",
         "lint": "expo lint",
-        "build:web": "dotenv -e .env.production expo export --platform web"
+        "build:web": "dotenv -e .env.production -- expo export --platform web"
     },
     "dependencies": {
         "@expo/vector-icons": "^14.1.0",
