@@ -1,5 +1,5 @@
 // Main page for Safe Cities admin
-import React from "react";
+import React, {  createContext, useContext, useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -9,16 +9,51 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import safeCitiesLogo from "@/assets/images/logo.png";
 import { useRouter, usePathname } from "expo-router";
 import Colors from "@/constants/Colors";
+import { AuthContext } from "@/context/AuthContext";
+
 
 const { width } = Dimensions.get("window");
 
 export default function SchedulePage() {
-  const router = useRouter();
-  const pathname = usePathname();
+        const { userData, loading, } = useContext(AuthContext); // Use userData, not user
+        const router = useRouter();
+        const pathname = usePathname();
+        const [hasRedirected, setHasRedirected] = useState(false);
+        const {user} = useContext(AuthContext);
+
+        useEffect(() => {
+            if (!loading && userData && !hasRedirected) {
+                setHasRedirected(true);
+
+                if (userData.isSafeCities && userData.userRole !== "admin") {
+
+                    router.replace("/schedule/WorkersSchedule");
+                } else if (!userData.isSafeCities) {
+
+                    router.replace("/schedule/PersonalSchedule");
+                }
+                // If user is admin, stay on this page (no redirect needed)
+            }
+        }, [userData, loading, hasRedirected]);
+
+        // Show loading while checking auth or if user needs to be redirected
+      if (
+        loading ||
+        !userData ||
+        (userData && userData.isSafeCities && userData.userRole !== "admin")
+      ) {
+        return (
+          <View style={styles.loader}>
+            <ActivityIndicator size="large" color={Colors.greenButton} />
+          </View>
+        );
+      }
+
 
   const buttons = [
     {
@@ -51,6 +86,9 @@ export default function SchedulePage() {
     <SafeAreaView style={styles.adminView}>
       <ScrollView style={styles.adminView}>
         <Image source={safeCitiesLogo} style={styles.logo} />
+
+
+
 
         {buttons.map((btn, index) => (
           <TouchableOpacity key={index} style={styles.button} onPress={btn.onPress}>

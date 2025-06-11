@@ -13,6 +13,8 @@ import {
 import Colors from "@/constants/Colors";
 import API from "@/api/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
+
 
 const { width } = Dimensions.get("window");
 
@@ -24,25 +26,35 @@ export default function ScheduleWorkersPage() {
   const [showPicker, setShowPicker] = useState(false);
   const [schedules, setSchedules] = useState([]);
 
+  const [users, setUsers] = useState([]); //  SafeCities users
+    const [selectedUser, setSelectedUser] = useState(""); //  Selected user
+
   const showMode = (currentMode) => {
     setMode(currentMode);
     setShowPicker(true);
   };
 
-  const handleSaveSchedule = async () => {
-    const newSchedule = { task, date, time };
+    const handleSaveSchedule = async () => {
+      const newSchedule = {
+        task,
+        date,
+        time,
+        assignedTo: selectedUser, // 🔹 Include assigned user
 
-    try {
-      const response =  await API.post("ScheduleWorkers", newSchedule);
-      await fetchSchedules();
-    } catch (error) {
-      console.error("Error saving schedule:", error);
-    }
+      };
 
-    setTask("");
-    setDate(null);
-    setTime(null);
-  };
+      try {
+        await API.post("ScheduleWorkers", newSchedule);
+        await fetchSchedules();
+      } catch (error) {
+        console.error("Error saving schedule:", error);
+      }
+
+      setTask("");
+      setDate(null);
+      setTime(null);
+      setSelectedUser("");
+    };
 
   const fetchSchedules = async () => {
     try {
@@ -52,10 +64,20 @@ export default function ScheduleWorkersPage() {
       console.error("Error fetching schedules:", error.message);
     }
   };
+    const fetchSafeCitiesUsers = async () => {
+      try {
+        const response = await API.get("/ScheduleWorkers/safeCitiesUsers");
+        setUsers(response.data);
 
-//   useEffect(() => {
-//     fetchSchedules();
-//   }, []);
+      } catch (error) {
+        console.error("Error fetching SafeCities users:", error);
+      }
+    };
+
+          useEffect(() => {
+            fetchSchedules();
+            fetchSafeCitiesUsers();
+          }, []);
 
   const onChange = (event, selectedDateTime) => {
     setShowPicker(false); // hide picker after selection
@@ -116,6 +138,23 @@ const formatTime = (t) =>
             />
           )}
         </View>
+
+        <View style={styles.PromptsContainer}>
+                  <Text style={styles.prompts}>Assign to:</Text>
+                  <View style={styles.InputBox}>
+                    <Picker
+                      selectedValue={selectedUser}
+                      onValueChange={(itemValue) => setSelectedUser(itemValue)}
+                    >
+                      <Picker.Item label="Select a user" value="" />
+                      {users.map((user) => (
+                        <Picker.Item key={user._id} label={user.username} value={user._id} />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+
+
 
         <TouchableOpacity onPress={handleSaveSchedule} style={styles.saveButton}>
           <Text style={{ color: "white" }}>Save Task</Text>
