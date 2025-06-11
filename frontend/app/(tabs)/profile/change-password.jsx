@@ -64,19 +64,30 @@ const ResetPasswordPage = () => {
             return;
         }
 
-        setLoading(true);
-        try {
-            const res = await API.put("/user/change-password", {
-                oldPassword,
-                newPassword
-            });
-
-        } catch (error) {
-            console.log(error);
-        } finally {
-            setLoading(false);
-        }
-
+        Alert.alert(
+            "Change password",
+            "Are you sure you want to change your password?",
+            [
+                { text: "Cancel", style:"cancel" },
+                { 
+                    text: "Change Password", style: "destructive",
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            await API.put("/user/change-password", {
+                                oldPassword,
+                                newPassword
+                            });
+                        } catch (error) {
+                            console.log(error);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
     };
 
     return (
