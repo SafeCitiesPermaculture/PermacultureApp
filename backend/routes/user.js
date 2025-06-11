@@ -13,6 +13,6 @@ router.put(
     upload.single("file"),
     userController.updateProfilePicture
 );
-router.put("/reset-password", userController.changePassword);
+router.put("/change-password", userController.changePassword);
 
 module.exports = router;

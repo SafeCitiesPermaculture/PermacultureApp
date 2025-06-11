@@ -2,7 +2,6 @@ import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityInd
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState } from "react";
-import { AuthContext } from "@/context/AuthContext";
 
 
 const ResetPasswordPage = () => {
@@ -67,7 +66,7 @@ const ResetPasswordPage = () => {
 
         setLoading(true);
         try {
-            const res = await API.put("/auth/reset-password", {
+            const res = await API.put("/user/change-password", {
                 oldPassword,
                 newPassword
             });
@@ -107,7 +106,9 @@ const ResetPasswordPage = () => {
             <TouchableOpacity style={styles.button} onPress={handleReset}>
                 <Text style={styles.buttonText}>Reset Password</Text>
             </TouchableOpacity>
+            {loading && <ActivityIndicator size="large" color={Colors.greenButton} />}
             {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+
         </View>
     );
 };
