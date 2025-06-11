@@ -1,5 +1,5 @@
 {
-    "buildCommand": "dotenv -e .env.production -- expo export --platform webb",
+    "buildCommand": "dotenv -e .env.production -- expo export --platform web",
     "outputDirectory": "dist",
     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
