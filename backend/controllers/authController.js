@@ -52,8 +52,8 @@ const handleSignup = async (req, res) => {
         await user.save();
         res.status(201).json({ message: "User created" });
     } catch (err) {
-        res.status(500).json({
-            error: err,
+        res.status(400).json({
+            error: `Username might be taken or data invalid. Full Error: ${err}`,
         });
     }
 };
@@ -72,7 +72,11 @@ const handleLogin = async (req, res) => {
         }
 
         if (!user.isVerified) {
-            return res.status(403).json({ error: "User not verified" });
+            return res.status(403).json({ message: "You are still pending approval from an admin. Try again later!" });
+        }
+
+        if (user.isRemoved) {
+            return res.status(403).json({ message: "Your account has been removed. Contact safecitiespermaculture@gmail.com for more information." });
         }
 
         const accessToken = generateAccessToken(user);

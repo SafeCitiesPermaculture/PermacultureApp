@@ -117,7 +117,7 @@ const login = async (username, password) => {
             throw new Error("Invalid username or password");
         }
         if (err.response?.status == 403) {
-            throw new Error("You are still pending approval from an admin. Try again later!");
+            throw new Error(err.response?.data?.message);
         }
         
         throw new Error("Login failed. Please try again later.");
