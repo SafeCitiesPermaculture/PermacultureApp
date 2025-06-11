@@ -1,5 +1,5 @@
 {
-    "buildCommand": "npx expo export --platform web",
+    "buildCommand": "dotenv -e .env.production expo export --platform web",
     "outputDirectory": "dist",
     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
