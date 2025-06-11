@@ -1,7 +1,10 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-const BACKEND_URL = "http://localhost:3000/api";
+import Config from "react-native-config";
+const BACKEND_URL = Config.PROD_URL
+    ? Config.PROD_URL
+    : "http://localhost:3000/api";
 const STORAGE_KEY = "tokens";
 
 //initliaze the API
