@@ -1,11 +1,13 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-const BACKEND_URL =
-    process.env.NEXT_PUBLIC_PROD_URL ?? "http://localhost:3000/api";
+import { NEXT_PUBLIC_PROD_URL } from "@env";
+
+const BACKEND_URL = NEXT_PUBLIC_PROD_URL ?? "http://localhost:3000/api";
+
 const STORAGE_KEY = "tokens";
 
-console.log("Prod:", process.env.NEXT_PUBLIC_PROD_URL);
+console.log("Prod:", NEXT_PUBLIC_PROD_URL);
 console.log("Backend:", BACKEND_URL);
 
 //initliaze the API
