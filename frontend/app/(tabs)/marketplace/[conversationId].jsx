@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import API from "@/api/api";
@@ -28,28 +29,24 @@ const ConversationDetailPage = () => {
   const [conversation, setConversation] = useState(null);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     let uid = null;
 
     const handleReceiveMessage = (message) => {
-    if (!active) return;
-
-    setMessages((prev) => [message, ...prev]);
-
-    // ✅ Emit delivery event back to server
-    if (userId) {
-      socket.emit("messageDelivered", {
-        messageId: message._id,
-        userId: userId,
-      });
-    }
-  };
-
+      if (!active) return;
+      setMessages((prev) => [message, ...prev]);
+      if (userId) {
+        socket.emit("messageDelivered", {
+          messageId: message._id,
+          userId: userId,
+        });
+      }
+    };
 
     const handleMessageDelivered = ({ messageId, userId }) => {
-      console.log("message delivered");
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
           msg._id === messageId && !msg.deliveredTo.includes(userId)
@@ -60,21 +57,34 @@ const ConversationDetailPage = () => {
     };
 
     const init = async () => {
-      uid = await getUserIdFromToken();
-      setUserId(uid);
-      socket.emit("joinConversation", conversationId);
-      const res = await API.get(`/conversations/${conversationId}/messages`);
-      setMessages(res.data.reverse());
-      const convoRes = await API.get(`/conversations/${conversationId}`);
-      setConversation(convoRes.data);
-      const participants = convoRes.data.participants;
-      const other = participants.find((p) => p._id !== uid);
-      if (other) setOtherUser(other);
-      socket.on("receiveMessage", handleReceiveMessage);
-      socket.on("messageDelivered", handleMessageDelivered);
+
+      try {
+        uid = await getUserIdFromToken();
+        setUserId(uid);
+
+        socket.emit("joinConversation", conversationId);
+
+        const res = await API.get(`/conversations/${conversationId}/messages`);
+        setMessages(res.data.reverse());
+
+        const convoRes = await API.get(`/conversations/${conversationId}`);
+        setConversation(convoRes.data);
+
+        const participants = convoRes.data.participants;
+        const other = participants.find((p) => p._id !== uid);
+        if (other) setOtherUser(other);
+
+        socket.on("receiveMessage", handleReceiveMessage);
+        socket.on("messageDelivered", handleMessageDelivered);
+      } catch (err) {
+        console.error("Error loading conversation:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     init();
+
     return () => {
       active = false;
       socket.off("receiveMessage", handleReceiveMessage);
@@ -111,7 +121,7 @@ const ConversationDetailPage = () => {
       const message = res.data;
       const participantIds = new Set([
         message.sender._id,
-        ...conversation.participants.map(p => p._id),
+        ...conversation.participants.map((p) => p._id),
       ]);
       const emitPayload = {
         conversationId,
@@ -138,9 +148,7 @@ const ConversationDetailPage = () => {
         ]}
       >
         {!isOwnMessage && <Text style={styles.senderLabel}>{item.sender.username}</Text>}
-        <View
-          style={[styles.messageBubble, isOwnMessage ? styles.outgoing : styles.incoming]}
-        >
+        <View style={[styles.messageBubble, isOwnMessage ? styles.outgoing : styles.incoming]}>
           <Text>{item.text}</Text>
           <Text style={styles.timestamp}>
             {new Date(item.createdAt).toLocaleTimeString([], {
@@ -159,6 +167,14 @@ const ConversationDetailPage = () => {
       </View>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#28a745" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>

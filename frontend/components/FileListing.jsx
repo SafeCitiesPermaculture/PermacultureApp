@@ -20,6 +20,7 @@ const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
         >
             <View
                 style={{
+                    flex: 1,
                     flexDirection: "row",
                     alignItems: "center",
                 }}
@@ -50,6 +51,7 @@ const styles = StyleSheet.create({
         height: 40,
         alignItems: "center",
         resizeMode: "contain",
+        marginTop: 5,
         marginRight: 10,
         padding: 10,
     },
@@ -59,6 +61,7 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
+        display: "flex",
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: Colors.brownLight,

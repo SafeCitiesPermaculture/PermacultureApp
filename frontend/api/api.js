@@ -1,7 +1,12 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-const BACKEND_URL = "http://localhost:3000/api";
+
+const devUrl = "http://localhost:3000/api";
+const prodUrl = "https://permacultureapp.onrender.com/api";
+
+const BACKEND_URL = __DEV__ ? devUrl : prodUrl;
+
 const STORAGE_KEY = "tokens";
 
 //initliaze the API
@@ -132,6 +137,6 @@ const logout = async () => {
     await clearTokens();
 };
 
-export { login, logout, getTokens };
+export { login, logout, getTokens, BACKEND_URL };
 
 export default API;

@@ -14,6 +14,8 @@ import API from "@/api/api";
 import { useRouter } from "expo-router";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken.js";
 import socket from "@/utils/socket";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 const ConversationsPage = () => {
   const [conversations, setConversations] = useState([]);
@@ -23,60 +25,42 @@ const ConversationsPage = () => {
   const [targetUsernames, setTargetUsernames] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const uid = await getUserIdFromToken();
-        setUserId(uid);
-        socket.emit("joinUserRoom", uid);
-        console.log("joinedUserRoom emitted with:", uid);
+  useFocusEffect(
+    useCallback(() => {
+      const init = async () => {
+        try {
+          const uid = await getUserIdFromToken();
+          setUserId(uid);
+          socket.emit("joinUserRoom", uid);
+          console.log("joinedUserRoom emitted with:", uid);
 
-        const res = await API.get("/conversations");
-        setConversations(res.data);
+          const res = await API.get("/conversations");
+          console.log("Fetched conversations:", res.data);
+          setConversations(res);
 
-        socket.on("conversationUpdated", (update) => {
-          console.log("📬 Received conversationUpdated event:", update);
-          
-          setConversations((prev) => {
-            const exists = prev.find((c) => c._id === update.conversationId);
-            let newList;
-
-            if (exists) {
-              newList = prev.map((c) =>
-                c._id === update.conversationId
-                  ? { ...c, lastMessage: update.lastMessage, updatedAt: update.updatedAt }
-                  : c
-              );
-            } else {
-              newList = [
-                ...prev,
-                {
-                  _id: update.conversationId,
-                  lastMessage: update.lastMessage,
-                  updatedAt: update.updatedAt,
-                  participants: [],
-                  otherUser: { username: "Unknown" },
-                },
-              ];
+          socket.on("conversationUpdated", async () => {
+            try {
+              const res = await API.get("/conversations");
+              setConversations(res.data);
+            } catch (err) {
+              console.error("Failed to refresh conversations", err);
             }
-
-            return newList.sort(
-              (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-            );
           });
-        });
-      } catch (err) {
-        console.error("Error fetching conversations", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    init();
-    return () => {
-      socket.off("conversationUpdated");
-    };
-  }, []);
+        } catch (err) {
+          console.error("Error fetching conversations", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      init();
+
+      return () => {
+        socket.off("conversationUpdated");
+      };
+    }, [])
+  );
 
   const getDisplayName = (conversation) => {
     if (conversation.name) return conversation.name;
@@ -84,7 +68,6 @@ const ConversationsPage = () => {
     const others = conversation.participants.filter((p) => p._id !== userId);
     return others.map((u) => u.username).join(" & ");
   };
-
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -120,7 +103,7 @@ const ConversationsPage = () => {
       const res = await API.post("/conversations", { usernames });
       setModalVisible(false);
       setTargetUsernames("");
-      router.push(`/marketplace/${res.data._id}`);
+      router.push(`/marketplace/${res._id}`);
     } catch (err) {
       console.error("Error starting chat:", err);
       Alert.alert("Error", "One or more usernames invalid.");
@@ -236,7 +219,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-
 });
 
 export default ConversationsPage;

@@ -12,6 +12,7 @@
     "license": "ISC",
     "description": "",
     "dependencies": {
+        "@react-native-picker/picker": "^2.11.0",
         "@supabase/supabase-js": "^2.49.8",
         "bcrypt": "^6.0.0",
         "bcryptjs": "^3.0.2",

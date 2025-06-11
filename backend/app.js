@@ -9,8 +9,11 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
+const schedulePersonalRoutes = require("./routes/schedulePersonalRoutes");
+const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
+const Conversation = require("./models/Conversation");
 
 const {
     userAuthMiddleware,
@@ -29,9 +32,20 @@ app.use((req, res, next) => {
 });
 
 // Allow requests from frontend (adjust the origin as needed)
+const allowedOrigins = [
+    "http://localhost:8081",
+    "https://sc-permaculture.vercel.app",
+];
+
 app.use(
     cors({
-        origin: "http://localhost:8081",
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true,
     })
 );
@@ -52,6 +66,9 @@ app.get("/contact", (req, res) => {
     res.sendFile(path.join(__dirname, "contact.html"));
 });
 
+//unprotected file proxy route
+app.get("/api/files/file-proxy", filesController.proxyGetFile);
+
 //routes
 app.use("/api/auth", authRoutes);
 
@@ -64,6 +81,8 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
+app.use("/api/schedulePersonal", require("./routes/schedulePersonalRoutes"));
+
 app.use("/api/user", userRoutes);
 
 //admin routes
@@ -74,7 +93,7 @@ app.use("/api/admin", adminRoutes);
 const http = require("http");
 const { Server } = require("socket.io");
 
-const server = http.createServer(app); // attach app to HTTP server
+const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*" },
 });
@@ -83,9 +102,31 @@ io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
     // Join user-specific room
-    socket.on("joinUserRoom", (userId) => {
+    socket.on("joinUserRoom", async (userId) => {
         socket.join(userId);
         console.log(`Socket ${socket.id} joined user room: ${userId}`);
+        try {
+            const conversations = await Conversation.find({
+                participants: userId,
+            })
+                .populate("participants", "username")
+                .sort({ updatedAt: -1 });
+
+            for (const convo of conversations) {
+                const lastMessage = await Message.findOne({
+                    conversation: convo._id,
+                }).sort({ createdAt: -1 });
+
+                io.to(userId).emit("conversationUpdated", {
+                    conversationId: convo._id.toString(),
+                    name: convo.name,
+                    updatedAt: convo.updatedAt,
+                    lastMessage: lastMessage?.text ?? "",
+                });
+            }
+        } catch (err) {
+            console.error("Failed to emit conversations on joinUserRoom:", err);
+        }
     });
 
     // Join conversation room
@@ -97,7 +138,7 @@ io.on("connection", (socket) => {
     });
 
     // Send message to conversation AND notify user rooms
-    socket.on("sendMessage", ({ conversationId, message }) => {
+    socket.on("sendMessage", async ({ conversationId, message }) => {
         console.log(
             `📨 Socket ${socket.id} sending to ${conversationId}:`,
             message
@@ -105,12 +146,15 @@ io.on("connection", (socket) => {
 
         socket.to(conversationId).emit("receiveMessage", message);
 
+        const conversation = await Conversation.findById(conversationId);
+
         if (Array.isArray(message.participants)) {
             message.participants.forEach((userId) => {
                 io.to(userId).emit("conversationUpdated", {
                     conversationId,
                     lastMessage: message.text,
                     updatedAt: message.createdAt,
+                    name: conversation.name,
                 });
                 console.log(
                     `📤 Sent conversationUpdated to user room: ${userId}`
