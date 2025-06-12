@@ -106,7 +106,10 @@ const ProfilePage = () => {
                 <Text style={styles.farmText}>{userData.farmName}</Text>
             </View>
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button}>
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => router.push('/(tabs)/profile/user/settings')}
+                    >
                     <Text style={styles.buttonText}>Settings</Text>
                 </TouchableOpacity>
                 {isAdmin && (

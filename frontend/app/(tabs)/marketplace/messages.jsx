@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,15 @@ import {
   Alert,
   TextInput,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import API from "@/api/api";
 import { useRouter } from "expo-router";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken.js";
 import socket from "@/utils/socket";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
+import { Image } from "react-native";
 
 const ConversationsPage = () => {
   const [conversations, setConversations] = useState([]);
@@ -24,6 +26,7 @@ const ConversationsPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [targetUsernames, setTargetUsernames] = useState("");
   const router = useRouter();
+  const newChatButtonIcon = require("@/assets/images/post-button.png");
 
   useFocusEffect(
     useCallback(() => {
@@ -34,17 +37,7 @@ const ConversationsPage = () => {
           socket.emit("joinUserRoom", uid);
           
           const res = await API.get("/conversations");
-          setConversations(res);
-
-          socket.on("conversationUpdated", async () => {
-            try {
-              const res = await API.get("/conversations");
-              setConversations(res.data);
-            } catch (err) {
-              console.error("Failed to refresh conversations", err);
-            }
-          });
-
+          setConversations(res.data);
         } catch (err) {
           console.error("Error fetching conversations", err);
         } finally {
@@ -110,7 +103,7 @@ const ConversationsPage = () => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -122,21 +115,24 @@ const ConversationsPage = () => {
         data={conversations}
         keyExtractor={(item) => item._id}
         renderItem={renderItem}
+        contentContainerStyle={styles.listContainer}
       />
 
       <TouchableOpacity
-        style={styles.newChatButton}
         onPress={() => setModalVisible(true)}
+        style={styles.newChatButton}
       >
-        <Text style={styles.newChatText}>+</Text>
+        <Image source={newChatButtonIcon} style={{ height: 50, width: 50 }} />
       </TouchableOpacity>
 
+
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalBox}>
-            <Text style={{ fontSize: 18, marginBottom: 10 }}>
-              Create New Chat
-            </Text>
+            <Text style={{ fontSize: 18, marginBottom: 10 }}>Create New Chat</Text>
             <TextInput
               placeholder="Enter usernames, separated by commas"
               value={targetUsernames}
@@ -155,33 +151,52 @@ const ConversationsPage = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContainer: {
+    padding: 20,
+    paddingBottom: 120,
+  },
   convoItem: {
     padding: 12,
     borderBottomColor: "#ccc",
     borderBottomWidth: 1,
   },
-  name: { fontWeight: "bold", fontSize: 18 },
-  message: { fontSize: 14, color: "#555" },
-  timestamp: { fontSize: 12, color: "#888" },
+  name: {
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  message: {
+    fontSize: 14,
+    color: "#555",
+  },
+  timestamp: {
+    fontSize: 12,
+    color: "#888",
+  },
   newChatButton: {
     position: "absolute",
     bottom: 100,
     right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#28a745",
+    backgroundColor: "transparent",
+    width: 50,
+    height: 50,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
   },
   newChatText: {
     color: "#fff",
