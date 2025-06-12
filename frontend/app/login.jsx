@@ -20,14 +20,17 @@ const LoginPage = () => {
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [message, setMessage] = useState("");
 
     //handle submit
     const onSubmit = async () => {
+        setMessage("");
+        showLoading();
         try {
-            showLoading();
             await login(username, password);
         } catch (err) {
-            console.log("Login failed:", err);
+            console.log(err);
+            setMessage(err.message);
         } finally {
             hideLoading();
         }
@@ -51,6 +54,7 @@ const LoginPage = () => {
                 onChangeText={setPassword}
                 autoCapitalize="none"
             />
+            {message && <Text style={styles.errorMessage}>{message}</Text>}
             <TouchableOpacity style={styles.button} onPress={onSubmit}>
                 <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
@@ -90,6 +94,12 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: 20,
     },
+    errorMessage: {
+        color: 'red',
+        fontSize: 16,
+        marginBottom: 10,
+        textAlign: 'center'
+    }
 });
 
 export default LoginPage;

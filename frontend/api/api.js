@@ -121,6 +121,10 @@ const login = async (username, password) => {
         if (err.response && err.response.status === 401) {
             throw new Error("Invalid username or password");
         }
+        if (err.response?.status == 403) {
+            throw new Error(err.response?.data?.message);
+        }
+        
         throw new Error("Login failed. Please try again later.");
     }
 };
