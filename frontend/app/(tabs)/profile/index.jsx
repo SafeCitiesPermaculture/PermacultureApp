@@ -1,5 +1,11 @@
 import React, { useContext, useEffect } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+} from "react-native";
 import { AuthContext } from "@/context/AuthContext";
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 import Colors from "@/constants/Colors";
@@ -82,7 +88,7 @@ const ProfilePage = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <View style={styles.profileImageContainer}>
                 <RemoteImage
                     containerStyle={styles.profileImageWrapper}
@@ -121,14 +127,16 @@ const ProfilePage = () => {
                     <Text style={styles.buttonText}>Log out</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {},
-    profileImageContainer: {
+    container: {
         flex: 1,
+    },
+    profileImageContainer: {
+        display: "flex",
         alignItems: "center",
         justifyContent: "center",
         minHeight: 250,
@@ -158,7 +166,7 @@ const styles = StyleSheet.create({
     },
 
     bioContainer: {
-        flex: 1,
+        display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 10,
@@ -176,10 +184,14 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         flex: 1,
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
     },
     button: {
         backgroundColor: Colors.greenButton,
         flex: 1,
+        width: "100%",
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 10,
