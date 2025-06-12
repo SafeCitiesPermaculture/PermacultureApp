@@ -14,6 +14,7 @@ const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
 const Conversation = require("./models/Conversation");
+const WorkersRoutes = require("./routes/WorkersRoutes");
 
 const {
     userAuthMiddleware,
@@ -81,7 +82,12 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
+
+app.use('/api/schedulePersonal', require('./routes/schedulePersonalRoutes'));
+app.use('/api/ScheduleWorkers', require('./routes/WorkersRoutes'));
+
 app.use("/api/schedulePersonal", require("./routes/schedulePersonalRoutes"));
+
 
 app.use("/api/user", userRoutes);
 

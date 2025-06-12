@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {  createContext, useContext, useEffect, useState,  useLayoutEffect } from "react";
 import {
     View,
     ScrollView,
@@ -14,13 +14,14 @@ import {
     Button,
 } from "react-native";
 import safeCitiesLogo from "@/assets/images/logo.png";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter, usePathname,  useNavigation } from "expo-router";
 import Colors from "@/constants/Colors";
 import addIcon from "@/assets/images/Add _ plus icon.png";
 import { Picker } from "@react-native-picker/picker";
 import API from "@/api/api";
 import PersonalScheduleComponent from "@/components/PersonalScheduleComponent";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { AuthContext } from "@/context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -31,16 +32,29 @@ export default function PersonalSchedulePage() {
     const [time, setTime] = useState(null);
     const [showPicker, setShowPicker] = useState(false);
     const [mode, setMode] = useState("date");
+    const {user} = useContext(AuthContext);
+    const { userData, loading, } = useContext(AuthContext);
 
     const [schedules, setSchedules] = useState([]);
 
+    const navigation = useNavigation();
+
+        useLayoutEffect(() => {
+            if (!userData.isSafeCities || userData.userRole !== "admin"){
+            navigation.setOptions({
+                headerShown: false,
+            });
+        }
+        }, [navigation]);
+
+
     const handleSaveSchedule = async () => {
-        const newSchedule = { task, date, time };
+        const newSchedule = { task, date, time, userId: userData._id };
 
         try {
-            const response = await API.post("/schedulePersonal", {
-                schedule: newSchedule,
-            });
+             const response = await API.post("/schedulePersonal", {
+                            schedule: newSchedule,
+                        });
             await fetchSchedules();
         } catch (error) {
             console.error("Error saving schedule:", error);
@@ -54,7 +68,8 @@ export default function PersonalSchedulePage() {
 
     const fetchSchedules = async () => {
         try {
-            const response = await API.get("/schedulePersonal");
+            const response = await API.get(`/schedulePersonal?userId=${userData._id}`);
+
             setSchedules(response.data);
         } catch (error) {
             console.error("Error fetching schedules:", error.message);
@@ -108,7 +123,7 @@ export default function PersonalSchedulePage() {
     const formatDate = (d) => (d ? d.toDateString() : "No date selected");
     const formatTime = (t) =>
         t
-            ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            ? t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" ,hour12: false })
             : "No time selected";
 
     return (
@@ -271,6 +286,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         textDecorationLine: "underline",
         textAlign: "center",
+        padding: 20,
     },
     Subheader: {
         fontSize: 25,

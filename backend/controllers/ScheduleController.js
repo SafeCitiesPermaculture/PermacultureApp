@@ -8,6 +8,7 @@ exports.createSchedule = async (req, res) => {
     task: schedule.task,
     date: schedule.date,
     time: schedule.time,
+    userId: schedule.userId,
     })
     res.status(201).json(newSchedule);
   } catch (error) {
@@ -16,13 +17,20 @@ exports.createSchedule = async (req, res) => {
 };
 
 exports.getAllSchedules = async (req, res) => {
-  try {
-    const schedules = await Schedule.find();
-    res.json(schedules);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+      try {
+        const { userId } = req.query;
+
+        if (!userId) {
+          return res.status(400).json({ error: 'userId is required' });
+        }
+
+        const schedules = await Schedule.find({ userId }); // ← filter by userId
+        res.json(schedules);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    };
+
 
 exports.deleteTask = async (req, res) => {
 try {
