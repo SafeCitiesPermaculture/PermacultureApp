@@ -28,6 +28,8 @@ const SchedulePage = () => {
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDate, setNewTaskDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [completingTasks, setCompletingTasks] = useState(false);
   const { userData } = useContext(AuthContext);
 
   const postButton = require("@/assets/images/post-button.png");
@@ -37,7 +39,7 @@ const SchedulePage = () => {
     setErrorMessage("");
     try {
       const response = await API.get("/tasks");
-        setTasks(response.data.tasks);
+      setTasks(response.data.tasks);
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -51,9 +53,8 @@ const SchedulePage = () => {
     }, [getTasks])
   );
 
-
   const onDateChange = (event, date) => {
-    const selectedDate = date >= new Date() ? date : newTaskDate;
+    const selectedDate = date >= new Date() ? date : newTaskDate; //Only allow dates from the future
     setShowDatePicker(Platform.OS === 'ios');
     setNewTaskDate(selectedDate);
   };
@@ -82,6 +83,7 @@ const SchedulePage = () => {
         setModalVisible(false);
         setNewTaskName("");
         setNewTaskDate(new Date());
+        setShowDatePicker(false);
         getTasks();
       } else {
         setErrorMessage("Failed to create task with status: " + response.status);
@@ -98,6 +100,44 @@ const SchedulePage = () => {
     setNewTaskName("");
     setNewTaskDate(new Date());
     setErrorMessage("");
+    setShowDatePicker(false);
+  };
+
+  const onToggleTaskCompletion = useCallback((taskId, isSelected) => {
+    setSelectedTasks(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (isSelected) {
+        newSelected.add(taskId);
+      } else {
+        newSelected.delete(taskId);
+      }
+      return newSelected;
+    });
+  }, []);
+
+const handleMarkSelectedCompleted = async () => {
+    if (selectedTasks.size === 0) {
+      setErrorMessage("No tasks selected to mark as completed.");
+      return;
+    }
+
+    setCompletingTasks(true);
+    setErrorMessage("");
+
+    try {
+      const completionPromises = Array.from(selectedTasks).map(taskId =>
+        API.put(`/tasks/complete/${taskId}`)
+      );
+      await Promise.all(completionPromises); // Wait for all completion requests to finish
+
+      setErrorMessage("Selected tasks marked as completed!");
+      setSelectedTasks(new Set());
+      getTasks();
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setCompletingTasks(false);
+    }
   };
 
   return (
@@ -113,11 +153,27 @@ const SchedulePage = () => {
             <Text style={styles.message}>You have no tasks remaining!</Text>
           ) : (
             tasks.map((task) => (
-              <TaskCard task={task} key={task._id} />
+              <TaskCard task={task} key={task._id} isChecked={selectedTasks.has(task._id)} toggleCompletion={onToggleTaskCompletion} />
             ))
           )}
         </View>
       </ScrollView>
+
+      {selectedTasks.size > 0 && (
+        <TouchableOpacity
+          onPress={handleMarkSelectedCompleted}
+          style={styles.completeButton}
+          disabled={completingTasks}
+        >
+          {completingTasks ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.completeButtonText}>
+              Mark {selectedTasks.size} Task(s) Completed
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
@@ -145,6 +201,7 @@ const SchedulePage = () => {
               placeholder="Task Name"
               value={newTaskName}
               onChangeText={setNewTaskName}
+              maxLength={50}
             />
 
             <View style={styles.datePickerContainer}>
@@ -190,25 +247,22 @@ const SchedulePage = () => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1, // Ensure SafeAreaView takes full height
-    backgroundColor: Colors.brownLight, // Set background color
+    flex: 1
   },
   scrollViewContent: {
     alignItems: 'center',
-    paddingVertical: 20, // Add some vertical padding
     flexGrow: 1, // Allow content to grow
   },
   header: {
     fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: Colors.darkGray, // Make header stand out
+    color: Colors.darkGray,
+    marginBottom: 20
   },
   taskArea: {
-    width: '90%', // Limit width for better readability
+    width: '95%',
     alignItems: 'center',
-    justifyContent: 'center', // Center content when loading or no tasks
-    minHeight: 200, // Ensure some height even if no tasks
+    justifyContent: 'center',
   },
   message: {
     fontSize: 20,
@@ -217,18 +271,13 @@ const styles = StyleSheet.create({
   },
   postButton: {
     position: "absolute",
-    bottom: 100, 
-    right: 30,
-    borderRadius: 25,
-    width: 60,
-    height: 60,
+    bottom: 100,
+    right: 10,
+    backgroundColor: "transparent",
+    width: 50,
+    height: 50,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000", // Add shadow for depth
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
   },
   postButtonImage: {
     height: 50, 
@@ -329,6 +378,25 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: "bold",
+  },
+  completeButton: {
+    position: 'absolute',
+    bottom: 100,
+    left: 30,
+    backgroundColor: Colors.brownMedium, // Distinct color
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  completeButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

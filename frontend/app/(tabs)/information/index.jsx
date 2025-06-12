@@ -432,14 +432,13 @@ const styles = StyleSheet.create({
         right: 20,
         bottom: 100,
     },
-
     add: {
         flex: 1,
     },
     plusIcon: {
         flex: 1,
-        width: 45,
-        height: 59,
+        width: 50,
+        height: 50,
     },
     informationMainScreen: {
         flex: 1,
@@ -453,16 +452,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 20,
     },
-
-    headerContainer: {},
-
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
         marginTop: 10,
     },
-
     logo: {
         width: 60,
         height: 60,

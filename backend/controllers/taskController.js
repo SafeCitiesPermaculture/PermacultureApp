@@ -31,11 +31,33 @@ const getTasks = async (req, res) => {
     const id = req.user._id;
 
     try {
-        const tasks = await Task.find({ assignedto: id });
+        const tasks = await Task.find({ assignedTo: id, isCompleted: false });
         res.status(200).json({ message: "Tasks retrieved successfully", tasks });
     } catch (error) {
         res.status(500).json({ message: "Server error when retrieving tasks" });
     }
 };
 
-module.exports = { createTask, getTasks };
+const markCompleted = async (req, res) => {
+    if (!req.user.isVerified || req.user.isRemoved) {
+            return res.status(401).json({ message: "User not verified or removed" });
+    }
+
+    const id = req.params.id;
+    try {
+        const task = await Task.findById(id);
+
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        task.isCompleted = true;
+        await task.save();
+        return res.status(201).json({ message: "Task marked completed" });
+    } catch (error) {
+        return res.status(500).json({ message: "Server error when marking task completed" });
+    }
+
+};
+
+module.exports = { createTask, getTasks, markCompleted };
