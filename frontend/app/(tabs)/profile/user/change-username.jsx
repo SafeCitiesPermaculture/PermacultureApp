@@ -13,7 +13,7 @@ const ChangeUsernamePage = () => {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const res = await API.get("/users/me");
+        const res = await API.get("/user/me");
         setUsername(res.data.username || "");
       } catch (err) {
         console.error(err);

@@ -12,7 +12,7 @@ const ChangeFarmPage = () => {
   useEffect(() => {
     const fetchFarm = async () => {
       try {
-        const res = await API.get("/users/me");
+        const res = await API.get("/user/me");
         setFarmName(res.data.farmName || "");
       } catch (err) {
         console.error(err);
