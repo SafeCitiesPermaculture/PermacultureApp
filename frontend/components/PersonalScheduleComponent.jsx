@@ -19,7 +19,7 @@ import { Picker } from '@react-native-picker/picker';
 import API from "@/api/api";
 
 
-export default function CheckBox({task,deleteTask}) {
+export default function CheckBox({ task, deleteTask }) {
 
     {/* function to keep track if checkbox is checked when they complete a task */}
       const handlePress = () => {

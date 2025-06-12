@@ -62,7 +62,6 @@ const PostListingPage = () => {
 
         if (!fileType.startsWith("image")) {
             setMessage("Only image files can be uploaded");
-            console.log(fileType);
             return;
         }
 

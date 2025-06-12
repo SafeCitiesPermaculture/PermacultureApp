@@ -93,8 +93,6 @@ const SignupPage = () => {
             if (res.status == 201) {
                 setErrorMessage("Wait for an admin to approve you before logging in.");
                 setTimeout(() => router.dismissTo("/login"), 10000);
-            } else {
-                console.log("Error in signup");
             }
         } catch (err) {
             console.log("Sign Up failed", err);

@@ -105,12 +105,9 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
-
     // Join user-specific room
     socket.on("joinUserRoom", async (userId) => {
         socket.join(userId);
-        console.log(`Socket ${socket.id} joined user room: ${userId}`);
         try {
             const conversations = await Conversation.find({
                 participants: userId,
@@ -138,18 +135,10 @@ io.on("connection", (socket) => {
     // Join conversation room
     socket.on("joinConversation", (conversationId) => {
         socket.join(conversationId);
-        console.log(
-            `Socket ${socket.id} joined conversation room: ${conversationId}`
-        );
     });
 
     // Send message to conversation AND notify user rooms
     socket.on("sendMessage", async ({ conversationId, message }) => {
-        console.log(
-            `📨 Socket ${socket.id} sending to ${conversationId}:`,
-            message
-        );
-
         socket.to(conversationId).emit("receiveMessage", message);
 
         const conversation = await Conversation.findById(conversationId);
@@ -162,9 +151,7 @@ io.on("connection", (socket) => {
                     updatedAt: message.createdAt,
                     name: conversation.name,
                 });
-                console.log(
-                    `📤 Sent conversationUpdated to user room: ${userId}`
-                );
+
             });
         } else {
             console.warn("⚠️ No participants array in message:", message);
@@ -176,9 +163,6 @@ io.on("connection", (socket) => {
             await Message.findByIdAndUpdate(messageId, {
                 $addToSet: { deliveredTo: userId },
             });
-            console.log(
-                `Marked message ${messageId} as delivered to user ${userId}`
-            );
         } catch (err) {
             console.error("Failed to mark as delivered:", err);
         }

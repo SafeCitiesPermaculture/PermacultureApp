@@ -156,6 +156,7 @@ export default function PersonalSchedulePage() {
                                             style={styles.textInput}
                                             value={task}
                                             onChangeText={setTask}
+                                            placeholder="Task"
                                         />
                                     </View>
                                 </View>

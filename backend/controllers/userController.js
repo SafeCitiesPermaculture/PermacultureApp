@@ -97,7 +97,6 @@ const updateProfilePicture = async (req, res) => {
 
         res.status(200).json({ url: publicUrl });
     } catch (err) {
-        console.log("Error uploading image", err);
         res.status(500).json({ error: "Image upload failed" });
     }
 };
