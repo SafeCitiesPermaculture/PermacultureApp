@@ -1,6 +1,5 @@
 const { google } = require("googleapis");
 const { Readable } = require("stream");
-const path = require("path");
 const File = require("../models/File");
 
 require("dotenv").config();
