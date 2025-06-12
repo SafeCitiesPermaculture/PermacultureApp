@@ -9,7 +9,7 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
-const schedulePersonalRoutes = require('./routes/schedulePersonalRoutes');
+const schedulePersonalRoutes = require("./routes/schedulePersonalRoutes");
 const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
@@ -33,9 +33,20 @@ app.use((req, res, next) => {
 });
 
 // Allow requests from frontend (adjust the origin as needed)
+const allowedOrigins = [
+    "http://localhost:8081",
+    "https://sc-permaculture.vercel.app",
+];
+
 app.use(
     cors({
-        origin: "http://localhost:8081",
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true,
     })
 );
@@ -71,8 +82,12 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
+
 app.use('/api/schedulePersonal', require('./routes/schedulePersonalRoutes'));
 app.use('/api/ScheduleWorkers', require('./routes/WorkersRoutes'));
+
+app.use("/api/schedulePersonal", require("./routes/schedulePersonalRoutes"));
+
 
 app.use("/api/user", userRoutes);
 
@@ -97,20 +112,23 @@ io.on("connection", (socket) => {
         socket.join(userId);
         console.log(`Socket ${socket.id} joined user room: ${userId}`);
         try {
-            const conversations = await Conversation.find({ participants: userId })
-            .populate("participants", "username")
-            .sort({ updatedAt: -1 });
+            const conversations = await Conversation.find({
+                participants: userId,
+            })
+                .populate("participants", "username")
+                .sort({ updatedAt: -1 });
 
             for (const convo of conversations) {
-            const lastMessage = await Message.findOne({ conversation: convo._id })
-                .sort({ createdAt: -1 });
+                const lastMessage = await Message.findOne({
+                    conversation: convo._id,
+                }).sort({ createdAt: -1 });
 
-            io.to(userId).emit("conversationUpdated", {
-                conversationId: convo._id.toString(),
-                name: convo.name,
-                updatedAt: convo.updatedAt,
-                lastMessage: lastMessage?.text ?? "",
-            });
+                io.to(userId).emit("conversationUpdated", {
+                    conversationId: convo._id.toString(),
+                    name: convo.name,
+                    updatedAt: convo.updatedAt,
+                    lastMessage: lastMessage?.text ?? "",
+                });
             }
         } catch (err) {
             console.error("Failed to emit conversations on joinUserRoom:", err);

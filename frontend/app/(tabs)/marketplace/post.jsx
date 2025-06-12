@@ -203,7 +203,7 @@ const PostListingPage = () => {
                     {loading && (
                         <ActivityIndicator
                             size="large"
-                            color={Colors.greenRegular}
+                            color={Colors.greenButton}
                             style={styles.loadingWheel}
                         />
                     )}

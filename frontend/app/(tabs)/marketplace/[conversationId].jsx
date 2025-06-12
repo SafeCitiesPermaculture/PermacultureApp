@@ -57,6 +57,7 @@ const ConversationDetailPage = () => {
     };
 
     const init = async () => {
+
       try {
         uid = await getUserIdFromToken();
         setUserId(uid);
@@ -190,7 +191,7 @@ const ConversationDetailPage = () => {
           contentContainerStyle={styles.messageList}
           inverted
         />
-        <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 0 }]}>
+        <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 50 }]}>
           <TextInput
             value={input}
             onChangeText={setInput}

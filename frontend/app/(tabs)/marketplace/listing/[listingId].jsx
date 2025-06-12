@@ -54,7 +54,7 @@ const ListingPage = () => {
             "Delete listing",
             "Are you sure you want to delete this listing?",
             [
-                {text: 'Cancel', style: 'cancel'},
+                { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Delete', 
                     style: 'destructive',
@@ -129,7 +129,7 @@ const ListingPage = () => {
                     <View style={styles.imageWrapper}>
                     <RemoteImage
                         containerStyle={styles.imageContainer}
-                        imgSource={{ uri: listing.DefaultProfilePicture }}
+                        imgSource={{ uri: listing.picture }}
                         imgStyle={styles.displayImage}
                     />
                     </View>

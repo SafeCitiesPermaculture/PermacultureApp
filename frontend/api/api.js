@@ -1,7 +1,16 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-const BACKEND_URL = "http://192.168.10.201:3000/api";
+
+const BACKEND_URL = "http://localhost:3000/api";
+
+
+const devUrl = "http://localhost:3000/api";
+const prodUrl = "https://permacultureapp.onrender.com/api";
+
+const BACKEND_URL = __DEV__ ? devUrl : prodUrl;
+
+
 const STORAGE_KEY = "tokens";
 
 //initliaze the API
@@ -116,6 +125,10 @@ const login = async (username, password) => {
         if (err.response && err.response.status === 401) {
             throw new Error("Invalid username or password");
         }
+        if (err.response?.status == 403) {
+            throw new Error(err.response?.data?.message);
+        }
+        
         throw new Error("Login failed. Please try again later.");
     }
 };
