@@ -18,7 +18,6 @@ router.use((req, res, next) => {
 router.get("/conversations", async (req, res) => {
   try {
     const userId = new ObjectId(req.user._id);
-    console.log("Looking for conversations with participant:", userId);
 
     let conversations = await Conversation.find({ participants: userId })
       .populate("participants", "username")

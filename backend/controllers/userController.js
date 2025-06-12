@@ -97,9 +97,33 @@ const updateProfilePicture = async (req, res) => {
 
         res.status(200).json({ url: publicUrl });
     } catch (err) {
-        console.log("Error uploading image", err);
         res.status(500).json({ error: "Image upload failed" });
     }
 };
 
-module.exports = { updateProfilePicture };
+const changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const id = req.user._id;
+
+    try {
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        if (!(await user.comparePassword(oldPassword))) {
+            return res.status(401).json({ message: "Old password is incorrect" });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        return res.status(200).json({ message: "Password reset successfully" });
+    } catch (error) {
+        return res.status(500);
+    }
+};
+
+
+module.exports = { updateProfilePicture, changePassword };

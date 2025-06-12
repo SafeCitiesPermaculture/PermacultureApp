@@ -9,11 +9,12 @@ const listingRoutes = require("./routes/listings");
 const messageRoutes = require("./routes/messages");
 const reportRoutes = require("./routes/report");
 const filesRoutes = require("./routes/files");
-const schedulePersonalRoutes = require('./routes/schedulePersonalRoutes');
+const schedulePersonalRoutes = require("./routes/schedulePersonalRoutes");
 const filesController = require("./controllers/filesController");
 const userRoutes = require("./routes/user");
 const Message = require("./models/Message");
 const Conversation = require("./models/Conversation");
+const WorkersRoutes = require("./routes/WorkersRoutes");
 
 const {
     userAuthMiddleware,
@@ -32,9 +33,20 @@ app.use((req, res, next) => {
 });
 
 // Allow requests from frontend (adjust the origin as needed)
+const allowedOrigins = [
+    "http://localhost:8081",
+    "https://sc-permaculture.vercel.app",
+];
+
 app.use(
     cors({
-        origin: "http://localhost:8081",
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true,
     })
 );
@@ -70,7 +82,11 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
+
 app.use('/api/schedulePersonal', require('./routes/schedulePersonalRoutes'));
+app.use('/api/ScheduleWorkers', require('./routes/WorkersRoutes'));
+
+app.use("/api/schedulePersonal", require("./routes/schedulePersonalRoutes"));
 
 
 app.use("/api/user", userRoutes);
@@ -89,27 +105,27 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
-
     // Join user-specific room
     socket.on("joinUserRoom", async (userId) => {
         socket.join(userId);
-        console.log(`Socket ${socket.id} joined user room: ${userId}`);
         try {
-            const conversations = await Conversation.find({ participants: userId })
-            .populate("participants", "username")
-            .sort({ updatedAt: -1 });
+            const conversations = await Conversation.find({
+                participants: userId,
+            })
+                .populate("participants", "username")
+                .sort({ updatedAt: -1 });
 
             for (const convo of conversations) {
-            const lastMessage = await Message.findOne({ conversation: convo._id })
-                .sort({ createdAt: -1 });
+                const lastMessage = await Message.findOne({
+                    conversation: convo._id,
+                }).sort({ createdAt: -1 });
 
-            io.to(userId).emit("conversationUpdated", {
-                conversationId: convo._id.toString(),
-                name: convo.name,
-                updatedAt: convo.updatedAt,
-                lastMessage: lastMessage?.text ?? "",
-            });
+                io.to(userId).emit("conversationUpdated", {
+                    conversationId: convo._id.toString(),
+                    name: convo.name,
+                    updatedAt: convo.updatedAt,
+                    lastMessage: lastMessage?.text ?? "",
+                });
             }
         } catch (err) {
             console.error("Failed to emit conversations on joinUserRoom:", err);
@@ -119,18 +135,10 @@ io.on("connection", (socket) => {
     // Join conversation room
     socket.on("joinConversation", (conversationId) => {
         socket.join(conversationId);
-        console.log(
-            `Socket ${socket.id} joined conversation room: ${conversationId}`
-        );
     });
 
     // Send message to conversation AND notify user rooms
     socket.on("sendMessage", async ({ conversationId, message }) => {
-        console.log(
-            `📨 Socket ${socket.id} sending to ${conversationId}:`,
-            message
-        );
-
         socket.to(conversationId).emit("receiveMessage", message);
 
         const conversation = await Conversation.findById(conversationId);
@@ -143,9 +151,7 @@ io.on("connection", (socket) => {
                     updatedAt: message.createdAt,
                     name: conversation.name,
                 });
-                console.log(
-                    `📤 Sent conversationUpdated to user room: ${userId}`
-                );
+
             });
         } else {
             console.warn("⚠️ No participants array in message:", message);
@@ -157,9 +163,6 @@ io.on("connection", (socket) => {
             await Message.findByIdAndUpdate(messageId, {
                 $addToSet: { deliveredTo: userId },
             });
-            console.log(
-                `Marked message ${messageId} as delivered to user ${userId}`
-            );
         } catch (err) {
             console.error("Failed to mark as delivered:", err);
         }

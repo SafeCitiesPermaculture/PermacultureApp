@@ -31,6 +31,5 @@ require("dotenv").config();
 
   await message.save();
 
-  console.log("Conversation and message seeded.");
   process.exit(0);
 })();

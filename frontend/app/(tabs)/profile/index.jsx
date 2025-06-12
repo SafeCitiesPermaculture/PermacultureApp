@@ -73,7 +73,6 @@ const ProfilePage = () => {
                     headers: { "Content-Type": "multipart/form-data" },
                 }
             );
-            console.log("Uploaded image URL:", response.data.url);
             await refreshUserData();
         } catch (error) {
             console.error("Upload failed:", error.message);

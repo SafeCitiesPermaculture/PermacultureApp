@@ -15,6 +15,7 @@ router.put(
     upload.single("file"),
     userController.updateProfilePicture
 );
+router.put("/change-password", userController.changePassword);
 
 // PUT /users/update-profile
 router.put('/update-profile', async (req, res) => {

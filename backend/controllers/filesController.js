@@ -70,8 +70,6 @@ const handleUpload = async (req, res) => {
             parent: parentFolder?._id || null,
         });
 
-        console.log("Uploaded successfully:", driveRes);
-
         res.json({ success: true, file: savedFile });
     } catch (err) {
         console.error(err);
@@ -84,8 +82,6 @@ const listFiles = async (req, res) => {
     try {
         const { parent } = req.query;
         const parentFolder = await File.findById(parent);
-
-        console.log("Parent Info:", parentFolder);
 
         const files = await File.find({
             parent: parentFolder?._id || null,
@@ -107,8 +103,6 @@ const getFileById = async (req, res) => {
         if (!fileRecord) {
             return res.status(404).json({ error: "File not found in MongoDB" });
         }
-
-        console.log(fileRecord);
 
         //get the file from google
         const driveRes = await drive.files.get(
@@ -208,19 +202,16 @@ const createFolder = async (req, res) => {
 const proxyGetFile = async (req, res) => {
     const driveUrl = req.query.url;
     if (!driveUrl) {
-        console.log("No url");
         return res.status(400).send("Missing 'url' query parameter");
     }
 
     if (!driveUrl.startsWith("https://drive.google.com/uc?")) {
-        console.log("Not google drive");
         return res.status(400).send("Only Google Drive URLs are allowed");
     }
 
     try {
         const response = await fetch(driveUrl);
         if (!response.ok) {
-            console.log("Failed to fetch image");
             return res.status(response.status).send("Failed to fetch image");
         }
 

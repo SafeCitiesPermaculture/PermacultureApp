@@ -3,12 +3,19 @@ const { google } = require("googleapis");
 const { Readable } = require("stream");
 const path = require("path");
 
+require("dotenv").config();
+const googleDriveCredentials = JSON.parse(
+    process.env.GOOGLE_DRIVE_CREDENTIALS_JSON || "{}"
+);
+googleDriveCredentials.private_key = googleDriveCredentials.private_key.replace(
+    /\\n/g,
+    "\n"
+);
+
 //set up google drive api
-const auth = new google.auth.GoogleAuth({
-    keyFile: path.join(
-        __dirname,
-        "../credentials/google_drive_credentials.json"
-    ),
+const auth = new google.auth.JWT({
+    email: googleDriveCredentials.client_email,
+    key: googleDriveCredentials.private_key,
     scopes: ["https://www.googleapis.com/auth/drive"],
 });
 const drive = google.drive({ version: "v3", auth });

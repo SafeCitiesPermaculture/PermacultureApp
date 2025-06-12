@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Image, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import ErrorImage from "@/assets/images/errorImage.jpg";
+import { Image } from "expo-image";
 import { BACKEND_URL } from "@/api/api";
 const PROXY_BASE_URL = `${BACKEND_URL}/files/file-proxy`;
 
@@ -55,11 +56,10 @@ const RemoteImage = ({ imgSource, containerStyle, imgStyle }) => {
                 <Image
                     source={getSafeImageSource(imgSource)}
                     style={[StyleSheet.absoluteFill, imgStyle]}
-                    resizeMode="cover"
+                    contentFit="cover"
                     onLoadStart={() => setLoading(true)}
                     onLoadEnd={() => setLoading(false)}
-                    onError={(e) => {
-                        //console.log(e);
+                    onError={() => {
                         setLoading(false);
                         setError(true);
                     }}

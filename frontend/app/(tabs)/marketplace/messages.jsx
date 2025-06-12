@@ -35,10 +35,8 @@ const ConversationsPage = () => {
           const uid = await getUserIdFromToken();
           setUserId(uid);
           socket.emit("joinUserRoom", uid);
-          console.log("joinedUserRoom emitted with:", uid);
-
+          
           const res = await API.get("/conversations");
-          console.log("Fetched conversations:", res.data);
           setConversations(res.data);
         } catch (err) {
           console.error("Error fetching conversations", err);

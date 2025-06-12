@@ -17,28 +17,47 @@ const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [userData, setUserData] = useState({});
+    const [userData, setUserData] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
 
-    useEffect(() => {
-        if (!userData) {
-            setIsAdmin(false);
-            return;
-        }
+     useEffect(() => {
+            if (!userData) {
+                setIsAdmin(false);
+                return;
+            }
+            setIsAdmin(userData.userRole === "admin");
+        }, [userData]);
 
-        setIsAdmin(userData.userRole === "admin");
-    }, [userData]);
+        useEffect(() => {
+            const checkAuth = async () => {
+                try {
+                    const tokens = await getTokens();
+                    if (!tokens) {
+                        setIsAuthenticated(false);
+                        setIsLoggedIn(false);
+                        setUserData(null);
+                        setLoading(false);
+                        return;
+                    }
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            const tokens = await getTokens();
-            setIsAuthenticated(!!tokens);
-            setLoading(false);
-        };
+                    const res = await API.get("/auth/userdata");
+                    const { user } = res.data;
 
-        checkAuth();
-    }, []);
+                    setUserData(user);
+                    setIsAuthenticated(true);
+                    setIsLoggedIn(true);
+                } catch (err) {
+                    console.error("Failed to load user session:", err);
+                    setIsAuthenticated(false);
+                    setUserData(null);
+                    setIsLoggedIn(false);
+                } finally {
+                    setLoading(false);
+                }
+            };
 
+            checkAuth();
+        }, []);
     const login = async (username, password) => {
         const user = await apiLogin(username, password);
         setIsAuthenticated(true);
