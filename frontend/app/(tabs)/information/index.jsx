@@ -337,7 +337,14 @@ const InformationPage = () => {
                         style={styles.modalBackground}
                         onPress={() => setFileModalVisible(false)}
                     >
-                        <View style={styles.modalContainer}>
+                        <Pressable
+                            style={styles.modalContainer}
+                            onPress={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    e.stopPropagation();
+                                }
+                            }}
+                        >
                             <TouchableOpacity
                                 onPress={() => setFileModalVisible(false)}
                                 style={styles.modalBackButton}
@@ -345,6 +352,7 @@ const InformationPage = () => {
                                 <Image
                                     source={backArrow}
                                     style={styles.backArrowIcon}
+                                    pointerEvents="none"
                                 />
                             </TouchableOpacity>
                             <View style={styles.modalHeader}>
@@ -418,7 +426,7 @@ const InformationPage = () => {
                                     </Text>
                                 </TouchableOpacity>
                             </View>
-                        </View>
+                        </Pressable>
                     </Pressable>
                 </Modal>
             )}
@@ -538,12 +546,17 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         padding: 10,
         borderRadius: 12,
+        zIndex: 5,
+        position: "relative",
     },
 
     modalBackButton: {
         position: "absolute",
         top: 20,
         left: 15,
+        width: 20,
+        height: 20,
+        zIndex: 10,
     },
 
     modalHeader: {
