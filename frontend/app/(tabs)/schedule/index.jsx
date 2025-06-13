@@ -12,6 +12,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  Alert
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { AuthContext } from "@/context/AuthContext";
@@ -31,10 +32,12 @@ const SchedulePage = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [completingTasks, setCompletingTasks] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const { userData } = useContext(AuthContext);
   const router = useRouter();
 
   const postButton = require("@/assets/images/post-button.png");
+  const greenCheckMark = require("@/assets/images/green-check-mark.png");
 
   const getTasks = useCallback(async () => {
     setLoading(true);
@@ -142,16 +145,40 @@ const handleMarkSelectedCompleted = async () => {
     }
   };
 
+  const deleteTask = useCallback(async (taskId) => {
+      Alert.alert(
+        "Deleting task",
+        "Are you sure you want to delete this task", 
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", style: "destructive",
+            onPress: async () => {
+              setDeletingId(taskId);
+              setErrorMessage("");
+              try {
+                  await API.delete(`/tasks/${taskId}`);
+                  getTasks();
+              } catch (error) {
+                  setErrorMessage(error.message);
+              } finally {
+                setDeletingId(null);
+              }
+            }
+          }
+        ]
+      );
+  }, [getTasks]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <View style={{flexDirection: 'row'}}>
-          <View style={{flex: 1, alignItems: "center",}}>
-            <TouchableOpacity onPress={() => router.push("/schedule/CompletedTasks")}>
-              <Text>Completed Tasks</Text>
+        <View style={{flexDirection: 'row', marginBottom: 20}}>
+          <View style={{flex: 1, justifyContent: 'center' }}>
+            <TouchableOpacity onPress={() => router.push("/schedule/CompletedTasks")} style={styles.completedTasksButton}>
+              <Image source={greenCheckMark} style={styles.checkMark} />
             </TouchableOpacity>
           </View>
-          <View style={{flex: 2, alignItems: 'flex-start',}}>
+          <View style={{flex: 2, justifyContent: 'center' }}>
             <Text style={styles.header}>Schedule</Text>
           </View>
         </View>
@@ -164,7 +191,7 @@ const handleMarkSelectedCompleted = async () => {
             <Text style={styles.message}>You have no tasks remaining!</Text>
           ) : (
             tasks.map((task) => (
-              <TaskCard task={task} key={task._id} isChecked={selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} />
+              <TaskCard task={task} key={task._id} isChecked={selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} onDelete={() => deleteTask(task._id)} deleting={deletingId?.toString() === task._id.toString()} />
             ))
           )}
         </View>
@@ -268,7 +295,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: Colors.darkGray,
-    marginBottom: 20,
     flex: 1
   },
   taskArea: {
@@ -410,6 +436,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  checkMark: {
+    height: 30,
+    width: 30
+  }
 });
 
 export default SchedulePage;
