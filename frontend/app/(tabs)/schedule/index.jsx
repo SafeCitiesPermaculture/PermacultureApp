@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 
 const SchedulePage = () => {
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,7 @@ const SchedulePage = () => {
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [completingTasks, setCompletingTasks] = useState(false);
   const { userData } = useContext(AuthContext);
+  const router = useRouter();
 
   const postButton = require("@/assets/images/post-button.png");
 
@@ -103,7 +105,7 @@ const SchedulePage = () => {
     setShowDatePicker(false);
   };
 
-  const onToggleTaskCompletion = useCallback((taskId, isSelected) => {
+  const toggleTaskCompletion = useCallback((taskId, isSelected) => {
     setSelectedTasks(prevSelected => {
       const newSelected = new Set(prevSelected);
       if (isSelected) {
@@ -143,7 +145,16 @@ const handleMarkSelectedCompleted = async () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <Text style={styles.header}>Schedule</Text>
+        <View style={{flexDirection: 'row'}}>
+          <View style={{flex: 1, alignItems: "center",}}>
+            <TouchableOpacity onPress={() => router.push("/schedule/CompletedTasks")}>
+              <Text>Completed Tasks</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{flex: 2, alignItems: 'flex-start',}}>
+            <Text style={styles.header}>Schedule</Text>
+          </View>
+        </View>
         <View style={styles.taskArea}>
           {loading ? (
             <ActivityIndicator size="large" color={Colors.greenRegular} />
@@ -153,7 +164,7 @@ const handleMarkSelectedCompleted = async () => {
             <Text style={styles.message}>You have no tasks remaining!</Text>
           ) : (
             tasks.map((task) => (
-              <TaskCard task={task} key={task._id} isChecked={selectedTasks.has(task._id)} toggleCompletion={onToggleTaskCompletion} />
+              <TaskCard task={task} key={task._id} isChecked={selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} />
             ))
           )}
         </View>
@@ -251,13 +262,14 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     alignItems: 'center',
-    flexGrow: 1, // Allow content to grow
+    flexGrow: 1,
   },
   header: {
     fontSize: 32,
     fontWeight: 'bold',
     color: Colors.darkGray,
-    marginBottom: 20
+    marginBottom: 20,
+    flex: 1
   },
   taskArea: {
     width: '95%',
@@ -291,9 +303,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.brownLight,
-    borderRadius: 20, // Rounded corners for the modal
+    borderRadius: 20,
     padding: 25,
-    width: "85%", // Adjust width for modal content
+    width: "85%",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
@@ -329,7 +341,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   selectDateButton: {
-    backgroundColor: Colors.blueRegular, // Blue for date selection
+    backgroundColor: Colors.blueRegular,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
@@ -369,10 +381,10 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cancelButton: {
-    backgroundColor: Colors.redRegular, // Red for cancel
+    backgroundColor: Colors.redRegular, 
   },
   createButton: {
-    backgroundColor: Colors.greenRegular, // Green for create
+    backgroundColor: Colors.greenRegular, 
   },
   buttonText: {
     color: Colors.white,
@@ -383,7 +395,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 100,
     left: 30,
-    backgroundColor: Colors.brownMedium, // Distinct color
+    backgroundColor: Colors.brownMedium,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 20,

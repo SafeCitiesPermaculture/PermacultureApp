@@ -57,7 +57,42 @@ const markCompleted = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: "Server error when marking task completed" });
     }
-
 };
 
-module.exports = { createTask, getTasks, markCompleted };
+const markIncomplete = async (req, res) => {
+    if (!req.user.isVerified || req.user.isRemoved) {
+            return res.status(401).json({ message: "User not verified or removed" });
+    }
+
+    const id = req.params.id;
+    try {
+        const task = await Task.findById(id);
+
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+        task.isCompleted = false;
+        await task.save();
+        return res.status(201).json({ message: "Task marked completed" });
+    } catch (error) {
+        return res.status(500).json({ message: "Server error when marking task completed" });
+    }
+};
+
+const getCompletedTasks = async (req, res) => {
+    if (!req.user.isVerified || req.user.isRemoved) {
+            return res.status(401).json({ message: "User not verified or removed" });
+    }
+
+    const id = req.user._id;
+
+    try {
+        const tasks = await Task.find({ assignedTo: id, isCompleted: true });
+        return res.status(201).json({ message: "Completed tasks retrieved", tasks });
+    } catch (error) {
+        return res.status(500).json({ message: "Server error when getting tasks" });
+    }
+};
+
+module.exports = { createTask, getTasks, markCompleted, getCompletedTasks, markIncomplete };
