@@ -1,7 +1,6 @@
 const Listing = require("../models/Listing");
 const { google } = require("googleapis");
 const { Readable } = require("stream");
-const path = require("path");
 
 require("dotenv").config();
 const googleDriveCredentials = JSON.parse(
@@ -219,7 +218,6 @@ const getMyListings = async (req, res) => {
             listings: listings
         });
     } catch (error) {
-        console.error("Error in getMyListings: ", error);
         res.status(500).json({
             message: "Failed to fetch my listings.",
             error: error.message
