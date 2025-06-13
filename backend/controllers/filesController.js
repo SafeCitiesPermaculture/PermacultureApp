@@ -117,7 +117,9 @@ const getFileById = async (req, res) => {
             "Content-Disposition",
             `attachment; filename="${fileRecord.name}"`
         );
+
         res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
         driveRes.data.pipe(res);
     } catch (err) {
