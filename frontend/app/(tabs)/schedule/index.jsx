@@ -1,5 +1,5 @@
 // Main page for Safe Cities admin
-import React, { useContext, useCallback, useState } from "react";
+import React, { useContext, useCallback, useState, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -21,6 +21,16 @@ import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowList: true
+  }),
+})
 
 const SchedulePage = () => {
   const [loading, setLoading] = useState(true);
@@ -39,12 +49,75 @@ const SchedulePage = () => {
   const postButton = require("@/assets/images/post-button.png");
   const greenCheckMark = require("@/assets/images/green-check-mark.png");
 
+  // Request notification permissions when the component mounts
+  useEffect(() => {
+    (async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        Alert.alert('Permission required', 'Please enable notifications in your device settings to receive task reminders.');
+      }
+    })();
+  }, []);
+
+  const scheduleTaskNotification = useCallback(async (task) => {
+    if (!task.dueDateTime) {
+      return;
+    }
+
+    const notificationIdentifier = `task-${task._id}`;
+
+    // Calculate notification time to be 15 mins before task due
+    const triggerTime = new Date(task.dueDateTime.getTime() - (15 * 60 * 1000));
+
+    if (triggerTime < new Date()) { // Don't schedule notifications for the past
+      return;
+    }
+    
+    try {
+      await Notifications.cancelScheduledNotificationAsync(notificationIdentifier); // Cancel previously scheduleds
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: notificationIdentifier,
+        content: {
+          title: "Task Reminder!",
+          body: `Don't forget to complete: ${task.name} at ${task.dueDateTime.getHours()}:${task.dueDateTime.getMinutes()}`,
+          data: { taskId: task._id, taskName: task.name },
+          sound: 'default',
+        },
+        trigger: triggerTime
+      });
+      console.log(`Notification scheduled for task: ${task.name} at ${triggerTime.to}`);
+  } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }, []);
+
+  const cancelTaskNotification = useCallback(async (taskId) => {
+    const notificationIdentifier = `task-${taskId}`;
+    await Notifications.cancelScheduledNotificationAsync(notificationIdentifier);
+  }, []);
+
   const getTasks = useCallback(async () => {
     setLoading(true);
     setErrorMessage("");
     try {
       const response = await API.get("/tasks");
-      setTasks(response.data.tasks);
+      const fetchedTasks = response.data.tasks.map(
+        task => ({
+          ...task,
+          dueDateTime: new Date(task.dueDateTime)
+        }));
+      fetchedTasks.forEach((task) => {
+        if (task.dueDateTime > new Date(new Date().getTime() + (15 * 60 * 1000))) {
+          scheduleTaskNotification(task);
+        }
+      });
+      setTasks(fetchedTasks);
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -130,9 +203,10 @@ const handleMarkSelectedCompleted = async () => {
     setErrorMessage("");
 
     try {
-      const completionPromises = Array.from(selectedTasks).map(taskId =>
-        API.put(`/tasks/complete/${taskId}`)
-      );
+      const completionPromises = Array.from(selectedTasks).map(async (taskId) => {
+        await API.put(`/tasks/complete/${taskId}`);
+        await cancelTaskNotification(taskId);
+      });
       await Promise.all(completionPromises); // Wait for all completion requests to finish
 
       setErrorMessage("Selected tasks marked as completed!");
@@ -157,6 +231,7 @@ const handleMarkSelectedCompleted = async () => {
               setErrorMessage("");
               try {
                   await API.delete(`/tasks/${taskId}`);
+                  await cancelTaskNotification(taskId);
                   getTasks();
               } catch (error) {
                   setErrorMessage(error.message);
