@@ -6,7 +6,8 @@ import {
     StyleSheet,
     Keyboard,
     ActivityIndicator,
-    Image
+    Image,
+    Platform,
 } from "react-native";
 import React, { useState, useContext } from "react";
 import AuthGuard from "@/components/AuthGuard";
@@ -14,8 +15,7 @@ import { AuthContext } from "@/context/AuthContext";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
+import { useImagePicker } from "@/hooks/useImagePicker";
 
 const PostListingPage = () => {
     const [title, setTitle] = useState("");
@@ -28,44 +28,11 @@ const PostListingPage = () => {
     const { userData, isAuthenticated } = useContext(AuthContext);
     const router = useRouter();
 
+    const { pickImage, WebImageInput } = useImagePicker(setImage);
+
     const handlePriceChange = (newPrice) => {
         const cleanedPrice = newPrice.replace(/[^0-9]/g, "");
         setPrice(cleanedPrice);
-    };
-
-    const chooseImage = async () => {
-        //ask for permission
-        const permissionResult =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.status !== "granted") {
-            alert("Permission to access camera roll is required!");
-            return;
-        }
-
-        //open image picker
-        const result = await ImagePicker.launchImageLibraryAsync({
-            quality: 1,
-            allowsEditing: false,
-            mediaTypes: ['images']
-        });
-
-        if (result.canceled || !result.assets?.length) return;
-
-        const selected = result.assets[0];
-        const fileSize = selected.fileSize || selected.file?.size;
-        const fileType = selected.type || selected.mimeType;
-
-        if (fileSize > 5 * 1024 * 1024) {
-            setMessage("Image must be less than 5MB");
-            return;
-        }
-
-        if (!fileType.startsWith("image")) {
-            setMessage("Only image files can be uploaded");
-            return;
-        }
-
-        setImage(selected);
     };
 
     const handleSubmit = async () => {
@@ -78,7 +45,7 @@ const PostListingPage = () => {
             return;
         }
 
-        if (userData.timesReported >= 3 || userData.isRemoved){
+        if (userData.timesReported >= 3 || userData.isRemoved) {
             setMessage("Reported users cannot make new listings");
             return;
         }
@@ -113,29 +80,29 @@ const PostListingPage = () => {
         setMessage("");
 
         try {
-            const fileName = image.uri.split('/').pop();
-            const fileType = image.type || 'image/jpeg';
-
             // populate form data
             const listingData = new FormData();
-            listingData.append("image", {
-                uri: image.uri,
-                name: fileName,
-                type: fileType,
-            });
+
+            if (Platform.OS === "web") {
+                listingData.append("image", image.fileObject, image.name);
+            } else {
+                listingData.append("image", {
+                    uri: image.uri,
+                    name: image.name,
+                    type: image.type,
+                });
+            }
             listingData.append("title", title.trim());
             listingData.append("price", numericPrice);
             listingData.append("location", location.trim());
             listingData.append("description", description.trim());
 
-            const response = await API.post("/listings/post", listingData, 
-            {
+            const response = await API.post("/listings/post", listingData, {
                 headers: {
-                    "Content-Type": "multipart/form-data"
-                }
+                    "Content-Type": "multipart/form-data",
+                },
             });
 
-            
             setTitle("");
             setPrice("");
             setLocation("");
@@ -157,9 +124,24 @@ const PostListingPage = () => {
                 <View style={styles.form}>
                     <Text style={styles.title}>Create new listing</Text>
                     <TouchableOpacity style={styles.imageButton}>
-                        <Text style={styles.chooseImageText} onPress={chooseImage}>Choose image*</Text>
+                        <Text
+                            style={styles.chooseImageText}
+                            onPress={pickImage}
+                        >
+                            Choose image*
+                        </Text>
+                        <WebImageInput />
                     </TouchableOpacity>
-                    {image && <Image source={{uri: image.uri}} style={{width: 100, height: 100, marginVertical: 10}} />}
+                    {image && (
+                        <Image
+                            source={{ uri: image.uri }}
+                            style={{
+                                width: 100,
+                                height: 100,
+                                marginVertical: 10,
+                            }}
+                        />
+                    )}
                     <TextInput
                         placeholder="Listing title*"
                         onChangeText={(newTitle) => setTitle(newTitle)}
@@ -270,11 +252,11 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: Colors.greenButton,
         borderRadius: 5,
-        marginVertical: 10
+        marginVertical: 10,
     },
     chooseImageText: {
-        fontSize: 20
-    }
+        fontSize: 20,
+    },
 });
 
 export default PostListingPage;
