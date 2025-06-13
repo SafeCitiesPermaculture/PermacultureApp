@@ -12,6 +12,7 @@ import {
     TextInput,
     Dimensions,
     Modal,
+    Platform,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
@@ -27,6 +28,7 @@ import addIcon from "@/assets/images/Add _ plus icon.png";
 import backArrow from "@/assets/images/back_arrow.png";
 import folders from "@/assets/images/folder 2 icon.png";
 import { AuthContext } from "@/context/AuthContext";
+import { useFilePicker } from "@/hooks/useFilePicker";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -42,34 +44,7 @@ const InformationPage = () => {
 
     const { showLoading, hideLoading } = useLoading();
     const { isAdmin } = useContext(AuthContext);
-
-    //get the file from the file picker
-    const pickFile = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: [
-                    "image/jpeg",
-                    "image/png",
-                    "application/pdf",
-                    "application/msword",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ],
-                copyToCacheDirectory: true,
-            });
-
-            console.log(result);
-
-            if (!result.canceled) {
-                setUploadedFile(result);
-                return result;
-            } else {
-                return null;
-            }
-        } catch (err) {
-            console.error("Error picking file:", err);
-            return null;
-        }
-    };
+    const { pickFile, WebFileInput } = useFilePicker(setUploadedFile);
 
     //send the file to the backend
     const sendFile = async () => {
@@ -78,14 +53,21 @@ const InformationPage = () => {
             return;
         }
 
-        const file = uploadedFile.assets[0];
-        const formData = new FormData();
-        formData.append("file", {
-            uri: file.uri,
-            name: file.name,
-            type: file.mimeType,
-        });
+        let fileFormData;
 
+        if (Platform.OS === "web") {
+            fileFormData = uploadedFile.uri;
+        } else {
+            const file = uploadedFile.assets[0];
+            fileFormData = {
+                uri: file.uri,
+                name: file.name,
+                type: file.mimeType || "application/octet-stream",
+            };
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileFormData);
         formData.append("parent", currentFolder?._id || null);
 
         try {
@@ -100,7 +82,7 @@ const InformationPage = () => {
             setUploadedFile(null);
             await getFileList();
         } catch (err) {
-            console.error("Upload error:", error.response || error.message);
+            console.error("Upload error:", err.response || err.message);
         } finally {
             hideLoading();
         }
@@ -117,13 +99,12 @@ const InformationPage = () => {
                 { responseType: "arraybuffer" }
             );
 
-            const base64String = Buffer.from(res.data, "binary").toString(
-                "base64"
-            );
-
             //determine file name and extension
             const disposition = res.headers["content-disposition"];
+
             let filename = "file.bin";
+            const mimeType =
+                res.headers["content-type"] || "application/octet-stream";
 
             if (disposition) {
                 const match = disposition.match(
@@ -137,22 +118,38 @@ const InformationPage = () => {
             //V not currently used but maybe useful in future V
             const extension = filename.substring(filename.lastIndexOf("."));
 
-            const fileUri = FileSystem.documentDirectory + filename;
-
-            //save file
-            await FileSystem.writeAsStringAsync(fileUri, base64String, {
-                encoding: FileSystem.EncodingType.Base64,
-            });
-
-            //open file with native viewer
-            const isAvailable = await Sharing.isAvailableAsync();
-            if (isAvailable) {
-                await Sharing.shareAsync(fileUri);
+            if (Platform.OS === "web") {
+                const blob = new Blob([res.data], { type: mimeType });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
             } else {
-                console.log("Sharing is not enabled on this device");
+                const base64String = Buffer.from(res.data, "binary").toString(
+                    "base64"
+                );
+
+                const fileUri = FileSystem.documentDirectory + filename;
+
+                //save file
+                await FileSystem.writeAsStringAsync(fileUri, base64String, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+
+                //open file with native viewer
+                const isAvailable = await Sharing.isAvailableAsync();
+                if (isAvailable) {
+                    await Sharing.shareAsync(fileUri);
+                } else {
+                    console.log("Sharing is not enabled on this device");
+                }
             }
         } catch (err) {
-            console.error("Download or open failed:", error);
+            console.error("Download or open failed:", err);
         } finally {
             hideLoading();
         }
@@ -373,11 +370,22 @@ const InformationPage = () => {
                                     </Text>
                                 </TouchableOpacity>
                             </View>
+                            <WebFileInput />
                             <Text style={styles.selectedFileText}>
                                 Selected File:{" "}
-                                {uploadedFile
-                                    ? uploadedFile.assets[0].name
-                                    : "N/A"}
+                                {Platform.OS !== "web" ? (
+                                    <>
+                                        {uploadedFile
+                                            ? uploadedFile.assets[0].name
+                                            : "N/A"}
+                                    </>
+                                ) : (
+                                    <>
+                                        {uploadedFile
+                                            ? uploadedFile.name
+                                            : "N/A"}
+                                    </>
+                                )}
                             </Text>
 
                             <View style={styles.uploadContainer}>
