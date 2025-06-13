@@ -21,11 +21,12 @@ router.put("/change-password", userController.changePassword);
 router.put('/update-profile', async (req, res) => {
   try {
     const userId = req.user._id;
-    const { username, password, farmName } = req.body;
+    const { username, password, farmName, email } = req.body;
 
     const update = {};
     if (username) update.username = username;
     if (farmName) update.farmName = farmName;
+    if (email) update.email = email;
     if (password) update.password = await bcrypt.hash(password, 10);
 
     const updatedUser = await User.findByIdAndUpdate(userId, update, { new: true });

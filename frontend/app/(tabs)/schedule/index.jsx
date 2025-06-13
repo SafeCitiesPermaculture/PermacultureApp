@@ -29,6 +29,7 @@ const SchedulePage = () => {
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDate, setNewTaskDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [completingTasks, setCompletingTasks] = useState(false);
   const { userData } = useContext(AuthContext);
@@ -222,17 +223,68 @@ const handleMarkSelectedCompleted = async () => {
               <TouchableOpacity onPress={() => setShowDatePicker(!showDatePicker)} style={styles.selectDateButton}>
                 <Text style={styles.selectDateButtonText}>Select Date & Time</Text>
               </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  testID="dateTimePicker"
-                  value={newTaskDate}
-                  mode="datetime"
-                  is24Hour={true}
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onDateChange}
-                  minimumDate={new Date()}
-                />
-              )}
+              {Platform.OS === 'ios' && showDatePicker && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={newTaskDate}
+                mode="datetime"
+                is24Hour={true}
+                display="spinner"
+                onChange={(event, selectedDate) => {
+                  if (event?.type === "dismissed") return;
+                  if (selectedDate) setNewTaskDate(selectedDate);
+                  setShowDatePicker(false);
+                }}
+              />
+            )}
+
+            {Platform.OS === 'android' && showDatePicker && (
+              <DateTimePicker
+                value={newTaskDate}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  if (event?.type === "dismissed") {
+                    setShowDatePicker(false);
+                    return;
+                  }
+                  if (selectedDate) {
+                    const updatedDate = new Date(newTaskDate);
+                    updatedDate.setFullYear(
+                      selectedDate.getFullYear(),
+                      selectedDate.getMonth(),
+                      selectedDate.getDate()
+                    );
+                    setNewTaskDate(updatedDate);
+                  }
+                  setShowDatePicker(false);
+                  setShowTimePicker(true); // move to time selection
+                }}
+              />
+            )}
+
+            {Platform.OS === 'android' && showTimePicker && (
+              <DateTimePicker
+                value={newTaskDate}
+                mode="time"
+                display="default"
+                is24Hour={true}
+                onChange={(event, selectedTime) => {
+                  if (event?.type === "dismissed") {
+                    setShowTimePicker(false);
+                    return;
+                  }
+                  if (selectedTime) {
+                    const updatedDate = new Date(newTaskDate);
+                    updatedDate.setHours(selectedTime.getHours());
+                    updatedDate.setMinutes(selectedTime.getMinutes());
+                    setNewTaskDate(updatedDate);
+                  }
+                  setShowTimePicker(false);
+                }}
+              />
+            )}
+
             </View>
 
             {errorMessage && <Text style={styles.modalErrorMessage}>{errorMessage}</Text>}
