@@ -23,6 +23,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { Picker } from "@react-native-picker/picker";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format } from 'date-fns';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -56,20 +59,22 @@ const SchedulePage = () => {
   // Request notification permissions when the component mounts
   useEffect(() => {
     (async () => {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        Alert.alert('Permission required', 'Please enable notifications in your device settings to receive task reminders.');
+      if (Platform.OS !== "web") {
+          const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== 'granted') {
+          Alert.alert('Permission required', 'Please enable notifications in your device settings to receive task reminders.');
+        }
       }
     })();
   }, []);
 
   const scheduleTaskNotification = useCallback(async (task) => {
-    if (!task.dueDateTime) {
+    if (!task.dueDateTime || Platform.OS === "web") {
       return;
     }
 
@@ -102,12 +107,15 @@ const SchedulePage = () => {
       });
   } catch (error) {
       setErrorMessage(error.message);
+      console.log(error.message);
     }
   }, []);
 
   const cancelTaskNotification = useCallback(async (taskId) => {
-    const notificationIdentifier = `task-${taskId}`;
-    await Notifications.cancelScheduledNotificationAsync(notificationIdentifier);
+    if (Platform.OS !== "web"){
+      const notificationIdentifier = `task-${taskId}`;
+      await Notifications.cancelScheduledNotificationAsync(notificationIdentifier);
+    }
   }, []);
 
   const getTasks = useCallback(async () => {
@@ -120,12 +128,15 @@ const SchedulePage = () => {
           ...task,
           dueDateTime: new Date(task.dueDateTime)
         }));
-      fetchedTasks.forEach((task) => {
+      setTasks(fetchedTasks);  
+
+      if (Platform.OS !== "web") {
+        fetchedTasks.forEach((task) => {
         if (task.dueDateTime > new Date(new Date().getTime() + (15 * 60 * 1000))) {
           scheduleTaskNotification(task);
         }
       });
-      setTasks(fetchedTasks);
+      }
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -155,10 +166,14 @@ const SchedulePage = () => {
     }, [getTasks])
   );
 
-  const onDateChange = (event, date) => {
+  const onNativeDateChange = (event, date) => {
     const selectedDate = date >= new Date() ? date : newTaskDate; //Only allow dates from the future
     setShowDatePicker(Platform.OS === 'ios');
     setNewTaskDate(selectedDate);
+  };
+
+  const onWebDateChange = (date) => {
+    setNewTaskDate(date);
   };
 
   const handleCreateTask = async () => {
@@ -246,6 +261,7 @@ const handleMarkSelectedCompleted = async () => {
   };
 
   const deleteTask = useCallback(async (taskId) => {
+    if (Platform.OS !== "web") {
       Alert.alert(
         "Deleting task",
         "Are you sure you want to delete this task", 
@@ -268,14 +284,27 @@ const handleMarkSelectedCompleted = async () => {
           }
         ]
       );
+    } else {
+      setDeletingId(taskId);
+      setErrorMessage("");
+      try {
+          await API.delete(`/tasks/${taskId}`);
+          getTasks();
+      } catch (error) {
+          setErrorMessage(error.message);
+      } finally {
+        setDeletingId(null);
+      }
+    }
+      
   }, [getTasks]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <View style={{flexDirection: 'row', marginBottom: 20}}>
-          <View style={{flex: 1, justifyContent: 'center' }}>
-            <TouchableOpacity onPress={() => router.push("/schedule/CompletedTasks")} style={styles.completedTasksButton}>
+        <View style={{flexDirection: 'row', marginBottom: 20, alignItems: 'flex-start' }}>
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => router.push("/schedule/CompletedTasks")}>
               <Image source={greenCheckMark} style={styles.checkMark} />
             </TouchableOpacity>
           </View>
@@ -350,16 +379,27 @@ const handleMarkSelectedCompleted = async () => {
               <TouchableOpacity onPress={() => setShowDatePicker(!showDatePicker)} style={styles.selectDateButton}>
                 <Text style={styles.selectDateButtonText}>Select Date & Time</Text>
               </TouchableOpacity>
-              {showDatePicker && (
+              {showDatePicker && Platform.OS !== "web" ? ( //Mobile date time picker
                 <DateTimePicker
                   testID="dateTimePicker"
                   value={newTaskDate}
                   mode="datetime"
                   is24Hour={true}
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onDateChange}
+                  onChange={onNativeDateChange}
                   minimumDate={new Date()}
-                />
+                />): 
+                (
+                <View style={styles.webDatePickerWrapper}>
+                  <DatePicker
+                    selected={newTaskDate}
+                    onChange={onWebDateChange}
+                    showTimeSelect
+                    dateFormat="Pp"
+                    minDate={new Date()}
+                    className="react-datepicker-custom-input"
+                  />
+                </View>
               )}
             </View>
             
@@ -571,7 +611,7 @@ const styles = StyleSheet.create({
   pickerItem: { 
     fontSize: 16,
     flex: 1
-  }
+  },
 });
 
 export default SchedulePage;
