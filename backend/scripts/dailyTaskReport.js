@@ -8,10 +8,7 @@ const Task = require("../models/Task");
 const User = require("../models/User");
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
+mongoose.connect(process.env.MONGODB_URI).then(() => {
   console.log("Connected to MongoDB");
 }).catch((err) => {
   console.error("MongoDB connection error:", err);
@@ -43,7 +40,7 @@ const sendDailyTaskReport = async () => {
 Safe Cities Daily Task Report for ${now.toDateString()}
 
 Completed Tasks:
-${completed.length ? completed.map(t => `• ${t.name} (by ${t.assignedTo.username})`).join("\n") : "None"}
+${completed.length ? completed.map(t => `• ${t.name} (${t.assignedTo.username})`).join("\n") : "None"}
 
 Incomplete Tasks:
 ${incomplete.length ? incomplete.map(t => `• ${t.name} (${t.assignedTo.username})`).join("\n") : "None"}
@@ -72,10 +69,9 @@ ${incomplete.length ? incomplete.map(t => `• ${t.name} (${t.assignedTo.usernam
   }
 };
 
-// Schedule for daily 22:00 (server time)
-cron.schedule("0 22 * * *", sendDailyTaskReport);
-
-// Run manually if called directly
+// Register the cron job when run directly
 if (require.main === module) {
-  sendDailyTaskReport().then(() => process.exit(0));
+  cron.schedule("32 23 * * *", sendDailyTaskReport, {
+    timezone: "Africa/Johannesburg",
+  });
 }
