@@ -281,6 +281,7 @@ const styles = StyleSheet.create({
         flexWrap: "wrap",
         justifyContent: "space-between",
         width: "100%",
+        paddingBottom: 150,
     },
     retryButton: {
         padding: 10,
