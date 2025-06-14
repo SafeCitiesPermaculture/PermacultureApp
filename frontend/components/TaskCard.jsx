@@ -9,10 +9,9 @@ import {
 import Colors from "@/constants/Colors";
 
 const TaskCard = ({ task, toggleCompletion, isChecked, onDelete, deleting }) => {
-    const dueDate = new Date(task.dueDateTime);
-    const dueDateString  = dueDate.toLocaleString("en-GB").slice(0, -3); //Convert to dd/mm/yyyy, hh:mm
+    const dueDateString  = task.dueDateTime.toLocaleString("en-GB").slice(0, -3); //Convert to dd/mm/yyyy, hh:mm
 
-    const dueDateStyle = !isChecked && dueDate <= new Date() ? styles.dueDatePastDue : styles.dueDate; //Make overdue task times red
+    const dueDateStyle = !isChecked && task.dueDateTime <= new Date() ? styles.dueDatePastDue : styles.dueDate; //Make overdue task times red
     const nameStyle = isChecked ? styles.nameCompleted : styles.name; //Strikethrough tasks marked as completed
 
     const checkBox = require("@/assets/images/check-mark.png");
