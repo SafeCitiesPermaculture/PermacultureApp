@@ -466,7 +466,7 @@ const SchedulePage = () => {
                                     onChange={onNativeDateChange}
                                     minimumDate={new Date()}
                                 />
-                            ) : (
+                            ) : showDatePicker ? (
                                 <View style={styles.webDatePickerWrapper}>
                                     <DatePicker
                                         selected={newTaskDate}
@@ -477,7 +477,7 @@ const SchedulePage = () => {
                                         className="react-datepicker-custom-input"
                                     />
                                 </View>
-                            )}
+                            ) : null}
                         </View>
 
                         {/* Show picker to allow admin to assign tasks to workers */}
