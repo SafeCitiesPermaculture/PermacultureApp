@@ -100,7 +100,6 @@ const SchedulePage = () => {
           date: triggerTime
         }
       });
-      console.log(`Notification scheduled for task: ${task.name} at ${triggerTime.toString()}`);
   } catch (error) {
       setErrorMessage(error.message);
     }
@@ -427,7 +426,6 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 20,
     textAlign: 'center',
-    color: Colors.gray,
   },
   postButton: {
     position: "absolute",
@@ -497,7 +495,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   selectDateButtonText: {
-    color: Colors.white,
     fontSize: 16,
     fontWeight: 'bold',
   },
