@@ -22,6 +22,7 @@ import API from "@/api/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
+import { Picker } from "@react-native-picker/picker";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -43,7 +44,10 @@ const SchedulePage = () => {
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [completingTasks, setCompletingTasks] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const { userData } = useContext(AuthContext);
+  const [safeCitiesWorkers, setSafeCitiesWorkers] = useState([]);
+  const [assignedTo, setAssignedTo] = useState(null);
+  const [showWorkerPicker, setShowWorkerPicker] = useState(false);
+  const { userData, isAdmin } = useContext(AuthContext);
   const router = useRouter();
 
   const postButton = require("@/assets/images/post-button.png");
@@ -73,6 +77,8 @@ const SchedulePage = () => {
 
     // Calculate notification time to be 15 mins before task due
     const triggerTime = new Date(task.dueDateTime.getTime() - (15 * 60 * 1000));
+    const hoursString = String(task.dueDateTime.getHours()).padStart(2, '0');
+    const minutesString = String(task.dueDateTime.getMinutes()).padStart(2,'0');
 
     if (triggerTime < new Date()) { // Don't schedule notifications for the past
       return;
@@ -85,13 +91,16 @@ const SchedulePage = () => {
         identifier: notificationIdentifier,
         content: {
           title: "Task Reminder!",
-          body: `Don't forget to complete: ${task.name} at ${task.dueDateTime.getHours()}:${task.dueDateTime.getMinutes()}`,
+          body: `Don't forget to complete: ${task.name} at ${hoursString}:${minutesString}`,
           data: { taskId: task._id, taskName: task.name },
           sound: 'default',
         },
-        trigger: triggerTime
+        trigger: {
+          type: 'date',
+          date: triggerTime
+        }
       });
-      console.log(`Notification scheduled for task: ${task.name} at ${triggerTime.to}`);
+      console.log(`Notification scheduled for task: ${task.name} at ${triggerTime.toString()}`);
   } catch (error) {
       setErrorMessage(error.message);
     }
@@ -125,9 +134,25 @@ const SchedulePage = () => {
     }
   }, []);
 
+  const getSafeCitiesWorkers = useCallback(async () => {
+    if (!isAdmin) {
+      setSafeCitiesWorkers([]);
+      return;
+    }
+    try {
+      const response = await API.get('/admin/safecities');
+      setSafeCitiesWorkers(response.data.safeCitiesWorkers);
+    } catch (error) {
+      setSafeCitiesWorkers([]);
+    }
+  }, [isAdmin]);
+
   useFocusEffect(
     useCallback(() => {
       getTasks();
+      if (isAdmin){
+        getSafeCitiesWorkers();
+      }
     }, [getTasks])
   );
 
@@ -154,7 +179,7 @@ const SchedulePage = () => {
       const response = await API.post("/tasks", {
         name: newTaskName,
         dueDateTime: newTaskDate,
-        assignedTo: userData._id
+        assignedTo: assignedTo || userData._id
       });
 
       if (response.status === 201) {
@@ -162,6 +187,8 @@ const SchedulePage = () => {
         setNewTaskName("");
         setNewTaskDate(new Date());
         setShowDatePicker(false);
+        setAssignedTo(null);
+        setShowWorkerPicker(false);
         getTasks();
       } else {
         setErrorMessage("Failed to create task with status: " + response.status);
@@ -336,6 +363,26 @@ const handleMarkSelectedCompleted = async () => {
                 />
               )}
             </View>
+            
+            {/* Show picker to allow admin to assign tasks to workers */}
+            {isAdmin && (
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity onPress={() => setShowWorkerPicker(!showWorkerPicker)} style={styles.selectDateButton}>
+                  <Text style={styles.selectDateButtonText}>Assign to Worker</Text>
+                </TouchableOpacity>
+                
+                {showWorkerPicker && <Picker
+                    selectedValue={assignedTo}
+                    onValueChange={(itemValue) => setAssignedTo(itemValue)}
+                    style={styles.picker}
+                    itemStyle={styles.pickerItem}
+                >
+                    {safeCitiesWorkers.map(worker => 
+                        <Picker.Item key={worker._id} label={worker.username} value={worker._id} />
+                    )}
+                </Picker>}
+              </View>
+            )}
 
             {errorMessage && <Text style={styles.modalErrorMessage}>{errorMessage}</Text>}
 
@@ -418,31 +465,28 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
-    color: Colors.darkGray,
   },
   input: {
     width: "100%",
     borderWidth: 1,
-    borderColor: Colors.gray,
     borderRadius: 10,
     padding: 12,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: Colors.white,
     color: Colors.darkGray,
   },
   datePickerContainer: {
     width: "100%",
-    marginBottom: 20,
+    marginBottom: 10,
     alignItems: 'center',
   },
   dateDisplay: {
     fontSize: 16,
-    color: Colors.darkGray,
     marginBottom: 10,
   },
   selectDateButton: {
-    backgroundColor: Colors.blueRegular,
+    borderWidth: 1,
+    borderColor: Colors.greyTextBox,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 10,
@@ -482,14 +526,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cancelButton: {
-    backgroundColor: Colors.redRegular, 
+    backgroundColor: '#db6969', 
   },
   createButton: {
     backgroundColor: Colors.greenRegular, 
   },
   buttonText: {
     color: Colors.white,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
   },
   completeButton: {
@@ -507,13 +551,29 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   completeButtonText: {
-    color: Colors.white,
     fontSize: 16,
     fontWeight: 'bold',
   },
   checkMark: {
     height: 30,
     width: 30
+  },
+  pickerContainer: {
+    width: '100%',
+    marginBottom: 20,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  picker: {
+    width: '100%',
+    height: Platform.OS === 'ios' ? 150 : 50, // iOS picker takes more height
+    marginTop: 5,
+    justifyContent:'flex-start',
+    paddingVertical: 0
+  },
+  pickerItem: { 
+    fontSize: 16,
+    flex: 1
   }
 });
 
