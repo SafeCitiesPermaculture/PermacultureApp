@@ -11,6 +11,7 @@
     -   Scan the QR code on your mobile device to launch the app on your device
     -   Press `i` to launch an ios simulator
     -   Press `a` to launch an android simulator
+    -   Press `w` to launch in the web
 
 ### Backend
 
