@@ -138,11 +138,7 @@ const deleteFile = async (req, res) => {
             return res.status(404).json({ error: "File not found in MongoDB" });
         }
 
-        //delete from google drive
-        await drive.files.delete({ fileId: file.driveFileId });
-
-        //delete from mongo
-        await File.findByIdAndDelete(id);
+        deleteFileHelper(file);
 
         res.status(200).json({
             message: "File deleted from Google Drive and MongoDB",
@@ -151,6 +147,28 @@ const deleteFile = async (req, res) => {
         console.error("Delete error:", err.message);
         res.status(500).json({ error: "Failed to delete file" });
     }
+};
+
+const deleteFileHelper = async (fileObject) => {
+    if (fileObject.isFolder) {
+        //get children
+        const childrenFiles = await File.find({
+            parent: fileObject._id || null,
+        });
+
+        //delete children
+        for (const child of childrenFiles) {
+            deleteFileHelper(child);
+        }
+    }
+
+    //delete from google drive
+    await drive.files.delete({ fileId: fileObject.driveFileId });
+
+    //delete from mongo
+    await File.findByIdAndDelete(fileObject._id);
+
+    console.log(`Deleted file ${fileObject.name}`);
 };
 
 const createFolder = async (req, res) => {
