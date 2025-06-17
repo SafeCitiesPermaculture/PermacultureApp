@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         margin: 5,
         backgroundColor: Colors.greyTextBox,
+        fontSize: 16,
     },
     title: {
         fontSize: 32,
