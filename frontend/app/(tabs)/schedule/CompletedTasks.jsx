@@ -9,12 +9,15 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Dimensions,
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
 import { createEmitAndSemanticDiagnosticsBuilderProgram } from "typescript";
+
+const { width } = Dimensions.get("window");
 
 const CompletedTasksPage = () => {
     const [tasks, setTasks] = useState([]);
@@ -203,7 +206,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     taskArea: {
-        width: '95%',
+        width: width,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -213,18 +216,16 @@ const styles = StyleSheet.create({
         color: Colors.gray,
     },
     completeButton: {
-        position: 'absolute',
-        bottom: 100,
-        left: 30,
-        backgroundColor: Colors.brownMedium,
-        borderRadius: 10,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 8,
+       backgroundColor: Colors.greenRegular,
+       width: width,
+       borderColor: Colors.greenButton,
+       borderWidth: 2,
+       borderRadius: 5,
+       paddingVertical: 5,
+       paddingHorizontal: 10,
+       marginVertical: 4,
+       flexDirection: 'column',
+       alignItems: 'stretch',
     },
     completeButtonText: {
         color: Colors.white,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     deleteButton: {
         position: "absolute",
         bottom: 100,
-        right: 10,
+        right: 2,
         backgroundColor: "transparent",
         width: 50,
         height: 50,
@@ -244,6 +245,7 @@ const styles = StyleSheet.create({
     deleteButtonImage: {
         height: 50, 
         width: 50,
+
     },
 });
 

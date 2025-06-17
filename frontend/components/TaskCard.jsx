@@ -5,8 +5,11 @@ import {
     StyleSheet,
     Image,
     ActivityIndicator,
+    Dimensions,
  } from "react-native";
 import Colors from "@/constants/Colors";
+
+const { width } = Dimensions.get("window");
 
 const TaskCard = ({ task, toggleCompletion, isChecked, onDelete, deleting }) => {
     const dueDateString  = task.dueDateTime.toLocaleString("en-GB").slice(0, -3); //Convert to dd/mm/yyyy, hh:mm
@@ -20,11 +23,15 @@ const TaskCard = ({ task, toggleCompletion, isChecked, onDelete, deleting }) => 
     return (
         <View style={styles.background}>
             <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-                <View style={{flex: 5, flexDirection: 'row', alignItems: 'center'}}>
+                <View style={{ flex: 15, flexDirection: 'row', alignItems: 'center'}}>
                     <TouchableOpacity style={styles.checkBox} onPress={() => toggleCompletion(task._id, !isChecked)}>
                         {isChecked && <Image source={checkBox} style={{width: "100%", height: "100%"}} />}
                     </TouchableOpacity>
-                    <Text style={nameStyle} numberOfLines={1}>{task.name}</Text>
+                    <Text   style={nameStyle}
+                             numberOfLines={1}
+                             adjustsFontSizeToFit={true}
+                             minimumFontScale={0.7}
+                             ellipsizeMode="tail" >{task.name}</Text>
                 </View>
                 <View style={{flex: 1, justifyContent: 'center', alignItems: 'flex-end', marginRight: 10}}>
                     {deleting ? <ActivityIndicator color="red" size="small" /> :
@@ -41,13 +48,16 @@ const TaskCard = ({ task, toggleCompletion, isChecked, onDelete, deleting }) => 
 
 const styles = StyleSheet.create({
     background: {
-        backgroundColor: Colors.brownLight,
-        width: "100%",
-        height: 70,
-        justifyContent: 'center',
-        borderColor: Colors.brownMedium,
-        borderWidth: 1,
-        flexWrap: 'wrap'
+        backgroundColor: Colors.greenRegular,
+           width: width,
+           borderColor: Colors.greenButton,
+           borderWidth: 2,
+           borderRadius: 5,
+           paddingVertical: 5,
+           paddingHorizontal: 10,
+           marginVertical: 4,
+           flexDirection: 'column',
+           alignItems: 'stretch',
     },
     checkBox: {
         backgroundColor: 'white',
@@ -55,17 +65,20 @@ const styles = StyleSheet.create({
         borderColor: 'black',
         borderWidth: 2,
         width: 20,
-        aspectRatio: "1/1"
+        aspectRatio: "1/1",
+        alignItems: "center",
     },
     name: {
-        fontSize: 20,
-        fontWeight: '500',
-        flexShrink: 1
+       fontSize: 20,
+         fontWeight: '500',
+         flexShrink: 1,
+         flexGrow: 1,
+         marginRight: 5,
+
     },
     nameCompleted: {
         fontSize: 20,
         fontWeight: '500',
-        flexShrink: 1,
         textDecorationLine: 'line-through'
     },
     dueDate: {
@@ -77,12 +90,16 @@ const styles = StyleSheet.create({
         fontSize: 15,
         marginLeft: 40,
         fontWeight: "200",
-        color: 'red'
+        color: Colors.taskdeadline,
     },
     trashCan: {
         width: 20,
         aspectRatio: "1/1",
-    }
+        left: 5,
+
+
+    },
+
 });
 
 export default TaskCard;
