@@ -1,4 +1,11 @@
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    ActivityIndicator,
+    StyleSheet,
+} from "react-native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import API from "@/api/api";
@@ -28,7 +35,7 @@ const forgotPasswordPage = () => {
             setMessage("Invalid email");
             return;
         }
-        
+
         if (emailSent) {
             setMessage("Email already sent");
             return;
@@ -39,14 +46,16 @@ const forgotPasswordPage = () => {
         try {
             const response = await API.put("/auth/reset-password", {
                 username: username.trim(),
-                email: email.trim()
+                email: email.trim(),
             });
 
             if (response.status !== 200) {
                 setMessage("No user found");
             } else {
                 setEmailSent(true);
-                setMessage("Check email for reset password link. Check spam folder if you do not see it.");
+                setMessage(
+                    "Check email for reset password link. Check spam folder if you do not see it."
+                );
             }
         } catch (error) {
             setMessage(error.response?.data?.message || error.message);
@@ -59,37 +68,39 @@ const forgotPasswordPage = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Forgot Password</Text>
-            <TextInput 
+            <TextInput
                 style={styles.textInput}
                 placeholder="Username..."
                 value={username}
                 onChangeText={setUsername}
-                autoCapitalize='none'
-                />
+                autoCapitalize="none"
+            />
             <TextInput
                 style={styles.textInput}
                 placeholder="Email..."
                 value={email}
                 onChangeText={setEmail}
-                autoCapitalize='none'
-                />
+                autoCapitalize="none"
+            />
             {message && <Text style={styles.message}>{message}</Text>}
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
                 <Text style={styles.buttonText}>Reset Password</Text>
             </TouchableOpacity>
-            {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
+            {loading && (
+                <ActivityIndicator size="large" color={Colors.greenRegular} />
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
         flex: 1,
     },
     header: {
-        fontSize: 30
+        fontSize: 30,
     },
     textInput: {
         height: 40,
@@ -97,12 +108,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 10,
         width: "90%",
+        fontSize: 16,
     },
     message: {
         fontSize: 16,
-        color: 'red',
-        textAlign: 'center',
-        marginBottom: 10
+        color: "red",
+        textAlign: "center",
+        marginBottom: 10,
     },
     button: {
         backgroundColor: Colors.greenButton,

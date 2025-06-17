@@ -1,9 +1,16 @@
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+    View,
+    Text,
+    TextInput,
+    Alert,
+    TouchableOpacity,
+    StyleSheet,
+    ActivityIndicator,
+} from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState } from "react";
-import { Stack } from 'expo-router';
-
+import { Stack } from "expo-router";
 
 const ResetPasswordPage = () => {
     const [oldPassword, setOldPassword] = useState("");
@@ -51,7 +58,9 @@ const ResetPasswordPage = () => {
         }
 
         if (!/[^a-zA-Z0-9]/.test(newPassword)) {
-            setErrorMessage("Password must have at least one special character (e.g. !, @, $, etc.) in it");
+            setErrorMessage(
+                "Password must have at least one special character (e.g. !, @, $, etc.) in it"
+            );
             return;
         }
 
@@ -69,23 +78,24 @@ const ResetPasswordPage = () => {
             "Change password",
             "Are you sure you want to change your password?",
             [
-                { text: "Cancel", style:"cancel" },
-                { 
-                    text: "Change Password", style: "destructive",
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Change Password",
+                    style: "destructive",
                     onPress: async () => {
                         setLoading(true);
                         try {
                             await API.put("/user/change-password", {
                                 oldPassword,
-                                newPassword
+                                newPassword,
                             });
                         } catch (error) {
                             console.log(error);
                         } finally {
                             setLoading(false);
                         }
-                    }
-                }
+                    },
+                },
             ],
             { cancelable: true }
         );
@@ -93,8 +103,8 @@ const ResetPasswordPage = () => {
 
     return (
         <View style={styles.container}>
-            <Stack.Screen options={{ title: 'Change Password' }} />
-            <TextInput 
+            <Stack.Screen options={{ title: "Change Password" }} />
+            <TextInput
                 style={styles.textInput}
                 placeholder="Old password..."
                 secureTextEntry={true}
@@ -115,13 +125,19 @@ const ResetPasswordPage = () => {
                 value={confirmNewPassword}
                 onChangeText={setConfirmNewPassword}
             />
-            <Text style={styles.passwordDescription}>Passwords must be 8+ characters, contain at least one uppercase letter, number, and special character (e.g. !, @, $)</Text>
+            <Text style={styles.passwordDescription}>
+                Passwords must be 8+ characters, contain at least one uppercase
+                letter, number, and special character (e.g. !, @, $)
+            </Text>
             <TouchableOpacity style={styles.button} onPress={handleReset}>
                 <Text style={styles.buttonText}>Reset Password</Text>
             </TouchableOpacity>
-            {loading && <ActivityIndicator size="large" color={Colors.greenButton} />}
-            {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
-
+            {loading && (
+                <ActivityIndicator size="large" color={Colors.greenButton} />
+            )}
+            {errorMessage && (
+                <Text style={styles.errorMessage}>{errorMessage}</Text>
+            )}
         </View>
     );
 };
@@ -139,24 +155,25 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 10,
         width: "90%",
+        fontSize: 16,
     },
     passwordDescription: {
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 8,
-        marginHorizontal: 10
+        marginHorizontal: 10,
     },
     errorMessage: {
         fontSize: 16,
-        color: 'red',
+        color: "red",
         marginTop: 5,
-        textAlign: 'center'
+        textAlign: "center",
     },
     button: {
         backgroundColor: Colors.greenButton,
         padding: 10,
         borderRadius: 10,
         marginBottom: 10,
-        marginTop: 10
+        marginTop: 10,
     },
     buttonText: {
         fontSize: 20,
