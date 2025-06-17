@@ -228,6 +228,94 @@ const proxyGetFile = async (req, res) => {
     }
 };
 
+//helper conversion functions
+function bytesToMB(bytes) {
+    return Number((bytes / (1024 * 1024)).toFixed(2));
+}
+
+function bytesToGB(bytes) {
+    return Number((bytes / (1024 * 1024 * 1024)).toFixed(2));
+}
+
+//returns the amount of storage used in the drive
+const getStorageUsage = async (req, res) => {
+    try {
+        const response = await drive.about.get({
+            fields: "storageQuota",
+        });
+
+        const quota = response.data.storageQuota;
+        /*
+        storageQuota fields:
+        - limit (string): total storage quota in bytes (may be "unlimited")
+        - usage (string): total bytes used
+        - usageInDrive (string): bytes used by Drive files
+        - usageInDriveTrash (string): bytes used by files in trash
+        */
+
+        // Convert strings to numbers first (Google returns strings)
+        const usageBytes = Number(quota.usage) || 0;
+        const limitBytes =
+            quota.limit === "unlimited" ? null : Number(quota.limit);
+        const usageInDriveBytes = Number(quota.usageInDrive) || 0;
+        const usageInTrashBytes = Number(quota.usageInDriveTrash) || 0;
+
+        res.json({
+            limitBytes,
+            usageBytes,
+            usageInDriveBytes,
+            usageInTrashBytes,
+
+            usageMB: bytesToMB(usageBytes),
+            usageGB: bytesToGB(usageBytes),
+
+            limitMB: limitBytes ? bytesToMB(limitBytes) : "unlimited",
+            limitGB: limitBytes ? bytesToGB(limitBytes) : "unlimited",
+        });
+    } catch (err) {
+        console.error("Error getting storage usage", err);
+        res.status(500).send("Error getting storage usage");
+    }
+};
+
+//delete all files in the google drive
+const purgeDrive = async (req, res) => {
+    try {
+        // Get all files (including trashed: false)
+        let nextPageToken = null;
+
+        do {
+            const response = await drive.files.list({
+                q: "'me' in owners and trashed = false",
+                fields: "nextPageToken, files(id, name)",
+                pageToken: nextPageToken,
+                pageSize: 1000, // max allowed is 1000
+            });
+
+            const files = response.data.files;
+
+            if (files.length === 0) break;
+
+            // Delete files one by one (could also batch, but no batch endpoint in REST v3)
+            for (const file of files) {
+                try {
+                    await drive.files.delete({ fileId: file.id });
+                    console.log(`Deleted file: ${file.name} (${file.id})`);
+                } catch (err) {
+                    console.error(`Error deleting file ${file.name}:`, err);
+                }
+            }
+
+            nextPageToken = response.data.nextPageToken;
+        } while (nextPageToken);
+
+        res.json({ success: true, message: "All files deleted" });
+    } catch (error) {
+        console.error("Error purging drive:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 module.exports = {
     handleUpload,
     listFiles,
@@ -235,4 +323,6 @@ module.exports = {
     deleteFile,
     createFolder,
     proxyGetFile,
+    getStorageUsage,
+    purgeDrive,
 };

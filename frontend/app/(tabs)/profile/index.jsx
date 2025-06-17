@@ -112,8 +112,8 @@ const ProfilePage = () => {
             <View style={styles.buttonContainer}>
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={() => router.push('/(tabs)/profile/user/settings')}
-                    >
+                    onPress={() => router.push("/(tabs)/profile/user/settings")}
+                >
                     <Text style={styles.buttonText}>Settings</Text>
                 </TouchableOpacity>
                 {isAdmin && (
@@ -135,6 +135,7 @@ const ProfilePage = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        paddingBottom: 200,
     },
     profileImageContainer: {
         display: "flex",

@@ -24,7 +24,7 @@ import Colors from "@/constants/Colors";
 import FileListing from "@/components/FileListing";
 import safeCitiesLogo from "@/assets/images/logo.png";
 import searchGlass from "@/assets/images/maginfying glass icon.png";
-import addIcon from "@/assets/images/Add _ plus icon.png";
+import addIcon from "@/assets/images/post-button.png";
 import backArrow from "@/assets/images/back_arrow.png";
 import folders from "@/assets/images/folder 2 icon.png";
 import { AuthContext } from "@/context/AuthContext";
@@ -41,6 +41,7 @@ const InformationPage = () => {
     const [folderStack, setFolderStack] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [newFolderName, setNewFolderName] = useState("");
+    const [driveUsage, setDriveUsage] = useState(null);
 
     const { showLoading, hideLoading } = useLoading();
     const { isAdmin } = useContext(AuthContext);
@@ -188,10 +189,22 @@ const InformationPage = () => {
                     return a.name.localeCompare(b.name);
                 })
             );
+
+            //get usage stats
+            getDriveUsage();
         } catch (err) {
             console.log("Error populating list", err);
         } finally {
             hideLoading();
+        }
+    };
+
+    const getDriveUsage = async () => {
+        try {
+            const res = await API.get("/files/storage");
+            setDriveUsage(res.data);
+        } catch (err) {
+            console.log("Error getting drive usage", err);
         }
     };
 
@@ -265,6 +278,16 @@ const InformationPage = () => {
                                     style={styles.searchIcon}
                                 />
                             </View>
+                        </View>
+
+                        <View style={styles.usageContainer}>
+                            <Text style={styles.usageText}>
+                                {driveUsage
+                                    ? driveUsage.usageGB > 0
+                                        ? `Storage Used: ${driveUsage.usageGB} GB / ${driveUsage.limitGB} GB`
+                                        : `Storage Used: ${driveUsage.usageMB} MB / ${driveUsage.limitMB} MB`
+                                    : "Loading..."}
+                            </Text>
                         </View>
 
                         <View style={styles.currentFolderContainer}>
@@ -507,6 +530,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         fontSize: 16,
     },
+
+    usageContainer: {
+        marginLeft: 20,
+    },
+
+    usageText: {},
 
     currentFolderContainer: {
         flex: 1,
