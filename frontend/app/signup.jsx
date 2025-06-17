@@ -28,7 +28,7 @@ const SignupPage = () => {
         }
 
         if (!email.trim()) {
-            setErrorMessage("Missing email")
+            setErrorMessage("Missing email");
             return;
         }
 
@@ -65,7 +65,7 @@ const SignupPage = () => {
 
         if (!/[a-z]/.test(password)) {
             setErrorMessage("Password must have at least one lowercase letter");
-            return
+            return;
         }
 
         if (!/[A-Z]/.test(password)) {
@@ -74,8 +74,10 @@ const SignupPage = () => {
         }
 
         const specialCharRegex = /[^A-Za-z0-9]/;
-        if (!specialCharRegex.test(password)){
-            setErrorMessage("Password must have at least one special character (e.g. !, @, $, etc.) in it")
+        if (!specialCharRegex.test(password)) {
+            setErrorMessage(
+                "Password must have at least one special character (e.g. !, @, $, etc.) in it"
+            );
             return;
         }
 
@@ -91,7 +93,9 @@ const SignupPage = () => {
                 email,
             });
             if (res.status == 201) {
-                setErrorMessage("Wait for an admin to approve you before logging in.");
+                setErrorMessage(
+                    "Wait for an admin to approve you before logging in."
+                );
                 setTimeout(() => router.dismissTo("/login"), 10000);
             }
         } catch (err) {
@@ -137,19 +141,29 @@ const SignupPage = () => {
                 autoCapitalize="none"
                 textContentType="newPassword"
             />
-            <Text style={styles.passwordDescription}>Passwords must be 8+ characters, contain at least one uppercase letter, number, and special character (e.g. !, @, $)</Text>
+            <Text style={styles.passwordDescription}>
+                Passwords must be 8+ characters, contain at least one uppercase
+                letter, number, and special character (e.g. !, @, $)
+            </Text>
             <TouchableOpacity style={styles.button} onPress={onSubmit}>
                 <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
-            {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
-            <View style={{flexDirection: 'row', marginTop: 5}}>
+            {errorMessage && (
+                <Text style={styles.errorMessage}>{errorMessage}</Text>
+            )}
+            <View style={{ flexDirection: "row", marginTop: 5 }}>
                 <Text>Already have an account? </Text>
                 <TouchableOpacity onPress={() => router.push("/login")}>
-                    <Text style={{color: 'blue', textDecorationLine: 'underline'}}>Log in here!</Text>
+                    <Text
+                        style={{
+                            color: "blue",
+                            textDecorationLine: "underline",
+                        }}
+                    >
+                        Log in here!
+                    </Text>
                 </TouchableOpacity>
             </View>
-            
-            
         </View>
     );
 };
@@ -170,6 +184,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 10,
         width: "90%",
+        fontSize: 16,
     },
     button: {
         backgroundColor: Colors.greenButton,
@@ -182,15 +197,15 @@ const styles = StyleSheet.create({
     },
     errorMessage: {
         fontSize: 16,
-        color: 'red',
+        color: "red",
         marginTop: 5,
-        textAlign: 'center'
+        textAlign: "center",
     },
     passwordDescription: {
-        textAlign: 'center',
+        textAlign: "center",
         marginBottom: 8,
-        marginHorizontal: 10
-    }
+        marginHorizontal: 10,
+    },
 });
 
 export default SignupPage;

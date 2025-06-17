@@ -30,7 +30,7 @@ const checkUsernameEmailAvailable = async (username, email) => {
 
         return {
             usernameTaken: !!usernameTaken,
-            emailTaken: !!emailTaken
+            emailTaken: !!emailTaken,
         };
     } catch (err) {
         res.status(500);
@@ -39,12 +39,12 @@ const checkUsernameEmailAvailable = async (username, email) => {
 
 // Email transporter
 const transporter = nodemailer.createTransport({
-            service: 'Gmail',
-            auth: {
-                user: EMAIL_USERNAME,
-                pass: EMAIL_PASSWORD
-            }
-        });
+    service: "Gmail",
+    auth: {
+        user: EMAIL_USERNAME,
+        pass: EMAIL_PASSWORD,
+    },
+});
 
 /**
  * Signup handler
@@ -52,13 +52,18 @@ const transporter = nodemailer.createTransport({
 const handleSignup = async (req, res) => {
     const { username, email, password } = req.body;
     try {
-        const availabilityCheck = await checkUsernameEmailAvailable(username, email);
+        const availabilityCheck = await checkUsernameEmailAvailable(
+            username,
+            email
+        );
         if (availabilityCheck.usernameTaken && availabilityCheck.emailTaken) {
-            return res.status(409).json({ message: "Username and email already taken" });
+            return res
+                .status(409)
+                .json({ message: "Username and email already taken" });
         } else if (availabilityCheck.usernameTaken) {
             return res.status(409).json({ message: "Username already taken" });
         } else if (availabilityCheck.emailTaken) {
-            return res.status(409).json({ message: "Email already taken" }); 
+            return res.status(409).json({ message: "Email already taken" });
         }
 
         const user = User({ username, email, password });
@@ -67,14 +72,13 @@ const handleSignup = async (req, res) => {
         await transporter.sendMail({
             to: EMAIL_USERNAME, // safecitiespermaculture@gmail.com
             subject: "ALERT: New user sign up",
-            html: 
-                `<p>A new user has signed up for the AFC Estate app.</p>
+            html: `<p>A new user has signed up for the AFC Estate app.</p>
                 <p>Sign in with an admin account to approve or deny their request to join</p>
                 <strong>Account Details</strong>
                 <ul>
                     <li>Username: ${username}</li>
                     <li>Email: ${email}</li>
-                </ul>`
+                </ul>`,
         });
 
         res.status(201).json({ message: "User created" });
@@ -99,11 +103,17 @@ const handleLogin = async (req, res) => {
         }
 
         if (!user.isVerified) {
-            return res.status(403).json({ message: "You are still pending approval from an admin. Try again later!" });
+            return res.status(403).json({
+                message:
+                    "You are still pending approval from an admin. Try again later!",
+            });
         }
 
         if (user.isRemoved) {
-            return res.status(403).json({ message: "Your account has been removed. Contact safecitiespermaculture@gmail.com for more information." });
+            return res.status(403).json({
+                message:
+                    "Your account has been removed. Contact safecitiespermaculture@gmail.com for more information.",
+            });
         }
 
         const accessToken = generateAccessToken(user);
@@ -176,7 +186,7 @@ const sendResetPasswordEmail = async (req, res) => {
         const resetToken = jwt.sign(
             { userId: user._id },
             process.env.RESET_PASSWORD_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: "15m" }
         );
 
         user.resetPasswordToken = resetToken;
@@ -187,16 +197,17 @@ const sendResetPasswordEmail = async (req, res) => {
         await transporter.sendMail({
             to: email,
             subject: "PASSWORD RESET: Safe Cities Permaculture App",
-            html: 
-                `<p>You requested a password reset for the Safe Cities Permaculture App.</p>
+            html: `<p>You requested a password reset for the Safe Cities Permaculture App.</p>
                 <p>Click <a href="${resetURL}">here</a> to reset your password. This link expires in 15 minutes.</p>
                 <p>If you did not request a password reset, <strong>DO NOT</strong> click this link.</p>
-                <p>Remember to never share your password with anyone.</p>`
+                <p>Remember to never share your password with anyone.</p>`,
         });
 
         console.log("sent email to", email);
 
-        return res.status(200).json({ message: "Reset password link sent to email", resetToken });
+        return res
+            .status(200)
+            .json({ message: "Reset password link sent to email", resetToken });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -207,7 +218,10 @@ const resetPasswordWithToken = async (req, res) => {
     const { newPassword } = req.body;
 
     try {
-        const payload = jwt.verify(resetPasswordToken, process.env.RESET_PASSWORD_SECRET);
+        const payload = jwt.verify(
+            resetPasswordToken,
+            process.env.RESET_PASSWORD_SECRET
+        );
         const user = await User.findById(payload.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });

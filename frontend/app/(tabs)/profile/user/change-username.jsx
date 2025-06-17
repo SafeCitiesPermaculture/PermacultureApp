@@ -89,35 +89,36 @@ const ChangeUsernamePage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.backgroundTan,
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  textInput: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
-    width: "90%",
-  },
-  button: {
-    backgroundColor: Colors.greenButton,
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  buttonText: {
-    fontSize: 20,
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: "red",
-    marginTop: 5,
-    textAlign: "center",
-  },
+    container: {
+        backgroundColor: Colors.backgroundTan,
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    textInput: {
+        height: 40,
+        margin: 12,
+        borderWidth: 1,
+        padding: 10,
+        width: "90%",
+        fontSize: 16,
+    },
+    button: {
+        backgroundColor: Colors.greenButton,
+        padding: 10,
+        borderRadius: 10,
+        marginBottom: 10,
+        marginTop: 10,
+    },
+    buttonText: {
+        fontSize: 20,
+    },
+    errorMessage: {
+        fontSize: 16,
+        color: "red",
+        marginTop: 5,
+        textAlign: "center",
+    },
 });
 
 export default ChangeUsernamePage;

@@ -1,4 +1,11 @@
-import { View, Text, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TextInput,
+    ActivityIndicator,
+    TouchableOpacity,
+} from "react-native";
 import React, { useState, useCallback } from "react";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
@@ -19,7 +26,7 @@ const ResetPasswordPage = () => {
             return;
         }
 
-        if(!confirmPassword.trim()) {
+        if (!confirmPassword.trim()) {
             setErrorMessage("Missing password confirmation");
             return;
         }
@@ -31,7 +38,7 @@ const ResetPasswordPage = () => {
 
         if (!/[a-z]/.test(password)) {
             setErrorMessage("Password must have at least one lowercase letter");
-            return
+            return;
         }
 
         if (!/[A-Z]/.test(password)) {
@@ -40,8 +47,10 @@ const ResetPasswordPage = () => {
         }
 
         const specialCharRegex = /[^A-Za-z0-9]/;
-        if (!specialCharRegex.test(password)){
-            setErrorMessage("Password must have at least one special character (e.g. !, @, $, etc.) in it")
+        if (!specialCharRegex.test(password)) {
+            setErrorMessage(
+                "Password must have at least one special character (e.g. !, @, $, etc.) in it"
+            );
             return;
         }
 
@@ -49,13 +58,16 @@ const ResetPasswordPage = () => {
             setErrorMessage("Passwords do not match");
             return;
         }
-        
+
         setErrorMessage("");
         setLoading(true);
         try {
-            const response = await API.put(`/auth/reset-password/${resetPasswordToken}`,{
-                newPassword: password
-            });
+            const response = await API.put(
+                `/auth/reset-password/${resetPasswordToken}`,
+                {
+                    newPassword: password,
+                }
+            );
             if (response.status === 201) {
                 setErrorMessage("Reset password successfully");
                 setTimeout(() => router.replace("/login"), 2000);
@@ -76,19 +88,23 @@ const ResetPasswordPage = () => {
                 onChangeText={setPassword}
                 style={styles.textInput}
                 autoCapitalize="none"
-                />
+            />
             <TextInput
                 placeholder="Confirm new password..."
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 style={styles.textInput}
                 autoCapitalize="none"
-                />
-            {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+            />
+            {errorMessage && (
+                <Text style={styles.errorMessage}>{errorMessage}</Text>
+            )}
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
                 <Text style={styles.buttonText}>Reset password</Text>
             </TouchableOpacity>
-            {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
+            {loading && (
+                <ActivityIndicator size="large" color={Colors.greenRegular} />
+            )}
         </View>
     );
 };
@@ -96,12 +112,12 @@ const ResetPasswordPage = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
+        justifyContent: "center",
+        alignItems: "center",
     },
     header: {
-        alignItems: 'center',
-        fontSize: 32
+        alignItems: "center",
+        fontSize: 32,
     },
     textInput: {
         height: 40,
@@ -109,12 +125,13 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 10,
         width: "90%",
+        fontSize: 16,
     },
     errorMessage: {
         fontSize: 16,
-        color: 'red',
-        textAlign: 'center',
-        marginBottom: 10
+        color: "red",
+        textAlign: "center",
+        marginBottom: 10,
     },
     button: {
         backgroundColor: Colors.greenButton,
