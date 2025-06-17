@@ -69,6 +69,11 @@ app.get("/contact", (req, res) => {
 //unprotected file proxy route
 app.get("/api/files/file-proxy", filesController.proxyGetFile);
 
+//route to start the server
+app.get("/api/start", (req, res) => {
+    res.send("Server is running");
+});
+
 //routes
 app.use("/api/auth", authRoutes);
 
@@ -81,7 +86,7 @@ app.use("/api/listings", listingRoutes);
 app.use("/api", messageRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/files", filesRoutes);
-app.use('/api/tasks', taskRoutes);
+app.use("/api/tasks", taskRoutes);
 app.use("/api/user", userRoutes);
 
 //admin routes
@@ -144,7 +149,6 @@ io.on("connection", (socket) => {
                     updatedAt: message.createdAt,
                     name: conversation.name,
                 });
-
             });
         } else {
             console.warn("⚠️ No participants array in message:", message);

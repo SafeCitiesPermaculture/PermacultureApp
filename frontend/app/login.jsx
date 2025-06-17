@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { AuthContext } from "@/context/AuthContext.js";
 import {
     View,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useLoading } from "@/context/LoadingContext";
+import API from "@/api/api";
 
 const LoginPage = () => {
     const router = useRouter();
@@ -21,6 +22,20 @@ const LoginPage = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+
+    //start the prod server as soon as possible
+    useEffect(() => {
+        startServer();
+    }, []);
+
+    const startServer = async () => {
+        try {
+            const res = await API.get("/start");
+            console.log(res.data);
+        } catch (err) {
+            console.log("Error starting server", err);
+        }
+    };
 
     //handle submit
     const onSubmit = async () => {
@@ -95,11 +110,11 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     errorMessage: {
-        color: 'red',
+        color: "red",
         fontSize: 16,
         marginBottom: 10,
-        textAlign: 'center'
-    }
+        textAlign: "center",
+    },
 });
 
 export default LoginPage;
