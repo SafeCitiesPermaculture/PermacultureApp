@@ -31,7 +31,7 @@ const getTasks = async (req, res) => {
     const id = req.user._id;
 
     try {
-        const tasks = await Task.find({ assignedTo: id, isCompleted: false });
+        const tasks = await Task.find({ assignedTo: id, isCompleted: false }).sort({ dueDateTime: 1});
         res.status(200).json({ message: "Tasks retrieved successfully", tasks });
     } catch (error) {
         res.status(500).json({ message: "Server error when retrieving tasks" });
@@ -88,11 +88,32 @@ const getCompletedTasks = async (req, res) => {
     const id = req.user._id;
 
     try {
-        const tasks = await Task.find({ assignedTo: id, isCompleted: true });
+        const tasks = await Task.find({ assignedTo: id, isCompleted: true }).sort({ dueDateTime: 1 });
         return res.status(201).json({ message: "Completed tasks retrieved", tasks });
     } catch (error) {
         return res.status(500).json({ message: "Server error when getting tasks" });
     }
 };
 
-module.exports = { createTask, getTasks, markCompleted, getCompletedTasks, markIncomplete };
+const deleteTask = async (req, res) => {
+    if (!req.user.isVerified || req.user.isRemoved) {
+            return res.status(401).json({ message: "User not verified or removed" });
+    }
+
+    const taskId = req.params.id;
+
+    try {
+        const task = await Task.findById(taskId);
+
+        if (req.user.userRole !== "admin" && task.assignedTo.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Unauthorized: You cannot remove this listing" });
+        }
+
+        await Task.findByIdAndDelete(taskId);
+        return res.status(200).json({ message: "Task deleted" });
+    } catch (error) {
+        return res.status(500).json({ message: "Server error when deleting task" });
+    }
+}
+
+module.exports = { createTask, getTasks, markCompleted, getCompletedTasks, markIncomplete, deleteTask };

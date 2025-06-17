@@ -14,6 +14,7 @@ router.post(
     upload.single("file"),
     filesController.handleUpload
 );
+router.get("/storage", filesController.getStorageUsage);
 router.get("/list", filesController.listFiles);
 router.post("/:id", filesController.getFileById);
 router.delete("/delete/:id", adminAuthMiddleware, filesController.deleteFile);
@@ -22,5 +23,6 @@ router.post(
     adminAuthMiddleware,
     filesController.createFolder
 );
+router.delete("/purge", adminAuthMiddleware, filesController.purgeDrive);
 
 module.exports = router;

@@ -114,6 +114,14 @@ const updateUser = async (req, res) => {
     }
 };
 
+const getSafeCitiesWorkers = async (req, res) => {
+    try {
+        const safeCitiesWorkers = await User.find({ isSafeCities: true });
+        return res.status(201).json({ message: "Fetched safe cities workers", safeCitiesWorkers });
+    } catch (err) {
+        res.status(500).json({ message: "Server error while fetching safe cities workers" });
+    }
+}
 
 module.exports = {
     getUnverifiedUsers,
@@ -123,4 +131,5 @@ module.exports = {
     denyVerification,
     removeUserById,
     updateUser,
+    getSafeCitiesWorkers,
 };

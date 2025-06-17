@@ -7,11 +7,14 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
+  Alert,
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
+import { createEmitAndSemanticDiagnosticsBuilderProgram } from "typescript";
 
 const CompletedTasksPage = () => {
     const [tasks, setTasks] = useState([]);
@@ -19,13 +22,15 @@ const CompletedTasksPage = () => {
     const [selectedTasks, setSelectedTasks] = useState(new Set());
     const [incompletingTasks, setIncompletingTasks] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [deletingId, setDeletingId] = useState(null);
+
+    const deleteButton = require("@/assets/images/trash-can.png");
     
     const getTasks = useCallback(async () => {
         setLoading(true);
         setErrorMessage("");
         try {
             const response = await API.get("/tasks/completed");
-            console.log(response.data.tasks);
             setTasks(response.data.tasks);
         } catch (error) {
             setErrorMessage(error.message);
@@ -76,6 +81,64 @@ const CompletedTasksPage = () => {
         }
     };
 
+     const deleteTask = useCallback(async (taskId) => {
+      Alert.alert(
+        "Deleting task",
+        "Are you sure you want to delete this task", 
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", style: "destructive",
+            onPress: async () => {
+              setDeletingId(taskId);
+              setErrorMessage("");
+              try {
+                  await API.delete(`/tasks/${taskId}`);
+                  getTasks();
+              } catch (error) {
+                  setErrorMessage(error.message);
+              } finally {
+                setDeletingId(null);
+              }
+            }
+          }
+        ]
+      );
+  }, [getTasks]);
+
+    const handleMassDelete = async () => {
+        if (selectedTasks.size === tasks.length) {
+            Alert.alert("No tasks to be deleted. Only completed, checked tasks will be deleted.");
+            return;
+        }
+
+        Alert.alert(
+            "Deleting tasks",
+            `Are you sure you want to delete ${tasks.length - selectedTasks.size} completed tasks?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive",
+                    onPress: async () => {
+                        setLoading(true);
+                        try{
+                            const promises = Array.from(tasks).map(task => {
+                            if (selectedTasks.has(task._id)) { // Don't delete tasks that are presently unchecked
+                                return;
+                            }
+                            return API.delete(`/tasks/${task._id}`);
+                            });
+                            await Promise.all(promises);
+                            getTasks();
+                        } catch (error) {
+                            setErrorMessage(error.message);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
 
     return (
     <SafeAreaView style={styles.safeArea}>
@@ -90,7 +153,7 @@ const CompletedTasksPage = () => {
             <Text style={styles.message}>You have no completed tasks!</Text>
           ) : (
             tasks.map((task) => (
-              <TaskCard task={task} key={task._id} isChecked={!selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} />
+              <TaskCard task={task} key={task._id} isChecked={!selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} deleting={deletingId?.toString() === task._id.toString()} onDelete={() => deleteTask(task._id)} />
             ))
           )}
         </View>
@@ -111,6 +174,17 @@ const CompletedTasksPage = () => {
           )}
         </TouchableOpacity>
       )}
+
+      {tasks.length > 0 && <TouchableOpacity
+            onPress={handleMassDelete}
+            style={styles.deleteButton}
+        >
+            <Image
+            source={deleteButton}
+            style={styles.deleteButtonImage}
+            />
+        </TouchableOpacity>}
+
     </SafeAreaView>);
 };
 
@@ -141,7 +215,7 @@ const styles = StyleSheet.create({
     completeButton: {
         position: 'absolute',
         bottom: 100,
-        left: 50,
+        left: 30,
         backgroundColor: Colors.brownMedium,
         borderRadius: 10,
         paddingVertical: 12,
@@ -157,7 +231,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-
+    deleteButton: {
+        position: "absolute",
+        bottom: 100,
+        right: 10,
+        backgroundColor: "transparent",
+        width: 50,
+        height: 50,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    deleteButtonImage: {
+        height: 50, 
+        width: 50,
+    },
 });
 
 export default CompletedTasksPage;

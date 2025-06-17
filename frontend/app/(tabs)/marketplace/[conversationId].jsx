@@ -41,14 +41,14 @@ const ConversationDetailPage = () => {
       if (userId) {
         socket.emit("messageDelivered", {
           messageId: message._id,
-          userId: userId,
+          userId,
         });
       }
     };
 
     const handleMessageDelivered = ({ messageId, userId }) => {
-      setMessages((prevMessages) =>
-        prevMessages.map((msg) =>
+      setMessages((prev) =>
+        prev.map((msg) =>
           msg._id === messageId && !msg.deliveredTo.includes(userId)
             ? { ...msg, deliveredTo: [...msg.deliveredTo, userId] }
             : msg
@@ -57,7 +57,6 @@ const ConversationDetailPage = () => {
     };
 
     const init = async () => {
-
       try {
         uid = await getUserIdFromToken();
         setUserId(uid);
@@ -94,12 +93,13 @@ const ConversationDetailPage = () => {
 
   useLayoutEffect(() => {
     if (!conversation || !conversation.participants) return;
-    const otherUsers = conversation.participants.filter((p) => p._id !== userId);
+
+    const others = conversation.participants.filter((p) => p._id !== userId);
     const title = conversation.name
       ? conversation.name
-      : otherUsers.length === 1
-      ? otherUsers[0].username
-      : otherUsers.map((u) => u.username).join(" & ");
+      : others.length === 1
+      ? others[0].username
+      : others.map((u) => u.username).join(" & ");
 
     navigation.setOptions({
       title,
@@ -119,22 +119,15 @@ const ConversationDetailPage = () => {
         text: input,
       });
       const message = res.data;
-      const participantIds = new Set([
-        message.sender._id,
-        ...conversation.participants.map((p) => p._id),
-      ]);
-      const emitPayload = {
+      const participantIds = new Set([message.sender._id, ...conversation.participants.map((p) => p._id)]);
+      socket.emit("sendMessage", {
         conversationId,
-        message: {
-          ...message,
-          participants: [...participantIds],
-        },
-      };
-      socket.emit("sendMessage", emitPayload);
+        message: { ...message, participants: [...participantIds] },
+      });
       setMessages((prev) => [message, ...prev]);
       setInput("");
     } catch (err) {
-      console.error("❌ Failed to send message", err);
+      console.error("Failed to send message", err);
     }
   };
 
@@ -149,19 +142,22 @@ const ConversationDetailPage = () => {
       >
         {!isOwnMessage && <Text style={styles.senderLabel}>{item.sender.username}</Text>}
         <View style={[styles.messageBubble, isOwnMessage ? styles.outgoing : styles.incoming]}>
-          <Text>{item.text}</Text>
+          <Text style={styles.bubbleText}>{item.text}</Text>
           <Text style={styles.timestamp}>
             {new Date(item.createdAt).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
               hour12: false,
             })}
-            {isOwnMessage &&
-              (item.seenBy.length > 1
-                ? " ✓✓ Read"
-                : item.deliveredTo.length >= 1
-                ? " ✓ Delivered"
-                : "")}
+            {isOwnMessage && (
+              <Text style={styles.deliveryStatus}>
+                {item.seenBy && item.seenBy.length > 1
+                  ? " ✓✓ Read"
+                  : item.deliveredTo && item.deliveredTo.length >= 1
+                  ? " ✓ Delivered"
+                  : ""}
+              </Text>
+            )}
           </Text>
         </View>
       </View>
@@ -177,21 +173,24 @@ const ConversationDetailPage = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 70}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.messageList}
-          inverted
-        />
-        <View style={[styles.inputContainer, { marginBottom: Platform.OS === "android" ? 60 : 50 }]}>
+        <View style={styles.messagesContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item._id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.messageList}
+            inverted
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
           <TextInput
             value={input}
             onChangeText={setInput}
@@ -246,32 +245,70 @@ const ConversationDetailPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  messageList: { padding: 10 },
-  messageBubble: {
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  messagesContainer: {
+    flex: 1,
+    marginBottom: Platform.OS === "web" ? 130 : 110,
+  },
+  messageList: {
+    padding: 10,
+  },
+  messageWrapper: {
     marginVertical: 5,
+    maxWidth: "85%",
+  },
+  incomingWrapper: {
+    alignSelf: "flex-start",
+    alignItems: "flex-start",
+  },
+  outgoingWrapper: {
+    alignSelf: "flex-end",
+    alignItems: "flex-end",
+  },
+  messageBubble: {
     padding: 10,
     borderRadius: 8,
-    maxWidth: "80%",
+    flexShrink: 1,
   },
   incoming: {
-    alignSelf: "flex-start",
     backgroundColor: "#f0f0f0",
+    alignSelf: "flex-start",
   },
   outgoing: {
-    alignSelf: "flex-end",
     backgroundColor: "#dcf8c6",
+    alignSelf: "flex-end",
+  },
+  bubbleText: {
+    fontSize: 16,
+    ...(Platform.OS === "web" && { whiteSpace: "pre-wrap" }),
   },
   timestamp: {
     fontSize: 10,
     color: "#666",
     marginTop: 4,
+    textAlign: "right",
+    fontFamily: Platform.OS === "web" ? "monospace" : "System",
+  },
+  senderLabel: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#444",
+    marginBottom: 2,
   },
   inputContainer: {
     flexDirection: "row",
     padding: 10,
     borderTopColor: "#ccc",
     borderTopWidth: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    position: "absolute",
+    bottom: Platform.OS === "web" ? 80 : 60,
+    left: 0,
+    right: 0,
   },
   textInput: {
     flex: 1,
@@ -288,24 +325,6 @@ const styles = StyleSheet.create({
   sendText: {
     color: "blue",
     fontWeight: "bold",
-  },
-  messageWrapper: {
-    marginVertical: 5,
-    maxWidth: "80%",
-  },
-  incomingWrapper: {
-    alignSelf: "flex-start",
-    alignItems: "flex-start",
-  },
-  outgoingWrapper: {
-    alignSelf: "flex-end",
-    alignItems: "flex-end",
-  },
-  senderLabel: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#444",
-    marginBottom: 2,
   },
   modalOverlay: {
     flex: 1,
@@ -326,6 +345,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "center",
   },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+  },
   modalButtonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -343,6 +368,11 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: "white",
     fontWeight: "bold",
+  },
+  deliveryStatus: {
+    fontSize: 10,
+    color: "#666",
+    fontStyle: "italic",
   },
 });
 

@@ -1,5 +1,12 @@
-import React, { useContext, useEffect } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+    Platform,
+} from "react-native";
 import { AuthContext } from "@/context/AuthContext";
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 import Colors from "@/constants/Colors";
@@ -9,12 +16,16 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import API from "@/api/api";
 import RemoteImage from "@/components/RemoteImage";
+import { useImagePicker } from "@/hooks/useImagePicker";
 
 const ProfilePage = () => {
+    const [uploadedImage, setUploadedImage] = useState(null);
+
     const { userData, isAdmin, logout, refreshUserData } =
         useContext(AuthContext);
     const router = useRouter();
     const { showLoading, hideLoading } = useLoading();
+    const { pickImage, WebImageInput } = useImagePicker(setUploadedImage);
 
     const logoutButton = async () => {
         try {
@@ -34,35 +45,21 @@ const ProfilePage = () => {
 
     //change profile picture
     const changeImage = async () => {
-        //ask for permission
-        const permissionResult =
-            await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.status !== "granted") {
-            alert("Permission to access camera roll is required!");
-            return;
-        }
-
-        //open image picker
-        const result = await ImagePicker.launchImageLibraryAsync({
-            quality: 1,
-            allowsEditing: false,
-        });
-
-        if (result.canceled || !result.assets?.length) return;
-
-        const asset = result.assets[0];
-
-        //convert to file
-        const fileInfo = await FileSystem.getInfoAsync(asset.uri);
-        const fileName = asset.uri.split("/").pop();
-        const fileType = asset.type || "image/jpeg";
-
         const formData = new FormData();
-        formData.append("file", {
-            uri: asset.uri,
-            name: fileName,
-            type: fileType,
-        });
+
+        if (Platform.OS === "web") {
+            formData.append(
+                "file",
+                uploadedImage.fileObject,
+                uploadedImage.name
+            );
+        } else {
+            formData.append("file", {
+                uri: uploadedImage.uri,
+                name: uploadedImage.name,
+                type: uploadedImage.type,
+            });
+        }
 
         try {
             showLoading();
@@ -81,8 +78,14 @@ const ProfilePage = () => {
         }
     };
 
+    useEffect(() => {
+        if (!uploadedImage) return;
+
+        changeImage();
+    }, [uploadedImage]);
+
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <View style={styles.profileImageContainer}>
                 <RemoteImage
                     containerStyle={styles.profileImageWrapper}
@@ -95,10 +98,11 @@ const ProfilePage = () => {
                 />
                 <TouchableOpacity
                     style={styles.imageButton}
-                    onPress={changeImage}
+                    onPress={pickImage}
                 >
                     <Text style={styles.imageButtonText}>Change Image</Text>
                 </TouchableOpacity>
+                <WebImageInput />
             </View>
             <View style={styles.bioContainer}>
                 <Text style={styles.nameText}>{userData.username}</Text>
@@ -108,8 +112,8 @@ const ProfilePage = () => {
             <View style={styles.buttonContainer}>
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={() => router.push('/(tabs)/profile/user/settings')}
-                    >
+                    onPress={() => router.push("/(tabs)/profile/user/settings")}
+                >
                     <Text style={styles.buttonText}>Settings</Text>
                 </TouchableOpacity>
                 {isAdmin && (
@@ -124,14 +128,17 @@ const ProfilePage = () => {
                     <Text style={styles.buttonText}>Log out</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {},
-    profileImageContainer: {
+    container: {
         flex: 1,
+        paddingBottom: 200,
+    },
+    profileImageContainer: {
+        display: "flex",
         alignItems: "center",
         justifyContent: "center",
         minHeight: 250,
@@ -161,7 +168,7 @@ const styles = StyleSheet.create({
     },
 
     bioContainer: {
-        flex: 1,
+        display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 10,
@@ -179,10 +186,14 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         flex: 1,
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
     },
     button: {
         backgroundColor: Colors.greenButton,
         flex: 1,
+        width: "100%",
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 10,

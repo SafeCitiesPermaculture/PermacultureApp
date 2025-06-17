@@ -12,6 +12,7 @@ import {
     TextInput,
     Dimensions,
     Modal,
+    Platform,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
@@ -23,10 +24,11 @@ import Colors from "@/constants/Colors";
 import FileListing from "@/components/FileListing";
 import safeCitiesLogo from "@/assets/images/logo.png";
 import searchGlass from "@/assets/images/maginfying glass icon.png";
-import addIcon from "@/assets/images/Add _ plus icon.png";
+import addIcon from "@/assets/images/post-button.png";
 import backArrow from "@/assets/images/back_arrow.png";
 import folders from "@/assets/images/folder 2 icon.png";
 import { AuthContext } from "@/context/AuthContext";
+import { useFilePicker } from "@/hooks/useFilePicker";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -39,37 +41,11 @@ const InformationPage = () => {
     const [folderStack, setFolderStack] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [newFolderName, setNewFolderName] = useState("");
+    const [driveUsage, setDriveUsage] = useState(null);
 
     const { showLoading, hideLoading } = useLoading();
     const { isAdmin } = useContext(AuthContext);
-
-    //get the file from the file picker
-    const pickFile = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: [
-                    "image/jpeg",
-                    "image/png",
-                    "application/pdf",
-                    "application/msword",
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ],
-                copyToCacheDirectory: true,
-            });
-
-            console.log(result);
-
-            if (!result.canceled) {
-                setUploadedFile(result);
-                return result;
-            } else {
-                return null;
-            }
-        } catch (err) {
-            console.error("Error picking file:", err);
-            return null;
-        }
-    };
+    const { pickFile, WebFileInput } = useFilePicker(setUploadedFile);
 
     //send the file to the backend
     const sendFile = async () => {
@@ -78,14 +54,21 @@ const InformationPage = () => {
             return;
         }
 
-        const file = uploadedFile.assets[0];
-        const formData = new FormData();
-        formData.append("file", {
-            uri: file.uri,
-            name: file.name,
-            type: file.mimeType,
-        });
+        let fileFormData;
 
+        if (Platform.OS === "web") {
+            fileFormData = uploadedFile.uri;
+        } else {
+            const file = uploadedFile.assets[0];
+            fileFormData = {
+                uri: file.uri,
+                name: file.name,
+                type: file.mimeType || "application/octet-stream",
+            };
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileFormData);
         formData.append("parent", currentFolder?._id || null);
 
         try {
@@ -100,7 +83,7 @@ const InformationPage = () => {
             setUploadedFile(null);
             await getFileList();
         } catch (err) {
-            console.error("Upload error:", error.response || error.message);
+            console.error("Upload error:", err.response || err.message);
         } finally {
             hideLoading();
         }
@@ -117,13 +100,12 @@ const InformationPage = () => {
                 { responseType: "arraybuffer" }
             );
 
-            const base64String = Buffer.from(res.data, "binary").toString(
-                "base64"
-            );
-
             //determine file name and extension
             const disposition = res.headers["content-disposition"];
+
             let filename = "file.bin";
+            const mimeType =
+                res.headers["content-type"] || "application/octet-stream";
 
             if (disposition) {
                 const match = disposition.match(
@@ -137,22 +119,38 @@ const InformationPage = () => {
             //V not currently used but maybe useful in future V
             const extension = filename.substring(filename.lastIndexOf("."));
 
-            const fileUri = FileSystem.documentDirectory + filename;
-
-            //save file
-            await FileSystem.writeAsStringAsync(fileUri, base64String, {
-                encoding: FileSystem.EncodingType.Base64,
-            });
-
-            //open file with native viewer
-            const isAvailable = await Sharing.isAvailableAsync();
-            if (isAvailable) {
-                await Sharing.shareAsync(fileUri);
+            if (Platform.OS === "web") {
+                const blob = new Blob([res.data], { type: mimeType });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
             } else {
-                console.log("Sharing is not enabled on this device");
+                const base64String = Buffer.from(res.data, "binary").toString(
+                    "base64"
+                );
+
+                const fileUri = FileSystem.documentDirectory + filename;
+
+                //save file
+                await FileSystem.writeAsStringAsync(fileUri, base64String, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+
+                //open file with native viewer
+                const isAvailable = await Sharing.isAvailableAsync();
+                if (isAvailable) {
+                    await Sharing.shareAsync(fileUri);
+                } else {
+                    console.log("Sharing is not enabled on this device");
+                }
             }
         } catch (err) {
-            console.error("Download or open failed:", error);
+            console.error("Download or open failed:", err);
         } finally {
             hideLoading();
         }
@@ -191,10 +189,22 @@ const InformationPage = () => {
                     return a.name.localeCompare(b.name);
                 })
             );
+
+            //get usage stats
+            getDriveUsage();
         } catch (err) {
             console.log("Error populating list", err);
         } finally {
             hideLoading();
+        }
+    };
+
+    const getDriveUsage = async () => {
+        try {
+            const res = await API.get("/files/storage");
+            setDriveUsage(res.data);
+        } catch (err) {
+            console.log("Error getting drive usage", err);
         }
     };
 
@@ -270,6 +280,16 @@ const InformationPage = () => {
                             </View>
                         </View>
 
+                        <View style={styles.usageContainer}>
+                            <Text style={styles.usageText}>
+                                {driveUsage
+                                    ? driveUsage.usageGB > 0
+                                        ? `Storage Used: ${driveUsage.usageGB} GB / ${driveUsage.limitGB} GB`
+                                        : `Storage Used: ${driveUsage.usageMB} MB / ${driveUsage.limitMB} MB`
+                                    : "Loading..."}
+                            </Text>
+                        </View>
+
                         <View style={styles.currentFolderContainer}>
                             {currentFolder && (
                                 <>
@@ -337,7 +357,14 @@ const InformationPage = () => {
                         style={styles.modalBackground}
                         onPress={() => setFileModalVisible(false)}
                     >
-                        <View style={styles.modalContainer}>
+                        <Pressable
+                            style={styles.modalContainer}
+                            onPress={(e) => {
+                                if (e.target === e.currentTarget) {
+                                    e.stopPropagation();
+                                }
+                            }}
+                        >
                             <TouchableOpacity
                                 onPress={() => setFileModalVisible(false)}
                                 style={styles.modalBackButton}
@@ -345,6 +372,7 @@ const InformationPage = () => {
                                 <Image
                                     source={backArrow}
                                     style={styles.backArrowIcon}
+                                    pointerEvents="none"
                                 />
                             </TouchableOpacity>
                             <View style={styles.modalHeader}>
@@ -365,11 +393,22 @@ const InformationPage = () => {
                                     </Text>
                                 </TouchableOpacity>
                             </View>
+                            <WebFileInput />
                             <Text style={styles.selectedFileText}>
                                 Selected File:{" "}
-                                {uploadedFile
-                                    ? uploadedFile.assets[0].name
-                                    : "N/A"}
+                                {Platform.OS !== "web" ? (
+                                    <>
+                                        {uploadedFile
+                                            ? uploadedFile.assets[0].name
+                                            : "N/A"}
+                                    </>
+                                ) : (
+                                    <>
+                                        {uploadedFile
+                                            ? uploadedFile.name
+                                            : "N/A"}
+                                    </>
+                                )}
                             </Text>
 
                             <View style={styles.uploadContainer}>
@@ -418,7 +457,7 @@ const InformationPage = () => {
                                     </Text>
                                 </TouchableOpacity>
                             </View>
-                        </View>
+                        </Pressable>
                     </Pressable>
                 </Modal>
             )}
@@ -492,6 +531,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 
+    usageContainer: {
+        marginLeft: 20,
+    },
+
+    usageText: {},
+
     currentFolderContainer: {
         flex: 1,
         flexDirection: "row",
@@ -533,12 +578,17 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         padding: 10,
         borderRadius: 12,
+        zIndex: 5,
+        position: "relative",
     },
 
     modalBackButton: {
         position: "absolute",
         top: 20,
         left: 15,
+        width: 20,
+        height: 20,
+        zIndex: 10,
     },
 
     modalHeader: {
