@@ -47,7 +47,6 @@ const forgotPasswordPage = () => {
             } else {
                 setEmailSent(true);
                 setMessage("Check email for reset password link. Check spam folder if you do not see it.");
-                router.push(`/reset-password/${response.data.resetToken}`);
             }
         } catch (error) {
             setMessage(error.response?.data?.message || error.message);
