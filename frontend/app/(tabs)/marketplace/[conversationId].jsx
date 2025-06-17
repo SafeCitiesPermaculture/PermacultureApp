@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import API from "@/api/api";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken";
 import socket from "@/utils/socket";
+import Colors from "@/constants/Colors";
 
 const ConversationDetailPage = () => {
     const { conversationId } = useLocalSearchParams();
@@ -296,7 +297,9 @@ const ConversationDetailPage = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    messageList: { padding: 10 },
+    messageList: {
+        padding: 10,
+    },
     messageBubble: {
         marginVertical: 5,
         padding: 10,
@@ -321,9 +324,7 @@ const styles = StyleSheet.create({
         padding: 10,
         borderTopColor: "#ccc",
         borderTopWidth: 1,
-        position: "absolute",
-        bottom: 100,
-        width: "100%",
+        marginBottom: 80,
     },
     textInput: {
         flex: 1,
