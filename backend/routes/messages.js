@@ -9,7 +9,7 @@ const ObjectId = mongoose.Types.ObjectId;
 
 // Logging middleware
 router.use((req, res, next) => {
-  console.log("Hit route:", req.method, req.originalUrl);
+  //console.log("Hit route:", req.method, req.originalUrl);
   next();
 });
 
