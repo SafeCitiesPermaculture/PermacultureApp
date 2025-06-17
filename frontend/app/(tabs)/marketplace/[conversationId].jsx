@@ -32,16 +32,26 @@ const ConversationDetailPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!conversationId || conversationId === "undefined") return;
     let active = true;
     let uid = null;
 
     const handleReceiveMessage = (message) => {
       if (!active) return;
+
       setMessages((prev) => [message, ...prev]);
-      if (userId) {
+
+      if (uid && !message.deliveredTo.includes(uid)) {
         socket.emit("messageDelivered", {
           messageId: message._id,
-          userId,
+          userId: uid,
+        });
+      }
+
+      if (uid && !message.seenBy.includes(uid)) {
+        socket.emit("messageSeen", {
+          messageId: message._id,
+          userId: uid,
         });
       }
     };
@@ -56,6 +66,16 @@ const ConversationDetailPage = () => {
       );
     };
 
+    const handleMessageSeen = ({ messageId, userId }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === messageId && !msg.seenBy.includes(userId)
+            ? { ...msg, seenBy: [...msg.seenBy, userId] }
+            : msg
+        )
+      );
+    };
+
     const init = async () => {
       try {
         uid = await getUserIdFromToken();
@@ -64,7 +84,8 @@ const ConversationDetailPage = () => {
         socket.emit("joinConversation", conversationId);
 
         const res = await API.get(`/conversations/${conversationId}/messages`);
-        setMessages(res.data.reverse());
+        const fetchedMessages = res.data.reverse();
+        setMessages(fetchedMessages);
 
         const convoRes = await API.get(`/conversations/${conversationId}`);
         setConversation(convoRes.data);
@@ -73,8 +94,21 @@ const ConversationDetailPage = () => {
         const other = participants.find((p) => p._id !== uid);
         if (other) setOtherUser(other);
 
-        socket.on("receiveMessage", handleReceiveMessage);
-        socket.on("messageDelivered", handleMessageDelivered);
+        // Mark all messages as delivered on load
+        fetchedMessages.forEach((msg) => {
+          if (!msg.deliveredTo.includes(uid)) {
+            socket.emit("messageDelivered", {
+              messageId: msg._id,
+              userId: uid,
+            });
+          }
+          if (!msg.seenBy.includes(uid)) {
+            socket.emit("messageSeen", {
+              messageId: msg._id,
+              userId: uid,
+            });
+          }
+        });
       } catch (err) {
         console.error("Error loading conversation:", err);
       } finally {
@@ -82,14 +116,20 @@ const ConversationDetailPage = () => {
       }
     };
 
+    socket.on("receiveMessage", handleReceiveMessage);
+    socket.on("messageDelivered", handleMessageDelivered);
+    socket.on("messageSeen", handleMessageSeen);
+
     init();
 
     return () => {
       active = false;
       socket.off("receiveMessage", handleReceiveMessage);
       socket.off("messageDelivered", handleMessageDelivered);
+      socket.off("messageSeen", handleMessageSeen);
     };
   }, [conversationId]);
+
 
   useLayoutEffect(() => {
     if (!conversation || !conversation.participants) return;
