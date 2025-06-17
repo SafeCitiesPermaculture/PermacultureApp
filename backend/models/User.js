@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
     timesReported: { type: Number, default: 0 },
     isRemoved: { type: Boolean, default: false },
     removedDate: { type: Date, default: null }, //(to be deleted after 30 days)
+    resetPasswordToken: { type: String, default: "" },
+    resetPasswordExpires: { type: Date, default: new Date() }
 });
 
 /**

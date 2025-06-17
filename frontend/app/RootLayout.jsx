@@ -42,6 +42,7 @@ const RootLayout = () => {
                     name="signup"
                     options={{ headerTitle: "Sign Up" }}
                 />
+                <Stack.Screen name="forgotPassword" options={{ headerTitle: "Forgot Password" }} />
             </Stack>
         );
     }
