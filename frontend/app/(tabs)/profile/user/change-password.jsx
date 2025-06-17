@@ -1,12 +1,4 @@
-import {
-    View,
-    Text,
-    TextInput,
-    Alert,
-    TouchableOpacity,
-    StyleSheet,
-    ActivityIndicator,
-} from "react-native";
+import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState } from "react";
@@ -18,6 +10,20 @@ const ResetPasswordPage = () => {
     const [confirmNewPassword, setConfirmNewPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+
+    const changePassword = async () => {
+        setLoading(true);
+        try {
+            await API.put("/user/change-password", {
+                oldPassword,
+                newPassword
+            });
+        } catch (error) {
+            setErrorMessage(error.response?.data?.message || "Error changing password");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleReset = async () => {
         setErrorMessage("");
@@ -74,31 +80,22 @@ const ResetPasswordPage = () => {
             return;
         }
 
-        Alert.alert(
+        if (Platform.OS === "web") {
+            changePassword();
+        } else {
+            Alert.alert(
             "Change password",
             "Are you sure you want to change your password?",
             [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Change Password",
-                    style: "destructive",
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            await API.put("/user/change-password", {
-                                oldPassword,
-                                newPassword,
-                            });
-                        } catch (error) {
-                            console.log(error);
-                        } finally {
-                            setLoading(false);
-                        }
-                    },
-                },
+                { text: "Cancel", style:"cancel" },
+                { 
+                    text: "Change Password", style: "destructive",
+                    onPress: changePassword
+                }
             ],
             { cancelable: true }
-        );
+            );
+        }
     };
 
     return (
@@ -132,12 +129,8 @@ const ResetPasswordPage = () => {
             <TouchableOpacity style={styles.button} onPress={handleReset}>
                 <Text style={styles.buttonText}>Reset Password</Text>
             </TouchableOpacity>
-            {loading && (
-                <ActivityIndicator size="large" color={Colors.greenButton} />
-            )}
-            {errorMessage && (
-                <Text style={styles.errorMessage}>{errorMessage}</Text>
-            )}
+            {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+            {loading && <ActivityIndicator size="large" color={Colors.greenButton} />}
         </View>
     );
 };
