@@ -29,7 +29,7 @@ const ChangeFarmPage = () => {
     setLoading(true);
     setErrorMessage("");
     try {
-      await API.put("/users/update-profile", { farmName });
+      await API.put("/user/update-profile", { farmName });
       setErrorMessage("Farm updated successfully");
     } catch (err) {
       console.error(err);
@@ -43,6 +43,11 @@ const ChangeFarmPage = () => {
   const handleSubmit = () => {
     if (!farmName.trim()) {
       setErrorMessage("Farm name cannot be empty");
+      return;
+    }
+
+    if (farmName.trim().toLowerCase() === "safe cities" || farmName.trim().toLowerCase() === "safecities") {
+      setErrorMessage("Cannot assign self to safe cities farm. Ask an admin to do so.");
       return;
     }
 

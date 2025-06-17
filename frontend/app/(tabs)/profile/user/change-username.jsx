@@ -30,7 +30,7 @@ const ChangeUsernamePage = () => {
     setLoading(true);
     setErrorMessage("");
     try {
-      await API.put("/users/update-profile", { username });
+      await API.put("/user/update-profile", { username });
       setErrorMessage("Username updated!");
     } catch (err) {
       console.error(err);
