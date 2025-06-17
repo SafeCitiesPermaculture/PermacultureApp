@@ -5,9 +5,10 @@ const nodemailer = require("nodemailer");
 require("dotenv").config();
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+const EMAIL_USERNAME = process.env.EMAIL_USERNAME;
+const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
 
-const devUrl = "http://localhost:8081"
-const FRONTEND_URL = devUrl;
+const FRONTEND_URL = "sc-permaculture.vercel.app";
 
 //Helper functions
 const generateAccessToken = (user) => {
@@ -36,6 +37,14 @@ const checkUsernameEmailAvailable = async (username, email) => {
     }
 };
 
+// Email transporter
+const transporter = nodemailer.createTransport({
+            service: 'Gmail',
+            auth: {
+                user: EMAIL_USERNAME,
+                pass: EMAIL_PASSWORD
+            }
+        });
 
 /**
  * Signup handler
@@ -54,6 +63,20 @@ const handleSignup = async (req, res) => {
 
         const user = User({ username, email, password });
         await user.save();
+
+        await transporter.sendMail({
+            to: EMAIL_USERNAME, // safecitiespermaculture@gmail.com
+            subject: "ALERT: New user sign up",
+            html: 
+                `<p>A new user has signed up for the AFC Estate app.</p>
+                <p>Sign in with an admin account to approve or deny their request to join</p>
+                <strong>Account Details</strong>
+                <ul>
+                    <li>Username: ${username}</li>
+                    <li>Email: ${email}</li>
+                </ul>`
+        });
+
         res.status(201).json({ message: "User created" });
     } catch (err) {
         res.status(400).json({
@@ -156,15 +179,10 @@ const sendResetPasswordEmail = async (req, res) => {
             { expiresIn: '15m' }
         );
 
-        const resetURL = `${FRONTEND_URL}/reset-password/${resetToken}`;
+        user.resetPasswordToken = resetToken;
+        await user.save();
 
-        const transporter = nodemailer.createTransport({
-            service: 'Gmail',
-            auth: {
-                user: process.env.EMAIL_USERNAME,
-                pass: process.env.EMAIL_PASSWORD
-            }
-        });
+        const resetURL = `${FRONTEND_URL}/reset-password/${resetToken}`;
 
         await transporter.sendMail({
             to: email,
@@ -178,18 +196,19 @@ const sendResetPasswordEmail = async (req, res) => {
 
         console.log("sent email to", email);
 
-        return res.status(200).json({ message: "Reset password link sent to email" });
+        return res.status(200).json({ message: "Reset password link sent to email", resetToken });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
 
 const resetPasswordWithToken = async (req, res) => {
-    const { token, newPassword } = req.body;
+    const { resetPasswordToken } = req.params;
+    const { newPassword } = req.body;
 
     try {
-        const payload = jwt.verify(token, process.env.RESET_PASSWORD_SECRET);
-        const user = User.findById(payload.userId);
+        const payload = jwt.verify(resetPasswordToken, process.env.RESET_PASSWORD_SECRET);
+        const user = await User.findById(payload.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }

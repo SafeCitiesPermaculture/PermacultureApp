@@ -10,6 +10,7 @@ const forgotPasswordPage = () => {
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
+    const router = useRouter();
 
     const handleSubmit = async () => {
         if (!username.trim() || !email.trim()) {
@@ -41,16 +42,15 @@ const forgotPasswordPage = () => {
                 email: email.trim()
             });
 
-            console.log(response);
             if (response.status !== 200) {
                 setMessage("No user found");
             } else {
                 setEmailSent(true);
-                setMessage("Check email for reset password link");
+                setMessage("Check email for reset password link. Check spam folder if you do not see it.");
+                router.push(`/reset-password/${response.data.resetToken}`);
             }
-            
         } catch (error) {
-            setMessage(error.message);
+            setMessage(error.response?.data?.message || error.message);
             console.log(error.response);
         } finally {
             setLoading(false);
