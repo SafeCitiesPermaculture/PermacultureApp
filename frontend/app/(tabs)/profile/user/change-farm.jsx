@@ -1,26 +1,44 @@
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState, useEffect } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 
 const ChangeFarmPage = () => {
   const [farmName, setFarmName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchFarm = async () => {
+      setLoading(true);
       try {
         const res = await API.get("/user/me");
         setFarmName(res.data.farmName || "");
       } catch (err) {
         console.error(err);
         setErrorMessage("Failed to load current farm name");
+      } finally {
+        setLoading(false);
       }
     };
     fetchFarm();
   }, []);
+
+  const changeFarm = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      await API.put("/users/update-profile", { farmName });
+      setErrorMessage("Farm updated successfully");
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err?.response?.data?.message || "Failed to update farm name");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleSubmit = () => {
     if (!farmName.trim()) {
@@ -28,7 +46,10 @@ const ChangeFarmPage = () => {
       return;
     }
 
-    Alert.alert(
+    if (Platform.OS === "web") {
+      changeFarm();
+    } else{
+      Alert.alert(
       "Change Farm Name",
       `Are you sure you want to change your farm name to "${farmName}"?`,
       [
@@ -36,21 +57,12 @@ const ChangeFarmPage = () => {
         {
           text: "Change",
           style: "destructive",
-          onPress: async () => {
-            try {
-              await API.put("/users/update-profile", { farmName });
-              Alert.alert("Success", "Farm name updated", [
-                { text: "OK", onPress: () => router.back() },
-              ]);
-            } catch (err) {
-              console.error(err);
-              setErrorMessage(err?.response?.data?.message || "Failed to update farm name");
-            }
-          },
+          onPress: changeFarm
         },
       ],
       { cancelable: true }
-    );
+      );
+    }
   };
 
   return (
@@ -66,6 +78,7 @@ const ChangeFarmPage = () => {
         <Text style={styles.buttonText}>Update Farm Name</Text>
       </TouchableOpacity>
       {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+      {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
     </View>
   );
 };

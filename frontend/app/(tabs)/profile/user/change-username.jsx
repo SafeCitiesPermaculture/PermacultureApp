@@ -1,27 +1,44 @@
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState, useEffect } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 
 const ChangeUsernamePage = () => {
   const [username, setUsername] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   // Load current username on mount
   useEffect(() => {
     const fetchUsername = async () => {
+      setLoading(true);
       try {
         const res = await API.get("/user/me");
         setUsername(res.data.username || "");
       } catch (err) {
         console.error(err);
         setErrorMessage("Failed to load current username");
+      } finally {
+        setLoading(false);
       }
     };
     fetchUsername();
   }, []);
+
+  const changeUsername = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      await API.put("/users/update-profile", { username });
+      setErrorMessage("Username updated!");
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err?.response?.data?.message || "Failed to update username");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = () => {
     if (!username.trim()) {
@@ -29,29 +46,28 @@ const ChangeUsernamePage = () => {
       return;
     }
 
-    Alert.alert(
-      "Change Username",
-      `Are you sure you want to change your username to "${username}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Change",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await API.put("/users/update-profile", { username });
-              Alert.alert("Success", "Username updated", [
-                { text: "OK", onPress: () => router.back() },
-              ]);
-            } catch (err) {
-              console.error(err);
-              setErrorMessage(err?.response?.data?.message || "Failed to update username");
-            }
+    if (username.length < 5) {
+      setErrorMessage("Username must be at least 5 characters long.");
+      return;
+    }
+
+    if (Platform.OS === "web") {
+      changeUsername();
+    } else {
+      Alert.alert(
+        "Change Username",
+        `Are you sure you want to change your username to "${username}"?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Change",
+            style: "destructive",
+            onPress: changeUsername
           },
-        },
-      ],
-      { cancelable: true }
-    );
+        ],
+        { cancelable: true }
+      );
+    }
   };
 
   return (
@@ -67,6 +83,7 @@ const ChangeUsernamePage = () => {
         <Text style={styles.buttonText}>Update Username</Text>
       </TouchableOpacity>
       {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+      {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
     </View>
   );
 };
