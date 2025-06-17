@@ -22,7 +22,7 @@ const {
 require("dotenv").config();
 
 const app = express();
-const PORT = 6000;
+const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -33,7 +33,7 @@ app.use((req, res, next) => {
 
 // Allow requests from frontend (adjust the origin as needed)
 const allowedOrigins = [
-    "http://192.168.0.168:8081",
+    "http://localhost:8081",
     "https://sc-permaculture.vercel.app",
 ];
 

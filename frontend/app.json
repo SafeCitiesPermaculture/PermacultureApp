@@ -23,7 +23,10 @@
             "bundler": "metro",
             "output": "static",
             "favicon": "./assets/images/logo.png",
-            "name": "AFC Estate"
+            "name": "AFC Estate",
+            "meta": {
+                "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+            }
         },
         "plugins": [
             "expo-router",
