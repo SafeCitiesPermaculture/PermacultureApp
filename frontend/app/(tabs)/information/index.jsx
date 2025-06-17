@@ -24,7 +24,7 @@ import Colors from "@/constants/Colors";
 import FileListing from "@/components/FileListing";
 import safeCitiesLogo from "@/assets/images/logo.png";
 import searchGlass from "@/assets/images/maginfying glass icon.png";
-import addIcon from "@/assets/images/Add _ plus icon.png";
+import addIcon from "@/assets/images/post-button.png";
 import backArrow from "@/assets/images/back_arrow.png";
 import folders from "@/assets/images/folder 2 icon.png";
 import { AuthContext } from "@/context/AuthContext";
