@@ -280,15 +280,17 @@ const InformationPage = () => {
                             </View>
                         </View>
 
-                        <View style={styles.usageContainer}>
-                            <Text style={styles.usageText}>
-                                {driveUsage
-                                    ? driveUsage.usageGB > 0
-                                        ? `Storage Used: ${driveUsage.usageGB} GB / ${driveUsage.limitGB} GB`
-                                        : `Storage Used: ${driveUsage.usageMB} MB / ${driveUsage.limitMB} MB`
-                                    : "Loading..."}
-                            </Text>
-                        </View>
+                        {isAdmin && (
+                            <View style={styles.usageContainer}>
+                                <Text style={styles.usageText}>
+                                    {driveUsage
+                                        ? driveUsage.usageGB > 0
+                                            ? `Storage Used: ${driveUsage.usageGB} GB / ${driveUsage.limitGB} GB`
+                                            : `Storage Used: ${driveUsage.usageMB} MB / ${driveUsage.limitMB} MB`
+                                        : "Loading..."}
+                                </Text>
+                            </View>
+                        )}
 
                         <View style={styles.currentFolderContainer}>
                             {currentFolder && (
