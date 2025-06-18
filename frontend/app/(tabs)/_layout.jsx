@@ -17,7 +17,7 @@ export default function TabLayout() {
                 preserveNavigationState
             >
                 <Tabs.Screen name="home" />
-                <Tabs.Screen name="information" />
+                <Tabs.Screen name="documents" />
                 <Tabs.Screen name="marketplace" />
                 <Tabs.Screen name="profile" />
                 <Tabs.Screen name="schedule" />

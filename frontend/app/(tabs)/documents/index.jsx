@@ -32,7 +32,7 @@ import { useFilePicker } from "@/hooks/useFilePicker";
 
 const screenWidth = Dimensions.get("window").width;
 
-const InformationPage = () => {
+const DocumentsPage = () => {
     const [uploadedFile, setUploadedFile] = useState(null);
     const [fileModalVisible, setFileModalVisible] = useState(false);
     const [fileList, setFileList] = useState([]);
@@ -269,7 +269,7 @@ const InformationPage = () => {
                                     style={styles.textInput}
                                     value={searchText}
                                     onChangeText={setSearchText}
-                                    placeholder="Search Information"
+                                    placeholder="Search Documents..."
                                     placeholderTextColor="#888"
                                 />
                                 {/* magnfiying image*/}
@@ -716,4 +716,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default InformationPage;
+export default DocumentsPage;
