@@ -78,6 +78,11 @@ const ListingPage = () => {
     const handleSendMessage = async () => {
         try {
             const recipientUsername = listing?.postedBy?.username;
+
+            if (userData.timesReported > 0) {
+                Alert.alert("Messaging Disabled", "You have been reported and cannot send messages.");
+                return;
+            }
             if (!recipientUsername || recipientUsername === userData?.username) {
                 alert("Cannot message yourself.");
                 return;
