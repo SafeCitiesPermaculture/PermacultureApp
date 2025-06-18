@@ -79,6 +79,11 @@ const LoginPage = () => {
             >
                 <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/forgotPassword")}>
+                <Text style={styles.forgotPasswordText}>
+                    Forgot your password?
+                </Text>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -99,6 +104,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 10,
         width: "90%",
+        fontSize: 16,
     },
     button: {
         backgroundColor: Colors.greenButton,
@@ -114,6 +120,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 10,
         textAlign: "center",
+    },
+    forgotPasswordText: {
+        color: "blue",
+        textDecorationLine: "underline",
     },
 });
 

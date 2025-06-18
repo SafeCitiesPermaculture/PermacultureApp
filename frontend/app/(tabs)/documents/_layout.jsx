@@ -2,7 +2,8 @@ import React from "react";
 import { Stack } from "expo-router";
 import Colors from "@/constants/Colors";
 
-const InformationLayout = () => {
+
+const DocumentsLayout = () => {
     return (
         <Stack
             screenOptions={{
@@ -21,9 +22,12 @@ const InformationLayout = () => {
                 },
             }}
         >
-            <Stack.Screen name="index" options={{ title: "Information" }} />
+
+            <Stack.Screen name="index" options={{ title: "Documents" }} />
+
         </Stack>
     );
 };
 
-export default InformationLayout;
+
+export default DocumentsLayout;

@@ -79,8 +79,11 @@ API.interceptors.response.use(
             const refreshed = await tryRefreshToken();
             if (refreshed) {
                 console.log("Got new tokens");
+                const newTokens = await getTokens();
+                originalRequest.headers.authorization = `Bearer ${newTokens.accessToken}`;
                 return API(originalRequest);
-            } else {
+            }
+            else {
                 console.log("Did not get new tokens");
                 await clearTokens();
                 return Promise.reject("Session expired. Please log in again.");

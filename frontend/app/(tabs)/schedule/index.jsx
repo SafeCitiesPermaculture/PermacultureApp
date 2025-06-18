@@ -44,6 +44,7 @@ const SchedulePage = () => {
     const [newTaskName, setNewTaskName] = useState("");
     const [newTaskDate, setNewTaskDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
     const [selectedTasks, setSelectedTasks] = useState(new Set());
     const [completingTasks, setCompletingTasks] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
@@ -185,6 +186,36 @@ const SchedulePage = () => {
             }
         }, [getTasks])
     );
+
+    const handleDateTimeSelection = () => {
+        if (Platform.OS === "android") {
+            setShowDatePicker(true);
+        } else {
+            setShowDatePicker(!showDatePicker);
+        }
+    };
+
+    const onDateChangeAndroid = (event, selectedDate) => {
+        setShowDatePicker(false);
+        if (event?.type === "dismissed") return;
+        if (selectedDate) {
+            const updated = new Date(newTaskDate);
+            updated.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+            setNewTaskDate(updated);
+            setShowTimePicker(true);
+        }
+    };
+
+    const onTimeChangeAndroid = (event, selectedTime) => {
+        setShowTimePicker(false);
+        if (event?.type === "dismissed") return;
+        if (selectedTime) {
+            const updated = new Date(newTaskDate);
+            updated.setHours(selectedTime.getHours());
+            updated.setMinutes(selectedTime.getMinutes());
+            setNewTaskDate(updated);
+        }
+    };
 
     const onNativeDateChange = (event, date) => {
         const selectedDate = date >= new Date() ? date : newTaskDate; //Only allow dates from the future
@@ -459,32 +490,80 @@ const SchedulePage = () => {
                                     Select Date & Time
                                 </Text>
                             </TouchableOpacity>
-                            {showDatePicker && Platform.OS !== "web" ? ( //Mobile date time picker
+                            {Platform.OS === "web" && showDatePicker ? (
+                                <View style={styles.webDatePickerWrapper}>
+                                    <DatePicker
+                                    selected={newTaskDate}
+                                    onChange={onWebDateChange}
+                                    showTimeSelect
+                                    dateFormat="Pp"
+                                    minDate={new Date()}
+                                    className="react-datepicker-custom-input"
+                                    />
+                                </View>
+                                ) : null}
+
+                                {Platform.OS === "ios" && showDatePicker ? (
                                 <DateTimePicker
-                                    testID="dateTimePicker"
+                                    testID="iosDateTimePicker"
                                     value={newTaskDate}
                                     mode="datetime"
                                     is24Hour={true}
-                                    display={
-                                        Platform.OS === "ios"
-                                            ? "spinner"
-                                            : "default"
-                                    }
+                                    display="spinner"
                                     onChange={onNativeDateChange}
                                     minimumDate={new Date()}
                                 />
-                            ) : showDatePicker ? (
-                                <View style={styles.webDatePickerWrapper}>
-                                    <DatePicker
-                                        selected={newTaskDate}
-                                        onChange={onWebDateChange}
-                                        showTimeSelect
-                                        dateFormat="Pp"
-                                        minDate={new Date()}
-                                        className="react-datepicker-custom-input"
-                                    />
-                                </View>
-                            ) : null}
+                                ) : null}
+
+                                {Platform.OS === "android" && showDatePicker ? (
+                                <DateTimePicker
+                                    testID="androidDatePicker"
+                                    value={newTaskDate}
+                                    mode="date"
+                                    display="default"
+                                    minimumDate={new Date()}
+                                    onChange={(event, selectedDate) => {
+                                    if (event.type === "dismissed") {
+                                        setShowDatePicker(false);
+                                        return;
+                                    }
+                                    if (selectedDate) {
+                                        const updatedDate = new Date(newTaskDate);
+                                        updatedDate.setFullYear(
+                                        selectedDate.getFullYear(),
+                                        selectedDate.getMonth(),
+                                        selectedDate.getDate()
+                                        );
+                                        setNewTaskDate(updatedDate);
+                                        setShowDatePicker(false);
+                                        setTimeout(() => setShowTimePicker(true), 0);
+                                    }
+                                    }}
+                                />
+                                ) : null}
+
+                                {Platform.OS === "android" && showTimePicker ? (
+                                <DateTimePicker
+                                    testID="androidTimePicker"
+                                    value={newTaskDate}
+                                    mode="time"
+                                    display="default"
+                                    is24Hour={true}
+                                    onChange={(event, selectedTime) => {
+                                    if (event.type === "dismissed") {
+                                        setShowTimePicker(false);
+                                        return;
+                                    }
+                                    if (selectedTime) {
+                                        const updatedDate = new Date(newTaskDate);
+                                        updatedDate.setHours(selectedTime.getHours());
+                                        updatedDate.setMinutes(selectedTime.getMinutes());
+                                        setNewTaskDate(updatedDate);
+                                    }
+                                    setShowTimePicker(false);
+                                    }}
+                                />
+                                ) : null}
                         </View>
 
                         {/* Show picker to allow admin to assign tasks to workers */}

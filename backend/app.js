@@ -35,6 +35,7 @@ app.use((req, res, next) => {
 const allowedOrigins = [
     "http://localhost:8081",
     "https://sc-permaculture.vercel.app",
+    "https://afc-estate.vercel.app",
 ];
 
 app.use(
@@ -137,33 +138,63 @@ io.on("connection", (socket) => {
 
     // Send message to conversation AND notify user rooms
     socket.on("sendMessage", async ({ conversationId, message }) => {
+
+        // Add sender to seenBy if not already there
+        const msg = await Message.findById(message._id);
+        if (msg && !msg.seenBy.includes(message.sender._id)) {
+            msg.seenBy.push(message.sender._id);
+            await msg.save();
+        }
+
+        // Deliver immediately to sender
+        io.to(conversationId).emit("messageDelivered", {
+            messageId: message._id,
+            userId: message.sender._id,
+        });
+
+        // Broadcast message to other users in the conversation
         socket.to(conversationId).emit("receiveMessage", message);
 
+        // Update all user rooms with latest conversation data
         const conversation = await Conversation.findById(conversationId);
 
-        if (Array.isArray(message.participants)) {
-            message.participants.forEach((userId) => {
-                io.to(userId).emit("conversationUpdated", {
-                    conversationId,
-                    lastMessage: message.text,
-                    updatedAt: message.createdAt,
-                    name: conversation.name,
-                });
+        message.participants.forEach((userId) => {
+            io.to(userId).emit("conversationUpdated", {
+                conversationId,
+                lastMessage: message.text,
+                updatedAt: message.createdAt,
+                name: conversation.name,
             });
-        } else {
-            console.warn("⚠️ No participants array in message:", message);
-        }
+        });
+
     });
 
+
     socket.on("messageDelivered", async ({ messageId, userId }) => {
-        try {
-            await Message.findByIdAndUpdate(messageId, {
-                $addToSet: { deliveredTo: userId },
-            });
-        } catch (err) {
-            console.error("Failed to mark as delivered:", err);
+        console.log("Message Delivered");
+        const msg = await Message.findById(messageId);
+        if (!msg.deliveredTo.includes(userId)) {
+            msg.deliveredTo.push(userId);
+            await msg.save();
         }
+        io.to(msg.conversation.toString()).emit("messageDelivered", {
+            messageId,
+            userId,
+        });
     });
+
+    socket.on("messageSeen", async ({ messageId, userId }) => {
+        const msg = await Message.findById(messageId);
+        if (!msg.seenBy.includes(userId)) {
+            msg.seenBy.push(userId);
+            await msg.save();
+        }
+        io.to(msg.conversation.toString()).emit("messageSeen", {
+            messageId,
+            userId,
+        });
+    });
+
 
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);

@@ -17,16 +17,16 @@ router.put(
 );
 router.put("/change-password", userController.changePassword);
 
-// PUT /users/update-profile
+// PUT /user/update-profile
 router.put('/update-profile', async (req, res) => {
   try {
     const userId = req.user._id;
-    const { username, password, farmName } = req.body;
+    const { username, password, farmName, email } = req.body;
 
     const update = {};
     if (username) update.username = username;
     if (farmName) update.farmName = farmName;
-    if (password) update.password = await bcrypt.hash(password, 10);
+    if (email) update.email = email;
 
     const updatedUser = await User.findByIdAndUpdate(userId, update, { new: true });
     res.json({ message: 'Profile updated', user: updatedUser });
@@ -36,7 +36,7 @@ router.put('/update-profile', async (req, res) => {
   }
 });
 
-// GET /api/users/me
+// GET /api/user/me
 router.get("/me", async (req, res) => {
   try {
     const user = req.user;

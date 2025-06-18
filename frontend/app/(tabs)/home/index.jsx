@@ -32,7 +32,9 @@ export default function HomeScreen() {
             },
         },
         {
-            label: "Document Page",
+
+            label: "Documents Page",
+
             icon: require("@/assets/images/Info icon.png"),
             onPress: () => {
                 if (pathname !== "/documents") {

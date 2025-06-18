@@ -26,6 +26,13 @@ export default function SettingsScreen() {
 
       <TouchableOpacity
         style={styles.button}
+        onPress={() => router.push('/(tabs)/profile/user/change-email')}
+      >
+        <Text style={styles.buttonText}>Change Email</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
         onPress={() => router.push('/(tabs)/profile/user/change-farm')}
       >
         <Text style={styles.buttonText}>Change Farm Name</Text>

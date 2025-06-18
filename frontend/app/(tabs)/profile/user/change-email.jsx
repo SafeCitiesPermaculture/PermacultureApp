@@ -1,86 +1,84 @@
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState, useEffect } from "react";
 import { Stack } from "expo-router";
 
-const ChangeFarmPage = () => {
-  const [farmName, setFarmName] = useState("");
+const ChangeEmailPage = () => {
+  const [email, setEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchFarm = async () => {
+    const fetchEmail = async () => {
       setLoading(true);
       try {
         const res = await API.get("/user/me");
-        setFarmName(res.data.farmName || "");
+        setEmail(res.data.email || "");
       } catch (err) {
         console.error(err);
-        setErrorMessage("Failed to load current farm name");
+        setErrorMessage("Failed to load current email");
       } finally {
         setLoading(false);
       }
     };
-    fetchFarm();
+    fetchEmail();
   }, []);
 
-  const changeFarm = async () => {
-    setLoading(true);
+  const changeEmail = async () => {
     setErrorMessage("");
+    setLoading(true);
     try {
-      await API.put("/user/update-profile", { farmName });
-      setErrorMessage("Farm updated successfully");
+      await API.put("/user/update-profile", { email });
+      setErrorMessage("Email updated!");
     } catch (err) {
       console.error(err);
-      setErrorMessage(err?.response?.data?.message || "Failed to update farm name");
+      setErrorMessage(err?.response?.data?.message || "Failed to update email");
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleSubmit = () => {
-    if (!farmName.trim()) {
-      setErrorMessage("Farm name cannot be empty");
-      return;
-    }
-
-    if (farmName.trim().toLowerCase() === "safe cities" || farmName.trim().toLowerCase() === "safecities") {
-      setErrorMessage("Cannot assign self to safe cities farm. Ask an admin to do so.");
+    const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage("Please enter a valid email address");
       return;
     }
 
     if (Platform.OS === "web") {
-      changeFarm();
-    } else{
+      changeEmail();
+    }
+    else {
       Alert.alert(
-      "Change Farm Name",
-      `Are you sure you want to change your farm name to "${farmName}"?`,
+      "Change Email",
+      `Are you sure you want to change your email to:\n${email}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Change",
           style: "destructive",
-          onPress: changeFarm
+          onPress: changeEmail
         },
       ],
       { cancelable: true }
-      );
+     );
     }
   };
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Change Farm Name" }} />
+      <Stack.Screen options={{ title: "Change Email" }} />
       <TextInput
         style={styles.textInput}
-        placeholder="New farm name..."
-        value={farmName}
-        onChangeText={setFarmName}
+        placeholder="New email..."
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Update Farm Name</Text>
+        <Text style={styles.buttonText}>Update Email</Text>
       </TouchableOpacity>
       {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
       {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
@@ -121,4 +119,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ChangeFarmPage;
+export default ChangeEmailPage;
