@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions, Alert, Platform } from 'react-native';
 import AdminGuard from "@/components/AdminGuard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import API from "@/api/api";
@@ -44,7 +44,23 @@ const HandleReportPage = () => {
         }
     }, [reportId, router, report]);
 
+    const removeUser = async () => {
+        try {
+            await API.put(`/admin/remove/${report.reported._id}`);
+            setMessage(`${report?.reported.username} removed.`);
+            await API.delete(`/reports/${reportId}`);
+            setTimeout(() => router.dismiss(), 1000);
+        } catch (error) {
+            console.error("Error removing user:", error);
+            setErrorMessage(error.response?.data?.message || error.message);
+        }
+    };
+
     const handleRemove = useCallback(async () => {
+        if (Platform.OS === 'web') {
+            removeUser();
+            return;
+        }
         Alert.alert(
             "Remove User",
             "Are you sure you want to remove this user?",
@@ -53,17 +69,7 @@ const HandleReportPage = () => {
                 {
                     text: 'Remove User',
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await API.put(`/admin/remove/${report.reported._id}`);
-                            setMessage(`${report?.reported.username} removed.`);
-                            await API.delete(`/reports/${reportId}`);
-                            setTimeout(() => router.dismiss(), 1000);
-                        } catch (error) {
-                            console.error("Error removing user:", error);
-                            setErrorMessage(error.message);
-                        }
-                    }
+                    onPress: removeUser
                 }
             ],
             { cancelable: true }

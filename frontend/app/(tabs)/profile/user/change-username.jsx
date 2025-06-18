@@ -53,21 +53,21 @@ const ChangeUsernamePage = () => {
 
     if (Platform.OS === "web") {
       changeUsername();
-    } else {
-      Alert.alert(
-        "Change Username",
-        `Are you sure you want to change your username to "${username}"?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Change",
-            style: "destructive",
-            onPress: changeUsername
-          },
-        ],
-        { cancelable: true }
-      );
+      return;
     }
+    Alert.alert(
+      "Change Username",
+      `Are you sure you want to change your username to "${username}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Change",
+          style: "destructive",
+          onPress: changeUsername
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (

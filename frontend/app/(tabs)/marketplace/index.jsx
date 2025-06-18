@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    Platform,
 } from "react-native";
 import AuthGuard from "@/components/AuthGuard";
 import { useRouter } from "expo-router";
@@ -54,37 +55,43 @@ const MarketplacePage = () => {
         }, [getListings])
     );
 
+    const deleteListing = async (listingId) => {
+        setDeletingId(listingId);
+        try {
+            await API.delete(
+                `/listings/remove/${listingId}`
+            );
+            await getListings();
+        } catch (error) {
+            console.error(
+                "Error deleting listing: ",
+                error
+            );
+            setErrorMessage(error.message);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     const handleDelete = useCallback(
         async (listingId) => {
+            if (Platform.OS === 'web') {
+                deleteListing(listingId);
+                return;
+            }
+            
             Alert.alert(
-                "Delete listing",
-                "Are you sure you want to delete this listing?",
-                [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: async () => {
-                            setDeletingId(listingId);
-                            try {
-                                await API.delete(
-                                    `/listings/remove/${listingId}`
-                                );
-                                await getListings();
-                            } catch (error) {
-                                console.error(
-                                    "Error deleting listing: ",
-                                    error
-                                );
-                                setErrorMessage(error.message);
-                                Alert.alert(error.message);
-                            } finally {
-                                setDeletingId(null);
-                            }
-                        },
-                    },
-                ],
-                { cancelable: true }
+            "Delete listing",
+            "Are you sure you want to delete this listing?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: deleteListing(listingId),
+                },
+            ],
+            { cancelable: true }
             );
         },
         [getListings]
