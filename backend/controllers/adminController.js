@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const transporter = require("../utils/transporter");
+require("dotenv").config();
 
 //lists all users that have not been verified
 const getUnverifiedUsers = async (req, res) => {
@@ -39,6 +41,23 @@ const verifyUser = async (req, res) => {
         targetUser.isVerified = true;
         await targetUser.save();
 
+        try {
+            await transporter.sendMail({
+                from: `"AFC Estate App" <${process.env.EMAIL_USERNAME}>`,
+                to: targetUser.email,
+                subject: "AFC Estate Account Status",
+                html: `
+                <p>Hello,</p>
+                <p>There have been changes to your AFC Estate Account</p>
+                <p>Your account has been <strong>approved</strong>.</p>
+                <p>Go to afc-estate.vercel.app to login or download the app from the Google Play store.</p>
+                <p>Thank you,</p>
+                <p>Safe Cities Team</p>`
+            });
+        } catch (emailError) {
+            console.log("Failed to send verification email");
+        }
+
         res.json({ message: "User verified successfully", user: targetUser });
     } catch (err) {
         res.status(500).json({ message: "Server error" });
@@ -64,9 +83,31 @@ const getUser = async (req, res) => {
 const denyVerification = async (req, res) => {
     try {
         const { id } = req.params;
-        await User.findByIdAndDelete(id);
 
-        res.json({ message: "user deleted successfully" });
+        const user =  await User.findByIdAndDelete(id);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        try {
+            await transporter.sendMail({
+                from: `"AFC Estate App" <${process.env.EMAIL_USERNAME}>`,
+                to: user.email,
+                subject: "AFC Estate Account Status",
+                html: `
+                <p>Hello,</p>
+                <p>There have been changes to your AFC Estate Account</p>
+                <p>Your account has been <strong>denied</strong>.</p>
+                <p>Go to afc-estate.vercel.app to sign up again or contact us at safecitiespermaculture@gmail.com</p>
+                <p>Thank you,</p>
+                <p>Safe Cities Team</p>`
+            });
+        } catch (emailError) {
+            console.log("Failed to send verification email");
+        }
+
+        res.status(200).json({ message: "user deleted successfully" });
     } catch (err) {
         res.status(500).json({ message: "Server error" });
     }

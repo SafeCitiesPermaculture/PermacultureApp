@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
-const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 require("dotenv").config();
+const transporter = require("../utils/transporter");
 
 // Models
 const Task = require("../models/Task");
@@ -46,18 +46,9 @@ Incomplete Tasks:
 ${incomplete.length ? incomplete.map(t => `• ${t.name} (${t.assignedTo.username})`).join("\n") : "None"}
 `;
 
-    // Send the email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.REPORT_EMAIL,
-        pass: process.env.REPORT_PASSWORD,
-      },
-    });
-
     await transporter.sendMail({
-      from: `"Safe Cities Reports" <${process.env.REPORT_EMAIL}>`,
-      to: process.env.REPORT_RECIPIENT,
+      from: `"Safe Cities Reports" <${process.env.EMAIL_USERNAME}>`,
+      to: process.env.EMAIL_USERNAME,
       subject: "Safe Cities – Daily Task Report",
       text: reportText,
     });

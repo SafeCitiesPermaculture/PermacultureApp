@@ -96,12 +96,16 @@ const ResetPasswordPage = () => {
                 style={styles.textInput}
                 autoCapitalize="none"
             />
-            {errorMessage && (
-                <Text style={styles.errorMessage}>{errorMessage}</Text>
-            )}
+            <Text style={styles.passwordDescription}>
+                Passwords must be 8+ characters, contain at least one uppercase
+                letter, number, and special character (e.g. !, @, $)
+            </Text>
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
                 <Text style={styles.buttonText}>Reset password</Text>
             </TouchableOpacity>
+            {errorMessage && (
+                <Text style={styles.errorMessage}>{errorMessage}</Text>
+            )}
             {loading && (
                 <ActivityIndicator size="large" color={Colors.greenRegular} />
             )}

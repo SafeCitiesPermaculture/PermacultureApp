@@ -1,14 +1,12 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Token = require("../models/Token");
-const nodemailer = require("nodemailer");
+const transporter = require("../utils/transporter");
 require("dotenv").config();
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const EMAIL_USERNAME = process.env.EMAIL_USERNAME;
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
-
-const FRONTEND_URL = "sc-permaculture.vercel.app";
+const FRONTEND_URL = "afc-estate.vercel.app";
 
 //Helper functions
 const generateAccessToken = (user) => {
@@ -37,15 +35,6 @@ const checkUsernameEmailAvailable = async (username, email) => {
     }
 };
 
-// Email transporter
-const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-        user: EMAIL_USERNAME,
-        pass: EMAIL_PASSWORD,
-    },
-});
-
 /**
  * Signup handler
  */
@@ -70,6 +59,7 @@ const handleSignup = async (req, res) => {
         await user.save();
 
         await transporter.sendMail({
+            from: `"AFC Estate App" <${EMAIL_USERNAME}>`,
             to: EMAIL_USERNAME, // safecitiespermaculture@gmail.com
             subject: "ALERT: New user sign up",
             html: `<p>A new user has signed up for the AFC Estate app.</p>
@@ -195,6 +185,7 @@ const sendResetPasswordEmail = async (req, res) => {
         const resetURL = `${FRONTEND_URL}/reset-password/${resetToken}`;
 
         await transporter.sendMail({
+            from: `"AFC Estate App" <${EMAIL_USERNAME}>`,
             to: email,
             subject: "PASSWORD RESET: Safe Cities Permaculture App",
             html: `<p>You requested a password reset for the Safe Cities Permaculture App.</p>
