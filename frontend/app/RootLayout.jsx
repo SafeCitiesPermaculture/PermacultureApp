@@ -1,4 +1,4 @@
-import { Stack, Slot, useRouter } from "expo-router";
+import { Stack, Slot, useRouter, useSegments } from "expo-router";
 import { AuthContext } from "@/context/AuthContext";
 import Colors from "@/constants/Colors";
 import { useContext, useEffect } from "react";
@@ -9,14 +9,22 @@ import { useContext, useEffect } from "react";
 const RootLayout = () => {
     const { isLoggedIn, isAuthenticated, loading } = useContext(AuthContext);
     const router = useRouter();
+    const segments = useSegments();
+    const currentURL = segments.join("/");
+    const isResetPasswordRoute = currentURL.startsWith("reset-password");
+    console.log(segments);
+    console.log(currentURL, isResetPasswordRoute);
 
     useEffect(() => {
-        if (!loading && isLoggedIn && isAuthenticated) {
+        if (loading || isResetPasswordRoute) {
+            return;
+        }
+        if (isLoggedIn && isAuthenticated) {
             router.replace("/home");
-        } else if (!loading) {
+        } else {
             router.replace("/login");
         }
-    }, [isLoggedIn, isAuthenticated, loading]);
+    }, [isLoggedIn, isAuthenticated, loading, isResetPasswordRoute]);
 
     if (!isLoggedIn) {
         return (

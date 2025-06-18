@@ -1,5 +1,7 @@
 const Report = require("../models/Report");
 const User = require("../models/User");
+const transporter = require("../utils/transporter");
+require("dotenv").config();
 
 const makeReport = async (req, res) => {
     try {
@@ -52,6 +54,31 @@ const makeReport = async (req, res) => {
         
         await reportedUser.save();
         const savedReport = await newReport.save();
+
+        try {
+            const numReports = reportedUser.timesReported;
+            const message = numReports >= 3 ? ` meaning you have lost permissions for the following:</p>
+            <ul>
+                <li>Posting listings</li>
+                <li>Sending chats</li>
+                <li>Reporting other users</li>
+            </ul>` : `. You may continue to use your account as usual until you reach 3 reports</p>`;
+            await transporter.sendMail({
+                from: `"AFC Estate App" <${process.env.EMAIL_USERNAME}>`,
+                to: reportedUser.email,
+                subject: "AFC Estate Account Status",
+                html: `
+                <p>Hello,</p>
+                <p>There have been changes to your AFC Estate Account</p>
+                <p>Your account has been <strong>reported</strong>.</p>
+                <p>Your accout now has ${numReports} active reports on it${message}
+                <p>Contact us at safecitiespermaculture@gmail.com if you have any questions or concerns</p>
+                <p>Thank you,</p>
+                <p>Safe Cities Team</p>`
+            });
+        } catch (emailError) {
+            console.log("Failed to send verification email");
+        }
 
         res.status(201).json({
             message: "Successfully reported.",

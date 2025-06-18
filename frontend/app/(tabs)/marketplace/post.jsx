@@ -112,7 +112,7 @@ const PostListingPage = () => {
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error creating listing: ", error);
-            setMessage(error.message);
+            setMessage(error.response?.data?.message);
         } finally {
             setLoading(false);
         }
