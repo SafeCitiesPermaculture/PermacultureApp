@@ -82,20 +82,20 @@ const ResetPasswordPage = () => {
 
         if (Platform.OS === "web") {
             changePassword();
-        } else {
-            Alert.alert(
-            "Change password",
-            "Are you sure you want to change your password?",
-            [
-                { text: "Cancel", style:"cancel" },
-                { 
-                    text: "Change Password", style: "destructive",
-                    onPress: changePassword
-                }
-            ],
-            { cancelable: true }
-            );
+            return;
         }
+        Alert.alert(
+        "Change password",
+        "Are you sure you want to change your password?",
+        [
+            { text: "Cancel", style:"cancel" },
+            { 
+                text: "Change Password", style: "destructive",
+                onPress: changePassword
+            }
+        ],
+        { cancelable: true }
+        );
     };
 
     return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Platform, Image, Alert, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import API from '@/api/api';
 import Colors from '@/constants/Colors';
@@ -49,7 +49,23 @@ const ListingPage = () => {
         getListingDetails();
     }, [getListingDetails]);
     
-    const deleteListing = useCallback(async () => {
+    const deleteListing = async () => {
+        try {
+            setErrorMessage("Deleting...");
+            await API.delete(`/listings/remove/${listingId}`);
+            setTimeout(() => router.dismiss(), 1000);
+        } catch (error) {
+            console.error("Error deleting listing: ", error);
+            setErrorMessage(error.response?.data?.message || error.message);
+            Alert.alert(errorMessage);
+        }
+    };
+
+    const handleDelete = useCallback(async () => {
+        if(Platform.OS === 'web') {
+            deleteListing();
+            return;
+        }
         Alert.alert(
             "Delete listing",
             "Are you sure you want to delete this listing?",
@@ -58,17 +74,7 @@ const ListingPage = () => {
                 {
                     text: 'Delete', 
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            setErrorMessage("Deleting...");
-                            await API.delete(`/listings/remove/${listingId}`);
-                            setTimeout(() => router.dismiss(), 1000);
-                        } catch (error) {
-                            console.error("Error deleting listing: ", error);
-                            setErrorMessage(error.message);
-                            Alert.alert(error.message);
-                        }
-                    }
+                    onPress: deleteListing
                 }
             ],
             { cancelable: true }
@@ -109,11 +115,11 @@ const ListingPage = () => {
 
     useEffect(() => {
         if (isOwner || isAdmin) {
-            setButtonFunction(() => deleteListing);
+            setButtonFunction(() => handleDelete);
         } else {
             setButtonFunction(() => reportListing);
         }
-    }, [isOwner, isAdmin, deleteListing, reportListing]);
+    }, [isOwner, isAdmin, handleDelete, reportListing]);
     
     return (
         <AuthGuard>

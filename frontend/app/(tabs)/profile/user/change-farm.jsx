@@ -53,21 +53,21 @@ const ChangeFarmPage = () => {
 
     if (Platform.OS === "web") {
       changeFarm();
-    } else{
-      Alert.alert(
-      "Change Farm Name",
-      `Are you sure you want to change your farm name to "${farmName}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Change",
-          style: "destructive",
-          onPress: changeFarm
-        },
-      ],
-      { cancelable: true }
-      );
+      return;
     }
+    Alert.alert(
+    "Change Farm Name",
+    `Are you sure you want to change your farm name to "${farmName}"?`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Change",
+        style: "destructive",
+        onPress: changeFarm
+      },
+    ],
+    { cancelable: true }
+    );
   };
 
   return (

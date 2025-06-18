@@ -48,22 +48,21 @@ const ChangeEmailPage = () => {
 
     if (Platform.OS === "web") {
       changeEmail();
+      return;
     }
-    else {
-      Alert.alert(
-      "Change Email",
-      `Are you sure you want to change your email to:\n${email}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Change",
-          style: "destructive",
-          onPress: changeEmail
-        },
-      ],
-      { cancelable: true }
-     );
-    }
+    Alert.alert(
+    "Change Email",
+    `Are you sure you want to change your email to:\n${email}?`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Change",
+        style: "destructive",
+        onPress: changeEmail
+      },
+    ],
+    { cancelable: true }
+    );
   };
 
   return (
