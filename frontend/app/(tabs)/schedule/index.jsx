@@ -662,9 +662,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     taskArea: {
-        width: "95%",
+        width: "100%",
         alignItems: "center",
         justifyContent: "center",
+        
+       
     },
     message: {
         fontSize: 20,
@@ -695,7 +697,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         padding: 35,
         width: "85%",
-        height: "35%",
+        height: "55%",
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -819,7 +821,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         top: 55,
-        width: 260,
+        width: 250,
         height: 65,
         backgroundColor: Colors.brownLight,
         borderRadius: 10,
