@@ -88,6 +88,7 @@ const ResetPasswordPage = () => {
                 onChangeText={setPassword}
                 style={styles.textInput}
                 autoCapitalize="none"
+                secureTextEntry={true}
             />
             <TextInput
                 placeholder="Confirm new password..."
@@ -95,6 +96,7 @@ const ResetPasswordPage = () => {
                 onChangeText={setConfirmPassword}
                 style={styles.textInput}
                 autoCapitalize="none"
+                secureTextEntry={true}
             />
             <Text style={styles.passwordDescription}>
                 Passwords must be 8+ characters, contain at least one uppercase
