@@ -132,6 +132,8 @@ const styles = StyleSheet.create({
         padding: 10,
         width: "90%",
         fontSize: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between'
     },
     errorMessage: {
         fontSize: 16,
@@ -147,6 +149,11 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         fontSize: 20,
+    },
+    passwordDescription: {
+        textAlign: "center",
+        marginBottom: 8,
+        marginHorizontal: 10,
     },
 });
 
