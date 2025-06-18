@@ -88,6 +88,7 @@ const ResetPasswordPage = () => {
                 onChangeText={setPassword}
                 style={styles.textInput}
                 autoCapitalize="none"
+                secureTextEntry={true}
             />
             <TextInput
                 placeholder="Confirm new password..."
@@ -95,6 +96,7 @@ const ResetPasswordPage = () => {
                 onChangeText={setConfirmPassword}
                 style={styles.textInput}
                 autoCapitalize="none"
+                secureTextEntry={true}
             />
             <Text style={styles.passwordDescription}>
                 Passwords must be 8+ characters, contain at least one uppercase
@@ -130,6 +132,8 @@ const styles = StyleSheet.create({
         padding: 10,
         width: "90%",
         fontSize: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between'
     },
     errorMessage: {
         fontSize: 16,
@@ -145,6 +149,11 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         fontSize: 20,
+    },
+    passwordDescription: {
+        textAlign: "center",
+        marginBottom: 8,
+        marginHorizontal: 10,
     },
 });
 
