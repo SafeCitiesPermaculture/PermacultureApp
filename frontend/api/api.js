@@ -2,7 +2,7 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-const devUrl = "http://192.168.0.140:3000/api";
+const devUrl = "http://localhost:3000/api";
 const prodUrl = "https://permacultureapp.onrender.com/api";
 
 const BACKEND_URL = __DEV__ ? devUrl : prodUrl;

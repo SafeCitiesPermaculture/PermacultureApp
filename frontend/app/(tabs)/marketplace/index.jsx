@@ -103,6 +103,7 @@ const MarketplacePage = () => {
     return (
         <AuthGuard>
             <View style={styles.header}>
+                <View style={styles.mylistingbutton}>
                 <View
                     style={{
                         flex: 1,
@@ -115,14 +116,17 @@ const MarketplacePage = () => {
                     >
                         <Text
                             style={{
-                                fontSize: 14,
+                                fontSize: 16,
                                 textAlignVertical: "center",
+                                
                             }}
                         >
                             My listings
                         </Text>
                     </TouchableOpacity>
                 </View>
+                 </View>           
+
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>All Listings</Text>
                 </View>
@@ -298,6 +302,15 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         borderRadius: 10,
+    },
+    mylistingbutton:{
+        backgroundColor: Colors.greenButton,
+        padding: 10,
+        borderRadius: 5,
+        borderColor: "grey",
+        shadowColor: "#D3D3D3",
+        shadowOffset: { width: 0, height: 1 },
+        borderWidth: 1.5,
     },
 });
 
