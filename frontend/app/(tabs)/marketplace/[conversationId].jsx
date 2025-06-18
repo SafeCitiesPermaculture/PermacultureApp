@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { useEffect, useState, useRef, useLayoutEffect } from "react";
+import { useEffect, useState, useRef, useLayoutEffect, useContext } from "react";
 import {
     View,
     Text,
@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import API from "@/api/api";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken";
 import socket from "@/utils/socket";
+import { AuthContext } from "@/context/AuthContext";
 
 const ConversationDetailPage = () => {
     const { conversationId } = useLocalSearchParams();
@@ -30,6 +31,7 @@ const ConversationDetailPage = () => {
     const [renameModalVisible, setRenameModalVisible] = useState(false);
     const [newTitle, setNewTitle] = useState("");
     const [loading, setLoading] = useState(true);
+    const { userData } = useContext(AuthContext);
 
   useEffect(() => {
     if (!conversationId || conversationId === "undefined") return;
@@ -162,6 +164,13 @@ const ConversationDetailPage = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
         try {
+            if (userData?.timesReported > 0) {
+                Alert.alert(
+                    "Message Blocked",
+                    "You have been reported and cannot send messages."
+                );
+                return;
+            }
             const res = await API.post(
                 `/conversations/${conversationId}/messages`,
                 {

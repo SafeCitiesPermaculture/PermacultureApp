@@ -49,6 +49,12 @@ router.post("/conversations", async (req, res) => {
     const { usernames } = req.body;
     const senderId = req.user._id;
 
+    const sender = await User.findById(senderId);
+
+    if (sender.timesReported > 0) {
+      return res.status(403).json({ message: "You have been reported and cannot start new conversations." });
+    }
+
     if (!Array.isArray(usernames) || usernames.length === 0) {
       return res.status(400).json({ error: "Usernames array is required" });
     }
@@ -134,6 +140,11 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
     const { text } = req.body;
     const senderId = req.user._id;
     const conversationId = req.params.conversationId;
+    const user = await User.findById(senderId);
+
+    if (user.timesReported > 0) {
+      return res.status(403).json({ message: "You have been reported and cannot send messages." });
+    }
 
     const message = new Message({
       conversation: conversationId,
