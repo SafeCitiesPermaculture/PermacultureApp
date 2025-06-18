@@ -17,6 +17,7 @@ const ListingCard = ({ listing, buttonFunction, buttonImage }) => {
     const router = useRouter();
 
     return (
+     
         <TouchableOpacity
             onPress={() => router.push(`/marketplace/listing/${listing._id}`)}
         >
@@ -28,7 +29,7 @@ const ListingCard = ({ listing, buttonFunction, buttonImage }) => {
                 />
                 <View style={styles.topRow}>
                     <Text style={styles.title} numberOfLines={2}>{listing.title}</Text>
-                    <Text style={styles.price}>R{listing.price}</Text>
+                    <Text style={styles.price} numberOfLines={1}>R{listing.price}</Text>
                 </View>
                 <View style={styles.bottomRow}>
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -54,17 +55,22 @@ const ListingCard = ({ listing, buttonFunction, buttonImage }) => {
                 </View>
             </View>
         </TouchableOpacity>
+        
     );
 };
 
+
+
 const styles = StyleSheet.create({
+      
     background: {
         backgroundColor: Colors.brownLight,
         padding: 5,
         margin: 10,
         flexShrink: 1,
-        width: width / 2 - 40,
+        width: width / 2 - 30,
         borderRadius: 10,
+        height: 250,
     },
     imageContainer: {
         width: "100%",
@@ -85,11 +91,16 @@ const styles = StyleSheet.create({
     },
     title: {
         flex: 1,
-        fontSize: 16,
+        fontSize: 14,
+        flexWrap: "wrap",
+        marginRight: 5,
+        maxWidth: "75%",
     },
     price: {
         fontSize: 14,
         textAlign: "right",
+        maxWidth: "25%",
+
     },
     bottomRow: {
         flexDirection: "row",

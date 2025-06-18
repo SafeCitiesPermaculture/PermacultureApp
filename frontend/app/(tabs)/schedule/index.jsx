@@ -383,7 +383,7 @@ const SchedulePage = () => {
                             }
                         >
                         <View style={styles.centerContent}>
-                        <Text style={styles.checkedtext}> Completed Tasks </Text>
+                        <Text style={styles.checkedtext}> Click to view Completed Tasks </Text>
                             <Image
                                 source={greenCheckMark}
                                 style={styles.checkMark}
@@ -793,6 +793,7 @@ const styles = StyleSheet.create({
     completeButtonText: {
         fontSize: 16,
         fontWeight: "bold",
+       
     },
     pickerContainer: {
         width: "100%",
@@ -816,7 +817,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'column',
+        flexDirection: 'row',
         top: 55,
         width: 260,
         height: 65,
@@ -827,13 +828,15 @@ const styles = StyleSheet.create({
         borderWidth: 2,
     },
     checkedtext:{
-        fontSize: 20,
+        fontSize: 15,
         textDecorationLine: 'underline',
+        textAlign: "center",
+        
     },
     checkMark: {
             height: 30,
             width: 30,
-            alignItems: 'center',
+            alignItems: 'flex-end',
             justifyContent: 'center',
             marginTop: 5,
 
