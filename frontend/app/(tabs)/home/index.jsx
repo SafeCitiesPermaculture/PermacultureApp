@@ -32,7 +32,9 @@ export default function HomeScreen() {
             },
         },
         {
+
             label: "Documents Page",
+
             icon: require("@/assets/images/Info icon.png"),
             onPress: () => {
                 if (pathname !== "/documents") {
@@ -103,12 +105,12 @@ export default function HomeScreen() {
 const texts = StyleSheet.create({
     header: {
         fontSize: 25,
-        padding: 8,
+        padding: 3,
         fontWeight: "bold",
     },
     body: {
         fontSize: 18,
-        padding: 8,
+        padding: 10,
     },
 });
 const styles = StyleSheet.create({

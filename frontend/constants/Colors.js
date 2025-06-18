@@ -8,4 +8,5 @@ export default {
     greenButton: "#AEBA8C", //buttons are this green
     blueLogIn: "#2178E3", //blue for login button and sign up button
     errorRed: "#db0f0f",
+    taskdeadline: "#8b0000",
 };

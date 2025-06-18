@@ -2,6 +2,7 @@ import React from "react";
 import { Stack } from "expo-router";
 import Colors from "@/constants/Colors";
 
+
 const DocumentsLayout = () => {
     return (
         <Stack
@@ -21,9 +22,12 @@ const DocumentsLayout = () => {
                 },
             }}
         >
+
             <Stack.Screen name="index" options={{ title: "Documents" }} />
+
         </Stack>
     );
 };
+
 
 export default DocumentsLayout;

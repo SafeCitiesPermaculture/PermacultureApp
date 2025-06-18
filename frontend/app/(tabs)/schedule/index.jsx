@@ -1,5 +1,5 @@
 // Main page for Safe Cities admin
-import React, { useContext, useCallback, useState, useEffect } from "react";
+import React, { useContext, useCallback, useState, useEffect, createContext } from "react";
 import {
     View,
     ScrollView,
@@ -20,7 +20,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { Picker } from "@react-native-picker/picker";
 import DatePicker from "react-datepicker";
@@ -361,35 +361,42 @@ const SchedulePage = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <View
-                    style={{
-                        flexDirection: "row",
-                        marginBottom: 20,
-                        alignItems: "flex-start",
-                        width: "100%",
-                    }}
+
+                 <View
+                style={{
+                    flexDirection: "row",
+                    marginBottom: 85,
+                    alignItems: "flex-start",
+                    width: "100%",
+                }}
                 >
-                    <View
-                        style={{
-                            flex: 1,
-                            justifyContent: "center",
-                            alignItems: "flex-start",
-                        }}
-                    >
+                <View style={styles.containerTop}>
+
+                     <View style={{ flex: 1, justifyContent: "center" }}>
+                        <Text style={styles.header}>Schedule</Text>
+                    </View>
+
+                    <View style={styles.checkedtask}>
                         <TouchableOpacity
                             onPress={() =>
                                 router.push("/schedule/CompletedTasks")
                             }
                         >
+                        <View style={styles.centerContent}>
+                        <Text style={styles.checkedtext}> Completed Tasks </Text>
                             <Image
                                 source={greenCheckMark}
                                 style={styles.checkMark}
+                                 resizeMode="contain"
                             />
+                         </View>
                         </TouchableOpacity>
                     </View>
-                    <View style={{ flex: 2, justifyContent: "center" }}>
-                        <Text style={styles.header}>Schedule</Text>
-                    </View>
+
+
+
+
+                </View>
                 </View>
                 <View style={styles.taskArea}>
                     {loading ? (
@@ -639,6 +646,7 @@ const SchedulePage = () => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
+        alignItems: "center",
     },
     scrollViewContent: {
         alignItems: "center",
@@ -649,6 +657,9 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: Colors.darkGray,
         flex: 1,
+        textDecorationLine: 'underline',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     taskArea: {
         width: "95%",
@@ -680,10 +691,12 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
     modalContent: {
-        backgroundColor: Colors.brownLight,
+        backgroundColor: "white",
         borderRadius: 20,
-        padding: 25,
+        padding: 35,
         width: "85%",
+        height: "35%",
+        justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 6 },
@@ -716,18 +729,17 @@ const styles = StyleSheet.create({
     },
     selectDateButton: {
         borderWidth: 1,
-        borderColor: Colors.greyTextBox,
+        borderColor: "black",
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
+        backgroundColor: Colors.brownLight,
         shadowOpacity: 0.2,
-        shadowRadius: 3,
+        shadowRadius: 1,
         elevation: 4,
     },
     selectDateButtonText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: "bold",
     },
     modalErrorMessage: {
@@ -755,15 +767,14 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     cancelButton: {
-        backgroundColor: "#db6969",
+        backgroundColor: "#ffbaba",
     },
     createButton: {
         backgroundColor: Colors.greenRegular,
     },
     buttonText: {
         color: Colors.white,
-        fontSize: 14,
-        fontWeight: "bold",
+        fontSize: 16,
     },
     completeButton: {
         position: "absolute",
@@ -783,10 +794,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    checkMark: {
-        height: 30,
-        width: 30,
-    },
     pickerContainer: {
         width: "100%",
         marginBottom: 20,
@@ -804,6 +811,53 @@ const styles = StyleSheet.create({
         fontSize: 16,
         flex: 1,
     },
+    checkedtask:{
+        flex: 1,
+        position: "absolute",
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        top: 55,
+        width: 260,
+        height: 65,
+        backgroundColor: Colors.brownLight,
+        borderRadius: 10,
+        zIndex: 5,
+        borderColor: Colors.brownMedium,
+        borderWidth: 2,
+    },
+    checkedtext:{
+        fontSize: 20,
+        textDecorationLine: 'underline',
+    },
+    checkMark: {
+            height: 30,
+            width: 30,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 5,
+
+    },
+    centerContent:{
+     alignItems: "center",
+      justifyContent: "center",
+    },
+    containerTop: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "flex-start",
+        paddingTop: 1,
+    },
+    webDatePickerWrapper: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        padding: 10,
+        backgroundColor: '#fff',
+        alignSelf: 'center',
+        zIndex: 10,
+    },
+
 });
 
 export default SchedulePage;

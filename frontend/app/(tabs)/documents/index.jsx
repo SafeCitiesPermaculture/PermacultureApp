@@ -269,7 +269,9 @@ const DocumentsPage = () => {
                                     style={styles.textInput}
                                     value={searchText}
                                     onChangeText={setSearchText}
+
                                     placeholder="Search Documents..."
+
                                     placeholderTextColor="#888"
                                 />
                                 {/* magnfiying image*/}
@@ -291,6 +293,7 @@ const DocumentsPage = () => {
                                 </Text>
                             </View>
                         )}
+
 
                         <View style={styles.currentFolderContainer}>
                             {currentFolder && (
