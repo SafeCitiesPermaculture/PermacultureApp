@@ -17,7 +17,7 @@ export default function Menu({ state, navigation }) {
     const menuItems = [
         { label: "Home", icon: homeIcon, route: "home" },
         { label: "Marketplace", icon: marketIcon, route: "marketplace" },
-        { label: "Info", icon: infoIcon, route: "information" },
+        { label: "Documents", icon: infoIcon, route: "documents" },
         { label: "Schedule", icon: scheduleIcon, route: "schedule" },
         { label: "Profile", icon: profileIcon, route: "profile" },
     ];

@@ -32,11 +32,11 @@ export default function HomeScreen() {
             },
         },
         {
-            label: "Information Page",
+            label: "Documents Page",
             icon: require("@/assets/images/Info icon.png"),
             onPress: () => {
-                if (pathname !== "/information") {
-                    router.push("/information");
+                if (pathname !== "/documents") {
+                    router.push("/documents");
                 }
             },
         },
