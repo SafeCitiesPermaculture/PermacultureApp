@@ -14,6 +14,9 @@ export default function Menu({ state, navigation }) {
     const router = useRouter();
     const pathname = usePathname(); // <-- current path
 
+    const currentTabIndex = state.index;
+    const currentRouteName = state.routes[currentTabIndex].name;
+
     const menuItems = [
         { label: "Home", icon: homeIcon, route: "home" },
         { label: "Marketplace", icon: marketIcon, route: "marketplace" },
@@ -25,13 +28,20 @@ export default function Menu({ state, navigation }) {
     return (
         <View style={styles.bottomRectangle}>
             {menuItems.map((item, index) => {
+                const isCurrentTab = currentRouteName === item.route;
+
                 return (
                     <TouchableOpacity
                         key={item.label}
                         style={styles.menuItem}
                         onPress={() => {
-                            if (!state.index !== index) {
+                            if (!isCurrentTab) {
                                 navigation.navigate(item.route);
+                            } else {
+                                navigation.reset({
+                                    index: 0,
+                                    routes: [{ name: item.route }],
+                                });
                             }
                         }}
                     >

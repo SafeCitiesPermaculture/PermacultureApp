@@ -41,7 +41,11 @@ const CompletedTasksPage = () => {
         setErrorMessage("");
         try {
             const response = await API.get("/tasks/completed");
-            setTasks(response.data.tasks);
+            const fetchedTasks = response.data.tasks.map((task) => ({
+                ...task,
+                dueDateTime: new Date(task.dueDateTime),
+            }));
+            setTasks(fetchedTasks);
         } catch (error) {
             setErrorMessage(error.message);
         } finally {
@@ -238,16 +242,18 @@ const styles = StyleSheet.create({
         color: Colors.gray,
     },
     completeButton: {
-       backgroundColor: Colors.greenRegular,
-       width: width,
-       borderColor: Colors.greenButton,
-       borderWidth: 2,
-       borderRadius: 5,
-       paddingVertical: 5,
-       paddingHorizontal: 10,
-       marginVertical: 4,
-       flexDirection: 'column',
-       alignItems: 'stretch',
+       position: "absolute",
+        bottom: 100,
+        left: 10,
+        backgroundColor: Colors.brownMedium,
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 8,
     },
     completeButtonText: {
         color: Colors.white,

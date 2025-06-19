@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState, useContext } from "react";
 import Colors from "@/constants/Colors";
 import { AuthContext } from "@/context/AuthContext";
+import { useLoading } from "@/context/LoadingContext";
 
 const reportPage = () => {
     const { reportedUsername, reported } = useLocalSearchParams();
@@ -21,6 +22,7 @@ const reportPage = () => {
     const [message, setMessage] = useState("");
     const { userData } = useContext(AuthContext);
     const router = useRouter();
+    const { showLoading, hideLoading } = useLoading();
 
     const handleSubmit = async () => {
         Keyboard.dismiss();
@@ -36,6 +38,7 @@ const reportPage = () => {
         }
 
         setLoading(true);
+        showLoading();
         setMessage("");
         try {
             const reportData = {
@@ -56,6 +59,7 @@ const reportPage = () => {
             );
         } finally {
             setLoading(false);
+            hideLoading();
         }
     };
 
@@ -90,10 +94,7 @@ const reportPage = () => {
                     <Text style={styles.text}>Submit</Text>
                 </TouchableOpacity>
                 {loading ? (
-                    <ActivityIndicator
-                        size="large"
-                        color={Colors.greenRegular}
-                    />
+                    <></>
                 ) : (
                     <View style={{ marginTop: 10 }}>
                         <Text style={styles.message}>{message}</Text>
@@ -131,6 +132,7 @@ const styles = StyleSheet.create({
     },
     message: {
         fontSize: 16,
+        fontWeight: "bold",
         color: Colors.greenRegular,
     },
 });

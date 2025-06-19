@@ -51,20 +51,19 @@ const ChangeUsernamePage = () => {
   };
 
   const handleSubmit = () => {
-    if (!username.trim()) {
+    setUsername(username.trim());
+    if (!username) {
       setErrorMessage("Username cannot be empty");
       return;
     }
-
+    
     if (username.length < 5) {
       setErrorMessage("Username must be at least 5 characters long.");
       return;
     }
 
-    if (username.trim() === originalUsername) {
+    if (username === originalUsername) {
       setErrorMessage("New username must be different from old username.");
-      return;
-    }
 
     setConfirmModalVisible(true);
   };

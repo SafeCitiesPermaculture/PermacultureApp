@@ -75,7 +75,7 @@ const ListingPage = () => {
         try {
             const recipientUsername = listing?.postedBy?.username;
 
-            if (userData.timesReported > 0) {
+            if (userData.timesReported > 2) {
                 Alert.alert("Messaging Disabled", "You have been reported and cannot send messages.");
                 return;
             }
