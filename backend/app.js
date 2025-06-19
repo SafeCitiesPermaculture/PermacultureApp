@@ -138,40 +138,52 @@ io.on("connection", (socket) => {
 
     // Send message to conversation AND notify user rooms
     socket.on("sendMessage", async ({ conversationId, message }) => {
-
-        // Add sender to seenBy if not already there
-        const msg = await Message.findById(message._id);
-        if (msg && !msg.seenBy.includes(message.sender._id)) {
+        try {
+            // Add sender to seenBy if not already there
+            const msg = await Message.findById(message._id);
+            if (msg && !msg.seenBy.includes(message.sender._id)) {
             msg.seenBy.push(message.sender._id);
             await msg.save();
-        }
+            }
 
-        // Deliver immediately to sender
-        io.to(conversationId).emit("messageDelivered", {
+            // Deliver immediately to sender (e.g. update UI optimistically)
+            io.to(conversationId).emit("messageDelivered", {
             messageId: message._id,
             userId: message.sender._id,
-        });
+            });
 
-        // Broadcast message to other users in the conversation
-        socket.to(conversationId).emit("receiveMessage", message);
+            // 🔄 Populate sender with username for notifications/UI
+            const populatedMessage = await Message.findById(message._id)
+            .populate("sender", "username");
 
-        // Update all user rooms with latest conversation data
-        const conversation = await Conversation.findById(conversationId);
+            // 📨 Send message to all participants *except* the sender
+            message.participants.forEach((userId) => {
+            if (userId !== message.sender._id) {
+                io.to(userId).emit("receiveMessage", {
+                ...populatedMessage.toObject(),
+                });
+            }
+            });
 
-        message.participants.forEach((userId) => {
+            // 🆙 Update conversation previews for all participants
+            const conversation = await Conversation.findById(conversationId);
+            message.participants.forEach((userId) => {
             io.to(userId).emit("conversationUpdated", {
                 conversationId,
                 lastMessage: message.text,
                 updatedAt: message.createdAt,
                 name: conversation.name,
             });
-        });
+            });
 
+        } catch (err) {
+            console.error("Error in sendMessage socket handler:", err);
+        }
     });
 
 
+
     socket.on("messageDelivered", async ({ messageId, userId }) => {
-        console.log("Message Delivered");
         const msg = await Message.findById(messageId);
         if (!msg.deliveredTo.includes(userId)) {
             msg.deliveredTo.push(userId);

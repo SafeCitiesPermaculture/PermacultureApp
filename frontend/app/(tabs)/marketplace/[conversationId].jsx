@@ -18,6 +18,15 @@ import API from "@/api/api";
 import { getUserIdFromToken } from "@/utils/getUserIdFromToken";
 import socket from "@/utils/socket";
 import { AuthContext } from "@/context/AuthContext";
+import * as Notifications from "expo-notifications";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 const ConversationDetailPage = () => {
     const { conversationId } = useLocalSearchParams();
@@ -33,108 +42,139 @@ const ConversationDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const { userData } = useContext(AuthContext);
 
-  useEffect(() => {
-    if (!conversationId || conversationId === "undefined") return;
-    let active = true;
-    let uid = null;
+    useEffect(() => {
+        if (!conversationId || conversationId === "undefined") return;
+        let active = true;
+        let uid = null;
 
-    const handleReceiveMessage = (message) => {
-      if (!active) return;
+        const requestNotificationPermission = async () => {
+            if (Platform.OS !== "web") {
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            let finalStatus = existingStatus;
+            if (existingStatus !== "granted") {
+                const { status } = await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+            }
+            if (finalStatus !== "granted") {
+                Alert.alert(
+                "Permission required",
+                "Please enable notifications in your device settings to receive alerts."
+                );
+            }
+            }
+        };
 
-      setMessages((prev) => [message, ...prev]);
+        const handleReceiveMessage = async (message) => {
+            if (!active) return;
 
-      if (uid && !message.deliveredTo.includes(uid)) {
-        socket.emit("messageDelivered", {
-          messageId: message._id,
-          userId: uid,
-        });
-      }
+            setMessages((prev) => [message, ...prev]);
 
-      if (uid && !message.seenBy.includes(uid)) {
-        socket.emit("messageSeen", {
-          messageId: message._id,
-          userId: uid,
-        });
-      }
-    };
+            if (uid && !message.deliveredTo.includes(uid)) {
+                socket.emit("messageDelivered", {
+                messageId: message._id,
+                userId: uid,
+                });
+            }
 
-    const handleMessageDelivered = ({ messageId, userId }) => {
-        setMessages((prev) =>
+            if (uid && !message.seenBy.includes(uid)) {
+                socket.emit("messageSeen", {
+                messageId: message._id,
+                userId: uid,
+                });
+            }
+
+            // ✅ Avoid crash on web
+            if (Platform.OS !== "web" && message.sender._id !== uid) {
+                await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: `New message from ${message.sender.username || "Someone"}`,
+                    body: message.text,
+                    data: {
+                    conversationId: message.conversation,
+                    },
+                    sound: "default",
+                },
+                trigger: null,
+                });
+            }
+        };
+
+
+        const handleMessageDelivered = ({ messageId, userId }) => {
+            setMessages((prev) =>
             prev.map((msg) =>
                 msg._id === messageId && !msg.deliveredTo.includes(userId)
-                    ? { ...msg, deliveredTo: [...msg.deliveredTo, userId] }
-                    : msg
+                ? { ...msg, deliveredTo: [...msg.deliveredTo, userId] }
+                : msg
             )
-        );
-    };
+            );
+        };
 
-    const handleMessageSeen = ({ messageId, userId }) => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === messageId && !msg.seenBy.includes(userId)
-            ? { ...msg, seenBy: [...msg.seenBy, userId] }
-            : msg
-        )
-      );
-    };
+        const handleMessageSeen = ({ messageId, userId }) => {
+            setMessages((prev) =>
+            prev.map((msg) =>
+                msg._id === messageId && !msg.seenBy.includes(userId)
+                ? { ...msg, seenBy: [...msg.seenBy, userId] }
+                : msg
+            )
+            );
+        };
 
-    const init = async () => {
-      try {
-        uid = await getUserIdFromToken();
-        setUserId(uid);
+        const init = async () => {
+            try {
+            await requestNotificationPermission();
 
-        socket.emit("joinConversation", conversationId);
+            uid = await getUserIdFromToken();
+            setUserId(uid);
 
-        const res = await API.get(`/conversations/${conversationId}/messages`);
-        const fetchedMessages = res.data.reverse();
-        setMessages(fetchedMessages);
+            socket.emit("joinConversation", conversationId);
 
+            const res = await API.get(`/conversations/${conversationId}/messages`);
+            const fetchedMessages = res.data.reverse();
+            setMessages(fetchedMessages);
 
-        const convoRes = await API.get(
-            `/conversations/${conversationId}`
-        );
-        setConversation(convoRes.data);
+            const convoRes = await API.get(`/conversations/${conversationId}`);
+            setConversation(convoRes.data);
 
-        const participants = convoRes.data.participants;
-        const other = participants.find((p) => p._id !== uid);
-        if (other) setOtherUser(other);
+            const participants = convoRes.data.participants;
+            const other = participants.find((p) => p._id !== uid);
+            if (other) setOtherUser(other);
 
-        // Mark all messages as delivered on load
-        fetchedMessages.forEach((msg) => {
-          if (!msg.deliveredTo.includes(uid)) {
-            socket.emit("messageDelivered", {
-              messageId: msg._id,
-              userId: uid,
+            // Mark messages delivered/seen
+            fetchedMessages.forEach((msg) => {
+                if (!msg.deliveredTo.includes(uid)) {
+                socket.emit("messageDelivered", {
+                    messageId: msg._id,
+                    userId: uid,
+                });
+                }
+                if (!msg.seenBy.includes(uid)) {
+                socket.emit("messageSeen", {
+                    messageId: msg._id,
+                    userId: uid,
+                });
+                }
             });
-          }
-          if (!msg.seenBy.includes(uid)) {
-            socket.emit("messageSeen", {
-              messageId: msg._id,
-              userId: uid,
-            });
-          }
-        });
-      } catch (err) {
-        console.error("Error loading conversation:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+            } catch (err) {
+            console.error("Error loading conversation:", err);
+            } finally {
+            setLoading(false);
+            }
+        };
 
-    socket.on("receiveMessage", handleReceiveMessage);
-    socket.on("messageDelivered", handleMessageDelivered);
-    socket.on("messageSeen", handleMessageSeen);
+        socket.on("receiveMessage", handleReceiveMessage);
+        socket.on("messageDelivered", handleMessageDelivered);
+        socket.on("messageSeen", handleMessageSeen);
 
-    init();
+        init();
 
-    return () => {
-      active = false;
-      socket.off("receiveMessage", handleReceiveMessage);
-      socket.off("messageDelivered", handleMessageDelivered);
-      socket.off("messageSeen", handleMessageSeen);
-    };
-  }, [conversationId]);
-
+        return () => {
+            active = false;
+            socket.off("receiveMessage", handleReceiveMessage);
+            socket.off("messageDelivered", handleMessageDelivered);
+            socket.off("messageSeen", handleMessageSeen);
+        };
+    }, [conversationId]);
 
   useLayoutEffect(() => {
     if (!conversation || !conversation.participants) return;
