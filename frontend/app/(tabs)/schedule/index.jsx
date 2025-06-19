@@ -316,8 +316,7 @@ const SchedulePage = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
-
-                 <View
+                <View
                 style={{
                     flexDirection: "row",
                     marginBottom: 85,
@@ -326,31 +325,25 @@ const SchedulePage = () => {
                 }}
                 >
                 <View style={styles.containerTop}>
-
                      <View style={{ flex: 1, justifyContent: "center" }}>
                         <Text style={styles.header}>Schedule</Text>
                     </View>
 
-                    <View style={styles.checkedtask}>
-                        <TouchableOpacity
-                            onPress={() =>
-                                router.push("/schedule/CompletedTasks")
-                            }
-                        >
-                        <View style={styles.centerContent}>
-                        <Text style={styles.checkedtext}> Click to view Completed Tasks </Text>
-                            <Image
-                                source={greenCheckMark}
-                                style={styles.checkMark}
-                                 resizeMode="contain"
-                            />
-                         </View>
-                        </TouchableOpacity>
-                    </View>
-
-
-
-
+                    <TouchableOpacity
+                        onPress={() =>
+                            router.push("/schedule/CompletedTasks")
+                        }
+                        style={styles.checkedtask}
+                    >
+                    <View style={styles.centerContent}>
+                    <Text style={styles.checkedtext}> Click to view Completed Tasks </Text>
+                        <Image
+                            source={greenCheckMark}
+                            style={styles.checkMark}
+                                resizeMode="contain"
+                        />
+                        </View>
+                    </TouchableOpacity>
                 </View>
                 </View>
                 <View style={styles.taskArea}>
@@ -625,7 +618,6 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: Colors.darkGray,
         flex: 1,
-        textDecorationLine: 'underline',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -633,8 +625,6 @@ const styles = StyleSheet.create({
         width: "100%",
         alignItems: "center",
         justifyContent: "center",
-        
-       
     },
     message: {
         fontSize: 20,
