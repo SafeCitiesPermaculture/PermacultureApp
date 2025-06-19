@@ -12,8 +12,6 @@ const RootLayout = () => {
     const segments = useSegments();
     const currentURL = segments.join("/");
     const isResetPasswordRoute = currentURL.startsWith("reset-password");
-    console.log(segments);
-    console.log(currentURL, isResetPasswordRoute);
 
     useEffect(() => {
         if (loading || isResetPasswordRoute) {
@@ -50,8 +48,14 @@ const RootLayout = () => {
                     name="signup"
                     options={{ headerTitle: "Sign Up" }}
                 />
-                <Stack.Screen name="forgotPassword" options={{ headerTitle: "Forgot Password" }} />
-                <Stack.Screen name="reset-password/[resetPasswordToken]" options={{ headerTitle: "Reset password" }} />
+                <Stack.Screen
+                    name="forgotPassword"
+                    options={{ headerTitle: "Forgot Password" }}
+                />
+                <Stack.Screen
+                    name="reset-password/[resetPasswordToken]"
+                    options={{ headerTitle: "Reset password" }}
+                />
             </Stack>
         );
     }
