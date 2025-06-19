@@ -96,10 +96,8 @@ const styles = StyleSheet.create({
         width: 20,
         aspectRatio: "1/1",
         left: 5,
-
-
+        marginRight: 10
     },
-
 });
 
 export default TaskCard;

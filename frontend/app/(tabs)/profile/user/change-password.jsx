@@ -1,8 +1,16 @@
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from "react-native";
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    ActivityIndicator,
+} from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
-import React, { useState } from "react";
-import { Stack } from "expo-router";
+import React, { useState, useCallback } from "react";
+import { showLoading, hideLoading } from "@/context/LoadingContext";
+import DeleteModal from "@/components/DeleteModal";
 
 const ResetPasswordPage = () => {
     const [oldPassword, setOldPassword] = useState("");
@@ -10,20 +18,25 @@ const ResetPasswordPage = () => {
     const [confirmNewPassword, setConfirmNewPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
-    const changePassword = async () => {
+    const resetPassword = useCallback(async () => {
+        setErrorMessage("");
+        showLoading();
         setLoading(true);
         try {
             await API.put("/user/change-password", {
                 oldPassword,
-                newPassword
+                newPassword,
             });
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || "Error changing password");
+            setErrorMessage(error.response?.data?.message || error.message);
         } finally {
+            hideLoading();
+            setConfirmModalVisible(false);
             setLoading(false);
         }
-    };
+    }, []);
 
     const handleReset = async () => {
         setErrorMessage("");
@@ -80,27 +93,11 @@ const ResetPasswordPage = () => {
             return;
         }
 
-        if (Platform.OS === "web") {
-            changePassword();
-            return;
-        }
-        Alert.alert(
-        "Change password",
-        "Are you sure you want to change your password?",
-        [
-            { text: "Cancel", style:"cancel" },
-            { 
-                text: "Change Password", style: "destructive",
-                onPress: changePassword
-            }
-        ],
-        { cancelable: true }
-        );
+        setConfirmModalVisible(true);
     };
 
     return (
         <View style={styles.container}>
-            <Stack.Screen options={{ title: "Change Password" }} />
             <TextInput
                 style={styles.textInput}
                 placeholder="Old password..."
@@ -129,8 +126,22 @@ const ResetPasswordPage = () => {
             <TouchableOpacity style={styles.button} onPress={handleReset}>
                 <Text style={styles.buttonText}>Reset Password</Text>
             </TouchableOpacity>
-            {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
-            {loading && <ActivityIndicator size="large" color={Colors.greenButton} />}
+            {loading && (
+                <ActivityIndicator size="large" color={Colors.greenButton} />
+            )}
+            {errorMessage && (
+                <Text style={styles.errorMessage}>{errorMessage}</Text>
+            )}
+            <DeleteModal
+                isVisible={confirmModalVisible}
+                title="Change password"
+                message="Are you sure you want to change your password?"
+                onConfirm={() => resetPassword()}
+                onCancel={() => {
+                    setConfirmModalVisible(false);
+                }}
+                isLoading={loading}
+                />
         </View>
     );
 };

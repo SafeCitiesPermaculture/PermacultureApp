@@ -7,6 +7,7 @@ import AuthGuard from "@/components/AuthGuard";
 import { AuthContext } from "@/context/AuthContext";
 import RemoteImage from '@/components/RemoteImage';
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
+import DeleteModal from '@/components/DeleteModal';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -17,6 +18,8 @@ const ListingPage = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [isOwner, setIsOwner] = useState(false);
     const [buttonFunction, setButtonFunction] = useState(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const { userData } = useContext(AuthContext);
     const router = useRouter();
 
@@ -50,6 +53,7 @@ const ListingPage = () => {
     }, [getListingDetails]);
     
     const deleteListing = async () => {
+        setDeleting(true);
         try {
             setErrorMessage("Deleting...");
             await API.delete(`/listings/remove/${listingId}`);
@@ -57,29 +61,15 @@ const ListingPage = () => {
         } catch (error) {
             console.error("Error deleting listing: ", error);
             setErrorMessage(error.response?.data?.message || error.message);
-            Alert.alert(errorMessage);
+        } finally {
+          setDeleting(false);
+          setDeleteModalVisible(false);
         }
     };
 
-    const handleDelete = useCallback(async () => {
-        if(Platform.OS === 'web') {
-            deleteListing();
-            return;
-        }
-        Alert.alert(
-            "Delete listing",
-            "Are you sure you want to delete this listing?",
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete', 
-                    style: 'destructive',
-                    onPress: deleteListing
-                }
-            ],
-            { cancelable: true }
-        );
-    }, [listingId, router]);
+    const handleDelete = useCallback(() => {
+        setDeleteModalVisible(true);
+    }, []);
 
     const handleSendMessage = async () => {
         try {
@@ -192,6 +182,17 @@ const ListingPage = () => {
                     )}
                 </>
                 )}
+
+                <DeleteModal
+                  isVisible={deleteModalVisible}
+                  title="Delete Listing"
+                  message="Are you sure you want to delete this listing?"
+                  onConfirm={() => deleteListing(listingId)}
+                  onCancel={() => {
+                    setDeleteModalVisible(false);
+                  }}
+                  isLoading={deleting}
+                  />
             </ScrollView>
         </AuthGuard>
     );

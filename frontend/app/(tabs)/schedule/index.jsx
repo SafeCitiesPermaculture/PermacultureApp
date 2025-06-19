@@ -20,12 +20,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { Picker } from "@react-native-picker/picker";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
+import DeleteModal from "@/components/DeleteModal";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -51,6 +52,8 @@ const SchedulePage = () => {
     const [safeCitiesWorkers, setSafeCitiesWorkers] = useState([]);
     const [assignedTo, setAssignedTo] = useState(null);
     const [showWorkerPicker, setShowWorkerPicker] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [toBeDeletedId, setToBeDeletedId] = useState(null);
     const { userData, isAdmin } = useContext(AuthContext);
     const router = useRouter();
 
@@ -187,39 +190,8 @@ const SchedulePage = () => {
         }, [getTasks])
     );
 
-    const handleDateTimeSelection = () => {
-        if (Platform.OS === "android") {
-            setShowDatePicker(true);
-        } else {
-            setShowDatePicker(!showDatePicker);
-        }
-    };
-
-    const onDateChangeAndroid = (event, selectedDate) => {
-        setShowDatePicker(false);
-        if (event?.type === "dismissed") return;
-        if (selectedDate) {
-            const updated = new Date(newTaskDate);
-            updated.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-            setNewTaskDate(updated);
-            setShowTimePicker(true);
-        }
-    };
-
-    const onTimeChangeAndroid = (event, selectedTime) => {
-        setShowTimePicker(false);
-        if (event?.type === "dismissed") return;
-        if (selectedTime) {
-            const updated = new Date(newTaskDate);
-            updated.setHours(selectedTime.getHours());
-            updated.setMinutes(selectedTime.getMinutes());
-            setNewTaskDate(updated);
-        }
-    };
-
     const onNativeDateChange = (event, date) => {
         const selectedDate = date >= new Date() ? date : newTaskDate; //Only allow dates from the future
-        setShowDatePicker(Platform.OS === "ios");
         setNewTaskDate(selectedDate);
     };
 
@@ -315,47 +287,30 @@ const SchedulePage = () => {
         }
     };
 
-    const deleteTask = useCallback(
-        async (taskId) => {
+    const deleteTask = useCallback(async (taskId) => {
+        setDeletingId(taskId);
+        setErrorMessage("");
+        try {
+            await API.delete(`/tasks/${taskId}`);
             if (Platform.OS !== "web") {
-                Alert.alert(
-                    "Deleting task",
-                    "Are you sure you want to delete this task",
-                    [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                            text: "Delete",
-                            style: "destructive",
-                            onPress: async () => {
-                                setDeletingId(taskId);
-                                setErrorMessage("");
-                                try {
-                                    await API.delete(`/tasks/${taskId}`);
-                                    await cancelTaskNotification(taskId);
-                                    getTasks();
-                                } catch (error) {
-                                    setErrorMessage(error.message);
-                                } finally {
-                                    setDeletingId(null);
-                                }
-                            },
-                        },
-                    ]
-                );
-            } else {
-                setDeletingId(taskId);
-                setErrorMessage("");
-                try {
-                    await API.delete(`/tasks/${taskId}`);
-                    getTasks();
-                } catch (error) {
-                    setErrorMessage(error.message);
-                } finally {
-                    setDeletingId(null);
-                }
+                await cancelTaskNotification(taskId);
             }
+            getTasks();
+        } catch (error) {
+            setErrorMessage(error.response?.data?.message || error.message);
+        } finally {
+            setDeletingId(null);
+            setDeleteModalVisible(false);
+        }
+    }, [getTasks]);
+
+    const handleDelete = useCallback(
+        (taskId) => {
+            setDeletingId(null);
+            setToBeDeletedId(taskId);
+            setDeleteModalVisible(true);
         },
-        [getTasks]
+        [deleteTask]
     );
 
     return (
@@ -419,7 +374,7 @@ const SchedulePage = () => {
                                 key={task._id}
                                 isChecked={selectedTasks.has(task._id)}
                                 toggleCompletion={toggleTaskCompletion}
-                                onDelete={() => deleteTask(task._id)}
+                                onDelete={() => handleDelete(task._id)}
                                 deleting={
                                     deletingId?.toString() ===
                                     task._id.toString()
@@ -639,6 +594,19 @@ const SchedulePage = () => {
                     </View>
                 </View>
             </Modal>
+
+            <DeleteModal
+                isVisible={deleteModalVisible}
+                title="Delete Task"
+                message="Are you sure you want to delete this task?"
+                onConfirm={() => deleteTask(toBeDeletedId)}
+                onCancel={() => {
+                    setDeletingId(null);
+                    setToBeDeletedId(null);
+                    setDeleteModalVisible(false);
+                }}
+                isLoading={!!deletingId}
+                />
         </SafeAreaView>
     );
 };
@@ -826,6 +794,8 @@ const styles = StyleSheet.create({
         zIndex: 5,
         borderColor: Colors.brownMedium,
         borderWidth: 2,
+        borderRightWidth: 6,
+        borderLeftWidth: 6
     },
     checkedtext:{
         fontSize: 15,
