@@ -34,7 +34,11 @@ const CompletedTasksPage = () => {
         setErrorMessage("");
         try {
             const response = await API.get("/tasks/completed");
-            setTasks(response.data.tasks);
+            const fetchedTasks = response.data.tasks.map((task) => ({
+                ...task,
+                dueDateTime: new Date(task.dueDateTime),
+            }));
+            setTasks(fetchedTasks);
         } catch (error) {
             setErrorMessage(error.message);
         } finally {
