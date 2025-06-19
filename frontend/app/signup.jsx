@@ -9,67 +9,80 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import API from "@/api/api";
+import { useLoading } from "@/context/LoadingContext";
 
 const SignupPage = () => {
     const router = useRouter();
+    const { showLoading, hideLoading } = useLoading();
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [positiveMessage, setPositiveMessage] = useState(false);
 
     //handle submit
     const onSubmit = async () => {
         // Input validity checks
         if (!username.trim()) {
             setErrorMessage("Missing username");
+            setPositiveMessage(false);
             return;
         }
 
         if (!email.trim()) {
             setErrorMessage("Missing email");
+            setPositiveMessage(false);
             return;
         }
 
         if (!password.trim()) {
             setErrorMessage("Missing password");
+            setPositiveMessage(false);
             return;
         }
 
         if (!confirmPassword.trim()) {
             setErrorMessage("Missing password confirmation");
+            setPositiveMessage(false);
             return;
         }
 
         if (username.length < 5) {
             setErrorMessage("Username must be at least 5 characters long");
+            setPositiveMessage(false);
             return;
         }
         const alphanumericRegex = /^[a-zA-Z0-9]+$/;
         if (!alphanumericRegex.test(username)) {
             setErrorMessage("Username must only be letters and numbers");
+            setPositiveMessage(false);
             return;
         }
 
         const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
         if (!emailRegex.test(email)) {
             setErrorMessage("Email not valid");
+            setPositiveMessage(false);
             return;
         }
 
         if (password.length < 8) {
             setErrorMessage("Password must be at least 8 characters long");
+            setPositiveMessage(false);
             return;
         }
 
         if (!/[a-z]/.test(password)) {
             setErrorMessage("Password must have at least one lowercase letter");
+            setPositiveMessage(false);
             return;
         }
 
         if (!/[A-Z]/.test(password)) {
             setErrorMessage("Password must have at least one capital letter");
+            setPositiveMessage(false);
             return;
         }
 
@@ -78,15 +91,18 @@ const SignupPage = () => {
             setErrorMessage(
                 "Password must have at least one special character (e.g. !, @, $, etc.) in it"
             );
+            setPositiveMessage(false);
             return;
         }
 
         if (password != confirmPassword) {
             setErrorMessage("Passwords do not match");
+            setPositiveMessage(false);
             return;
         }
 
         try {
+            showLoading();
             const res = await API.post("/auth/signup", {
                 username,
                 password,
@@ -96,13 +112,17 @@ const SignupPage = () => {
                 setErrorMessage(
                     "Wait for an admin to approve you before logging in."
                 );
+                setPositiveMessage(true);
                 setTimeout(() => router.dismissTo("/login"), 10000);
             }
         } catch (err) {
             console.log("Sign Up failed", err);
             if (err.status == 409) {
                 setErrorMessage(err.response?.data?.message);
+                setPositiveMessage(false);
             }
+        } finally {
+            hideLoading();
         }
     };
 
@@ -149,7 +169,14 @@ const SignupPage = () => {
                 <Text style={styles.buttonText}>Submit</Text>
             </TouchableOpacity>
             {errorMessage && (
-                <Text style={styles.errorMessage}>{errorMessage}</Text>
+                <Text
+                    style={[
+                        styles.errorMessage,
+                        positiveMessage && styles.positiveMessage,
+                    ]}
+                >
+                    {errorMessage}
+                </Text>
             )}
             <View style={{ flexDirection: "row", marginTop: 5 }}>
                 <Text>Already have an account? </Text>
@@ -201,6 +228,7 @@ const styles = StyleSheet.create({
         marginTop: 5,
         textAlign: "center",
     },
+    positiveMessage: { color: "green" },
     passwordDescription: {
         textAlign: "center",
         marginBottom: 8,
