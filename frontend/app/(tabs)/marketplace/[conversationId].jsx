@@ -164,7 +164,7 @@ const ConversationDetailPage = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
         try {
-            if (userData?.timesReported > 0) {
+            if (userData?.timesReported > 2) {
                 Alert.alert(
                     "Message Blocked",
                     "You have been reported and cannot send messages."

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -17,6 +17,7 @@ import * as FileSystem from "expo-file-system";
 import API from "@/api/api";
 import RemoteImage from "@/components/RemoteImage";
 import { useImagePicker } from "@/hooks/useImagePicker";
+import { useFocusEffect } from "@react-navigation/native";
 
 const ProfilePage = () => {
     const [uploadedImage, setUploadedImage] = useState(null);
@@ -43,7 +44,6 @@ const ProfilePage = () => {
         router.push("/profile/admin");
     };
 
-    //change profile picture
     const changeImage = async () => {
         const formData = new FormData();
 
@@ -80,9 +80,15 @@ const ProfilePage = () => {
 
     useEffect(() => {
         if (!uploadedImage) return;
-
         changeImage();
     }, [uploadedImage]);
+
+    // 🔄 REFRESH USER DATA ON PAGE FOCUS
+    useFocusEffect(
+        useCallback(() => {
+            refreshUserData();
+        }, [])
+    );
 
     return (
         <ScrollView style={styles.container}>

@@ -46,11 +46,6 @@ const ChangeUsernamePage = () => {
       return;
     }
 
-    if (username.length < 5) {
-      setErrorMessage("Username must be at least 5 characters long.");
-      return;
-    }
-
     if (Platform.OS === "web") {
       changeUsername();
       return;
