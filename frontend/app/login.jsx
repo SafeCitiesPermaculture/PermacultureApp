@@ -11,6 +11,7 @@ import {
 import Colors from "@/constants/Colors";
 import { useLoading } from "@/context/LoadingContext";
 import API from "@/api/api";
+import PasswordInput from "@/components/PasswordInput";
 
 const LoginPage = () => {
     const router = useRouter();
@@ -61,14 +62,11 @@ const LoginPage = () => {
                 onChangeText={setUsername}
                 autoCapitalize="none"
             />
-            <TextInput
-                style={styles.textInput}
-                placeholder="Password..."
-                secureTextEntry={true}
+            <PasswordInput
                 value={password}
                 onChangeText={setPassword}
-                autoCapitalize="none"
-            />
+                style={{width: "90%"}}
+                />
             {message && <Text style={styles.errorMessage}>{message}</Text>}
             <TouchableOpacity style={styles.button} onPress={onSubmit}>
                 <Text style={styles.buttonText}>Login</Text>

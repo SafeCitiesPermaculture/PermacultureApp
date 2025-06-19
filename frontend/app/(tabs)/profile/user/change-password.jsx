@@ -1,7 +1,6 @@
 import {
     View,
     Text,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -11,6 +10,7 @@ import Colors from "@/constants/Colors";
 import React, { useState, useCallback } from "react";
 import { useLoading } from "@/context/LoadingContext";
 import DeleteModal from "@/components/DeleteModal";
+import PasswordInput from "@/components/PasswordInput";
 
 const ResetPasswordPage = () => {
     const [oldPassword, setOldPassword] = useState("");
@@ -99,24 +99,21 @@ const ResetPasswordPage = () => {
 
     return (
         <View style={styles.container}>
-            <TextInput
-                style={styles.textInput}
+            <PasswordInput
+                style={{width:"90%"}}
                 placeholder="Old password..."
-                secureTextEntry={true}
                 value={oldPassword}
                 onChangeText={setOldPassword}
-            />
-            <TextInput
-                style={styles.textInput}
+                />
+            <PasswordInput
+                style={{width:"90%"}}
                 placeholder="New password..."
-                secureTextEntry={true}
                 value={newPassword}
                 onChangeText={setNewPassword}
-            />
-            <TextInput
-                style={styles.textInput}
+                />
+            <PasswordInput
+                style={{width: "90%"}}
                 placeholder="Confirm new password..."
-                secureTextEntry={true}
                 value={confirmNewPassword}
                 onChangeText={setConfirmNewPassword}
             />
@@ -153,14 +150,6 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-    },
-    textInput: {
-        height: 40,
-        margin: 12,
-        borderWidth: 1,
-        padding: 10,
-        width: "90%",
-        fontSize: 16,
     },
     passwordDescription: {
         textAlign: "center",
