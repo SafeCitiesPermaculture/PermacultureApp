@@ -9,7 +9,7 @@ import {
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState, useCallback } from "react";
-import { showLoading, hideLoading } from "@/context/LoadingContext";
+import { useLoading } from "@/context/LoadingContext";
 import DeleteModal from "@/components/DeleteModal";
 
 const ResetPasswordPage = () => {
@@ -19,6 +19,7 @@ const ResetPasswordPage = () => {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+    const { showLoading, hideLoading } = useLoading();
 
     const resetPassword = useCallback(async () => {
         setErrorMessage("");

@@ -1,25 +1,31 @@
 import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from "react-native";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Stack } from "expo-router";
+import { useLoading } from "@/context/LoadingContext";
+import DeleteModal from "@/components/DeleteModal";
 
 const ChangeEmailPage = () => {
+  const [originalEmail, setOriginalEmail] = useState("");
   const [email, setEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const { showLoading, hideLoading } = useLoading();
 
   useEffect(() => {
     const fetchEmail = async () => {
-      setLoading(true);
+      showLoading();
       try {
         const res = await API.get("/user/me");
         setEmail(res.data.email || "");
+        setOriginalEmail(res.data.email || "");
       } catch (err) {
         console.error(err);
         setErrorMessage("Failed to load current email");
       } finally {
-        setLoading(false);
+        hideLoading();
       }
     };
     fetchEmail();
@@ -28,14 +34,18 @@ const ChangeEmailPage = () => {
   const changeEmail = async () => {
     setErrorMessage("");
     setLoading(true);
+    showLoading();
     try {
       await API.put("/user/update-profile", { email });
       setErrorMessage("Email updated!");
+      setOriginalEmail(email);
     } catch (err) {
       console.error(err);
-      setErrorMessage(err?.response?.data?.message || "Failed to update email");
+      setErrorMessage(err?.response?.data?.message || err.message || "Failed to update email");
     } finally {
       setLoading(false);
+      hideLoading();
+      setConfirmModalVisible(false);
     }
   };
 
@@ -46,23 +56,12 @@ const ChangeEmailPage = () => {
       return;
     }
 
-    if (Platform.OS === "web") {
-      changeEmail();
+    if (email === originalEmail) {
+      setErrorMessage("New email must be different from old email");
       return;
     }
-    Alert.alert(
-    "Change Email",
-    `Are you sure you want to change your email to:\n${email}?`,
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Change",
-        style: "destructive",
-        onPress: changeEmail
-      },
-    ],
-    { cancelable: true }
-    );
+
+    setConfirmModalVisible(true);
   };
 
   return (
@@ -81,6 +80,16 @@ const ChangeEmailPage = () => {
       </TouchableOpacity>
       {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
       {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
+      <DeleteModal
+        isVisible={confirmModalVisible}
+        title="Change Email"
+        message="Are you sure you want to change your email?"
+        onConfirm={() => changeEmail()}
+        onCancel={() => {
+          setConfirmModalVisible(false);
+        }}
+        isLoading={loading}
+        />
     </View>
   );
 };

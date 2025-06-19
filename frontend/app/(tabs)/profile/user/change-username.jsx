@@ -3,24 +3,30 @@ import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import React, { useState, useEffect } from "react";
 import { Stack } from "expo-router";
+import { useLoading } from "@/context/LoadingContext";
+import DeleteModal from "@/components/DeleteModal";
 
 const ChangeUsernamePage = () => {
+  const [originalUsername, setOriginalUsername] = useState("");
   const [username, setUsername] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const { showLoading, hideLoading } = useLoading();
 
   // Load current username on mount
   useEffect(() => {
     const fetchUsername = async () => {
-      setLoading(true);
+      showLoading();
       try {
         const res = await API.get("/user/me");
         setUsername(res.data.username || "");
+        setOriginalUsername(res.data.username || "");
       } catch (err) {
         console.error(err);
         setErrorMessage("Failed to load current username");
       } finally {
-        setLoading(false);
+        hideLoading();
       }
     };
     fetchUsername();
@@ -28,15 +34,19 @@ const ChangeUsernamePage = () => {
 
   const changeUsername = async () => {
     setLoading(true);
+    showLoading();
     setErrorMessage("");
     try {
       await API.put("/user/update-profile", { username });
       setErrorMessage("Username updated!");
+      setOriginalUsername(username);
     } catch (err) {
       console.error(err);
       setErrorMessage(err?.response?.data?.message || "Failed to update username");
     } finally {
       setLoading(false);
+      hideLoading();
+      setConfirmModalVisible(false);
     }
   };
 
@@ -51,23 +61,12 @@ const ChangeUsernamePage = () => {
       return;
     }
 
-    if (Platform.OS === "web") {
-      changeUsername();
+    if (username.trim() === originalUsername) {
+      setErrorMessage("New username must be different from old username.");
       return;
     }
-    Alert.alert(
-      "Change Username",
-      `Are you sure you want to change your username to "${username}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Change",
-          style: "destructive",
-          onPress: changeUsername
-        },
-      ],
-      { cancelable: true }
-    );
+
+    setConfirmModalVisible(true);
   };
 
   return (
@@ -84,6 +83,16 @@ const ChangeUsernamePage = () => {
       </TouchableOpacity>
       {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
       {loading && <ActivityIndicator size="large" color={Colors.greenRegular} />}
+      <DeleteModal
+        isVisible={confirmModalVisible}
+        title="Change Username"
+        message="Are you sure you want to change your username?"
+        onConfirm={() => changeUsername()}
+        onCancel={() => {
+          setConfirmModalVisible(false);
+        }}
+        isLoading={loading}
+        />
     </View>
   );
 };
