@@ -19,6 +19,7 @@ import API from "@/api/api";
 import { useFocusEffect } from "@react-navigation/native";
 import { AuthContext } from "@/context/AuthContext";
 import DeleteModal from "@/components/DeleteModal";
+import { useLoading } from "@/context/LoadingContext";
 
 const { width } = Dimensions.get("window");
 
@@ -34,10 +35,12 @@ const MarketplacePage = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [toBeDeletedId, setToBeDeletedId] = useState(null);
+    const { showLoading, hideLoading } = useLoading();
 
     const { userData } = useContext(AuthContext);
 
     const getListings = useCallback(async () => {
+        showLoading();
         setLoading(true);
         setErrorMessage("");
         try {
@@ -47,6 +50,7 @@ const MarketplacePage = () => {
             console.error("Error fetching listings: ", error);
             setErrorMessage("Failed to fetch listings. Please try again.");
         } finally {
+            hideLoading();
             setLoading(false);
         }
     }, []);

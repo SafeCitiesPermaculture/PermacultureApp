@@ -8,6 +8,7 @@ import { AuthContext } from "@/context/AuthContext";
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import DeleteModal from "@/components/DeleteModal";
+import { useLoading } from "@/context/LoadingContext";
 
 const myListingsPage = () => {
     const [listings, setListings] = useState([]);
@@ -17,12 +18,13 @@ const myListingsPage = () => {
     const [toBeDeletedId, setToBeDeletedId] = useState(null);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const { userData } = useContext(AuthContext);
+    const { showLoading, hideLoading } = useLoading();
     const router = useRouter();
 
     const getListings = async () => {
         setLoading(true);
         setErrorMessage('');
-
+        showLoading();
         try{
             const response = await API.get("/listings/get-my-listings");
             setListings(response.data.listings);
@@ -30,6 +32,7 @@ const myListingsPage = () => {
             console.error("Error fetching listings: ", error);
             setErrorMessage("Failed to fetch your listings.");
         } finally {
+            hideLoading();
             setLoading(false);
         }
     };
@@ -42,6 +45,7 @@ const myListingsPage = () => {
     const deleteListing = useCallback(async (listingId) => {
         setErrorMessage("");
         setDeletingId(listingId);
+        showLoading();
         try {
             await API.delete(`/listings/remove/${listingId}`);
             await getListings();
@@ -49,7 +53,7 @@ const myListingsPage = () => {
             console.error("Error deleting listing: ", error);
             setErrorMessage(error.reponse?.data?.message || error.message);
         } finally {
-            setLoading(false);
+            hideLoading();
             setDeletingId(null);
             setDeleteModalVisible(false);
             setToBeDeletedId(null);
