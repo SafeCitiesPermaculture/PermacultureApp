@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { Platform } from "react-native";
+import { Platform, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
 //Custom hook to handle file uploading on mobile and web
@@ -16,7 +16,7 @@ export const useImagePicker = (setUploadedImage) => {
             await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (permissionResult.status !== "granted") {
-            alert("Permission to access camera roll is required!");
+            Alert.alert("Permission to access camera roll is required!");
             return;
         }
 

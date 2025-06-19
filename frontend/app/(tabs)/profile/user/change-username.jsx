@@ -64,7 +64,9 @@ const ChangeUsernamePage = () => {
 
     if (username === originalUsername) {
       setErrorMessage("New username must be different from old username.");
-
+      return;
+    }
+    
     setConfirmModalVisible(true);
   };
 
