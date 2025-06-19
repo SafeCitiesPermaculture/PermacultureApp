@@ -32,6 +32,10 @@ const ProfileLayout = () => {
                 name="user/[userId]"
                 options={{ title: "Manage User" }}
             />
+            <Stack.Screen name="user/change-password" options={{ title: "Change Password"}} />
+            <Stack.Screen name="user/change-email" options={{ title: "Change Email"}} />
+            <Stack.Screen name="user/change-username" options={{ title: "Change Username"}} />
+            <Stack.Screen name="user/change-farm" options={{ title: "Change Farm"}} />
             <Stack.Screen name="reports" options={{ title: "Reports" }} />
             <Stack.Screen name="[reportId]" options={{ title: "Report" }} />
         </Stack>

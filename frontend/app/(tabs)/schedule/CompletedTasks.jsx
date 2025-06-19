@@ -16,21 +16,28 @@ import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
 import { createEmitAndSemanticDiagnosticsBuilderProgram } from "typescript";
+import DeleteModal from "@/components/DeleteModal";
+import { useLoading } from "@/context/LoadingContext";
 
 const { width } = Dimensions.get("window");
 
 const CompletedTasksPage = () => {
     const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [selectedTasks, setSelectedTasks] = useState(new Set());
     const [incompletingTasks, setIncompletingTasks] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [deletingId, setDeletingId] = useState(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [toBeDeletedId, setToBeDeletedId] = useState(null);
+    const [deleteAllModalVisible, setDeleteAllModalVisible] = useState(false);
+    const [deletingAll, setDeletingAll] = useState(false);
+    
+    const { showLoading, hideLoading } = useLoading();
 
     const deleteButton = require("@/assets/images/trash-can.png");
     
     const getTasks = useCallback(async () => {
-        setLoading(true);
+        showLoading();
         setErrorMessage("");
         try {
             const response = await API.get("/tasks/completed");
@@ -42,7 +49,7 @@ const CompletedTasksPage = () => {
         } catch (error) {
             setErrorMessage(error.message);
         } finally {
-            setLoading(false);
+            hideLoading();
         }
     }, []);
 
@@ -72,78 +79,72 @@ const CompletedTasksPage = () => {
 
         setIncompletingTasks(true);
         setErrorMessage("");
+        showLoading();
         try {
             const promises = Array.from(selectedTasks).map(taskId => 
                 API.put(`/tasks/incomplete/${taskId}`)
             );
             await Promise.all(promises);
-            setErrorMessage("Selected tasks marked as incompleted!");
+            setErrorMessage("Selected tasks marked as incomplete!");
             setSelectedTasks(new Set());
-            console.log("Getting again");
             getTasks();
         } catch (error) {
             setErrorMessage(error.message);
         } finally {
             setIncompletingTasks(false);
+            hideLoading();
         }
     };
 
-     const deleteTask = useCallback(async (taskId) => {
-      Alert.alert(
-        "Deleting task",
-        "Are you sure you want to delete this task", 
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Delete", style: "destructive",
-            onPress: async () => {
-              setDeletingId(taskId);
-              setErrorMessage("");
-              try {
-                  await API.delete(`/tasks/${taskId}`);
-                  getTasks();
-              } catch (error) {
-                  setErrorMessage(error.message);
-              } finally {
-                setDeletingId(null);
-              }
-            }
-          }
-        ]
-      );
+    const deleteTask = useCallback(async (taskId) => {
+      setDeletingId(taskId);
+      setErrorMessage("");
+      try {
+          await API.delete(`/tasks/${taskId}`);
+          getTasks();
+      } catch (error) {
+          setErrorMessage(error.response?.data?.message || error.message);
+      } finally {
+        setDeletingId(null);
+        setDeleteModalVisible(false);
+        setToBeDeletedId(null);
+      }
   }, [getTasks]);
+    
+    const handleDelete = useCallback((taskId) => {
+        setDeletingId(null);
+        setToBeDeletedId(taskId);
+        setDeleteModalVisible(true);
+    }, []);
+
+    const deleteAll = useCallback(async () => {
+        showLoading();
+        setDeletingAll(true);
+        try{
+            const promises = Array.from(tasks).map(task => {
+            if (selectedTasks.has(task._id)) { // Don't delete tasks that are presently unchecked
+                return;
+            }
+            return API.delete(`/tasks/${task._id}`);
+            });
+            await Promise.all(promises);
+            getTasks();
+        } catch (error) {
+            setErrorMessage(error.response?.data?.message || error.message);
+        } finally {
+            hideLoading();
+            setDeletingAll(false);
+            setDeleteAllModalVisible(false);
+        }
+    }, [getTasks]);
 
     const handleMassDelete = async () => {
         if (selectedTasks.size === tasks.length) {
-            Alert.alert("No tasks to be deleted. Only completed, checked tasks will be deleted.");
+            setErrorMessage("No tasks to be deleted. Only completed, checked tasks will be deleted.");
             return;
         }
 
-        Alert.alert(
-            "Deleting tasks",
-            `Are you sure you want to delete ${tasks.length - selectedTasks.size} completed tasks?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive",
-                    onPress: async () => {
-                        setLoading(true);
-                        try{
-                            const promises = Array.from(tasks).map(task => {
-                            if (selectedTasks.has(task._id)) { // Don't delete tasks that are presently unchecked
-                                return;
-                            }
-                            return API.delete(`/tasks/${task._id}`);
-                            });
-                            await Promise.all(promises);
-                            getTasks();
-                        } catch (error) {
-                            setErrorMessage(error.message);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
+        setDeleteAllModalVisible(true);
     };
 
 
@@ -152,15 +153,13 @@ const CompletedTasksPage = () => {
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.header}>Completed Tasks</Text>
         <View style={styles.taskArea}>
-          {loading ? (
-            <ActivityIndicator size="large" color={Colors.greenRegular} />
-          ) : errorMessage ? (
+          {errorMessage ? (
             <Text style={[styles.message, { color: "red" }]}>{errorMessage}</Text>
           ) : tasks.length === 0 ? (
             <Text style={styles.message}>You have no completed tasks!</Text>
           ) : (
             tasks.map((task) => (
-              <TaskCard task={task} key={task._id} isChecked={!selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} deleting={deletingId?.toString() === task._id.toString()} onDelete={() => deleteTask(task._id)} />
+              <TaskCard task={task} key={task._id} isChecked={!selectedTasks.has(task._id)} toggleCompletion={toggleTaskCompletion} deleting={deletingId?.toString() === task._id.toString()} onDelete={() => handleDelete(task._id)} />
             ))
           )}
         </View>
@@ -191,7 +190,30 @@ const CompletedTasksPage = () => {
             style={styles.deleteButtonImage}
             />
         </TouchableOpacity>}
-
+      
+      <DeleteModal
+        isVisible={deleteModalVisible}
+        title="Delete Task"
+        message="Are you sure you want to delete this task?"
+        onConfirm={() => deleteTask(toBeDeletedId)}
+        onCancel={() => {
+          setDeletingId(null);
+          setToBeDeletedId(null);
+          setDeleteModalVisible(false);
+        }}
+        isLoading={!!deletingId}
+        />
+      
+      <DeleteModal
+        isVisible={deleteAllModalVisible}
+        title="Delete All Tasks"
+        message="Are you sure you want to delete all tasks?"
+        onConfirm={() => deleteAll()}
+        onCancel={() => {
+          setDeleteAllModalVisible(false);
+        }}
+        isLoading={deletingAll}
+        />
     </SafeAreaView>);
 };
 

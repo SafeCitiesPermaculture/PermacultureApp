@@ -18,7 +18,7 @@ import ListingCard from "@/components/ListingCard";
 import API from "@/api/api";
 import { useFocusEffect } from "@react-navigation/native";
 import { AuthContext } from "@/context/AuthContext";
-import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
+import DeleteModal from "@/components/DeleteModal";
 
 const { width } = Dimensions.get("window");
 
@@ -32,6 +32,8 @@ const MarketplacePage = () => {
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [deletingId, setDeletingId] = useState(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [toBeDeletedId, setToBeDeletedId] = useState(null);
 
     const { userData } = useContext(AuthContext);
 
@@ -55,7 +57,8 @@ const MarketplacePage = () => {
         }, [getListings])
     );
 
-    const deleteListing = async (listingId) => {
+    const deleteListing = useCallback(async (listingId) => {
+        setErrorMessage("");
         setDeletingId(listingId);
         try {
             await API.delete(
@@ -67,34 +70,20 @@ const MarketplacePage = () => {
                 "Error deleting listing: ",
                 error
             );
-            setErrorMessage(error.message);
+            setErrorMessage(error.response?.data?.message || error.message);
         } finally {
             setDeletingId(null);
+            setDeleteModalVisible(false);
         }
-    };
+    }, [getListings]);
 
     const handleDelete = useCallback(
-        async (listingId) => {
-            if (Platform.OS === 'web') {
-                deleteListing(listingId);
-                return;
-            }
-            
-            Alert.alert(
-            "Delete listing",
-            "Are you sure you want to delete this listing?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: deleteListing(listingId),
-                },
-            ],
-            { cancelable: true }
-            );
+        (listingId) => {
+            setDeletingId(null);
+            setToBeDeletedId(listingId);
+            setDeleteModalVisible(true);
         },
-        [getListings]
+        [deleteListing]
     );
 
     const handleReport = (postedBy) => {
@@ -110,16 +99,16 @@ const MarketplacePage = () => {
     return (
         <AuthGuard>
             <View style={styles.header}>
-                <View style={styles.mylistingbutton}>
-                <View
-                    style={{
-                        flex: 1,
-                        justifyContent: "center",
-                        alignItems: "flex-start",
-                    }}
-                >
-                    <TouchableOpacity
+                <TouchableOpacity
                         onPress={() => router.push("/marketplace/my-listings")}
+                        style={styles.mylistingbutton}
+                    >
+                    <View
+                        style={{
+                            flex: 1,
+                            justifyContent: "center",
+                            alignItems: "flex-start",
+                        }}
                     >
                         <Text
                             style={{
@@ -130,9 +119,8 @@ const MarketplacePage = () => {
                         >
                             My listings
                         </Text>
-                    </TouchableOpacity>
-                </View>
-                 </View>           
+                    </View>
+                </TouchableOpacity>         
 
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>All Listings</Text>
@@ -232,6 +220,19 @@ const MarketplacePage = () => {
                     />
                 </TouchableOpacity>
             )}
+
+            <DeleteModal
+                isVisible={deleteModalVisible}
+                title="Delete Listing"
+                message="Are you sure you want to delete this listing?"
+                onConfirm={() => deleteListing(toBeDeletedId)}
+                onCancel={() => {
+                    setDeletingId(null);
+                    setToBeDeletedId(null);
+                    setDeleteModalVisible(false);
+                }}
+                isLoading={!!deletingId}
+                />
         </AuthGuard>
     );
 };

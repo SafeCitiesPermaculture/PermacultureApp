@@ -7,11 +7,15 @@ import ListingCard from "@/components/ListingCard";
 import { AuthContext } from "@/context/AuthContext";
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import DeleteModal from "@/components/DeleteModal";
 
 const myListingsPage = () => {
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [deletingId, setDeletingId] = useState(null);
+    const [toBeDeletedId, setToBeDeletedId] = useState(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const { userData } = useContext(AuthContext);
     const router = useRouter();
 
@@ -34,34 +38,29 @@ const myListingsPage = () => {
         useCallback(() => {
             getListings();
         }, [userData]));
-
-    const handleDelete = useCallback(async (listingId) => {
-        Alert.alert(
-            "Delete listing",
-            "Are you sure you want to delete this listing?",
-            [
-                {text: 'Cancel', style: 'cancel'},
-                {
-                    text: 'Delete', 
-                    style: 'destructive',
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            await API.delete(`/listings/remove/${listingId}`);
-                            await getListings();
-                        } catch (error) {
-                            console.error("Error deleting listing: ", error);
-                            setErrorMessage(error.message);
-                            Alert.alert(error.message);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
-                }
-            ],
-            { cancelable: true }
-        );
+    
+    const deleteListing = useCallback(async (listingId) => {
+        setErrorMessage("");
+        setDeletingId(listingId);
+        try {
+            await API.delete(`/listings/remove/${listingId}`);
+            await getListings();
+        } catch (error) {
+            console.error("Error deleting listing: ", error);
+            setErrorMessage(error.reponse?.data?.message || error.message);
+        } finally {
+            setLoading(false);
+            setDeletingId(null);
+            setDeleteModalVisible(false);
+            setToBeDeletedId(null);
+        }
     }, [getListings]);
+
+    const handleDelete = useCallback((listingId) => {
+        setDeletingId(null);
+        setToBeDeletedId(listingId);
+        setDeleteModalVisible(true);
+    }, []);
 
     return (
         <AuthGuard>
@@ -92,6 +91,19 @@ const myListingsPage = () => {
                     </View>
                 </ScrollView>
             )}
+
+            <DeleteModal
+                isVisible={deleteModalVisible}
+                title="Delete Listing"
+                message="Are you sure you want to delete this listing?"
+                onConfirm={() => deleteListing(toBeDeletedId)}
+                onCancel={() => {
+                    setDeletingId(null);
+                    setToBeDeletedId(null);
+                    setDeleteModalVisible(false);
+                }}
+                isLoading={!!deletingId}
+                />
         </AuthGuard>
     );
 };
