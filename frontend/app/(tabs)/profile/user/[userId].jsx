@@ -13,6 +13,7 @@ import { useLoading } from "@/context/LoadingContext";
 import Colors from "@/constants/Colors";
 import DefaultProfilePicture from "@/assets/images/profile_blank_icon.png";
 import RemoteImage from "@/components/RemoteImage";
+import DeleteModal from "@/components/DeleteModal";
 
 const UserPage = () => {
     const { userId } = useLocalSearchParams();
@@ -23,6 +24,8 @@ const UserPage = () => {
     const [originalFarmName, setOriginalFarmName] = useState(null);
     const [roleSwitch, setRoleSwitch] = useState(false);
     const [safeCitiesSwitch, setSafeCitiesSwitch] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const setRole = (val) => {
         setRoleSwitch(val);
@@ -66,29 +69,23 @@ const UserPage = () => {
 
     //soft deletes the user
     const removeUser = async () => {
-        Alert.alert(
-            "Delete user",
-            "Are you sure you want to delete this user?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete", style: "destructive",
-                    onPress: async () => {
-                        try {
-                            showLoading();
-                            await API.put(`/admin/remove/${user._id}`);
-                        } catch (err) {
-                            console.log("Error deleting user", err);
-                        } finally {
-                            hideLoading();
-                            router.back();
-                        }
-                    }
-                }
-            ],
-            { cancelable: true }
-        );
+        try {
+            setLoading(true);
+            showLoading();
+            await API.put(`/admin/remove/${user._id}`);
+        } catch (err) {
+            console.log("Error deleting user", err);
+        } finally {
+            hideLoading();
+            setLoading(false);
+            setDeleteModalVisible(false);
+            router.back();
+        }
     };
+
+    const handleRemove = () => {
+        setDeleteModalVisible(true);
+    }
 
     //updates the user
     const updateUser = async () => {
@@ -143,6 +140,14 @@ const UserPage = () => {
             <TouchableOpacity style={styles.saveButton} onPress={updateUser}>
                 <Text style={styles.saveText}>Save Changes</Text>
             </TouchableOpacity>
+            <DeleteModal
+                isVisible={deleteModalVisible}
+                title="Remove User"
+                message="Are you sure you want to remove this user?"
+                onConfirm={() => removeUser()}
+                onCancel={() => setDeleteModalVisible(false)}
+                isLoading={loading}
+            />
         </View>
     );
 };

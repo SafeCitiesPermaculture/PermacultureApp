@@ -51,7 +51,7 @@ router.post("/conversations", async (req, res) => {
 
     const sender = await User.findById(senderId);
 
-    if (sender.timesReported > 0) {
+    if (sender.timesReported >= 3) {
       return res.status(403).json({ message: "You have been reported and cannot start new conversations." });
     }
 
@@ -142,7 +142,7 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
     const conversationId = req.params.conversationId;
     const user = await User.findById(senderId);
 
-    if (user.timesReported > 0) {
+    if (user.timesReported >= 3) {
       return res.status(403).json({ message: "You have been reported and cannot send messages." });
     }
 

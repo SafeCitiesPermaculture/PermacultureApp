@@ -164,11 +164,15 @@ const ConversationDetailPage = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
         try {
-            if (userData?.timesReported > 2) {
-                Alert.alert(
+            if (userData?.timesReported >= 3) {
+                if (Platform.OS === "web") {
+                    alert("Message Blocked: You have been reported and cannot send messages.");
+                } else {
+                   Alert.alert(
                     "Message Blocked",
                     "You have been reported and cannot send messages."
-                );
+                    ); 
+                }
                 return;
             }
             const res = await API.post(
@@ -327,10 +331,14 @@ const ConversationDetailPage = () => {
                                         setNewTitle("");
                                     } catch (err) {
                                         console.error("Rename failed", err);
-                                        Alert.alert(
+                                        if (Platform.OS === "web") {
+                                            alert("Error: Failed to rename group");
+                                        } else {
+                                            Alert.alert(
                                             "Error",
                                             "Failed to rename group."
-                                        );
+                                            );
+                                        }
                                     }
                                 }}
                                 style={styles.modalButton}

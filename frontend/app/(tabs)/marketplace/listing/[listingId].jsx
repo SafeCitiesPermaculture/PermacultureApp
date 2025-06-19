@@ -75,12 +75,11 @@ const ListingPage = () => {
         try {
             const recipientUsername = listing?.postedBy?.username;
 
-            if (userData.timesReported > 2) {
-                Alert.alert("Messaging Disabled", "You have been reported and cannot send messages.");
+            if (userData.timesReported >= 3) {
+                setErrorMessage("Messaging Disabled", "You have been reported and cannot send messages.");
                 return;
             }
-            if (!recipientUsername || recipientUsername === userData?.username) {
-                alert("Cannot message yourself.");
+            if (!recipientUsername || recipientUsername === userData?.username) {//Prevent self messaging
                 return;
             }
 

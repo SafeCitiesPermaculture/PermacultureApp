@@ -4,6 +4,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import API from "@/api/api";
 import { useState, useEffect, useCallback } from "react";
 import Colors from "@/constants/Colors";
+import { useLoading } from "@/context/LoadingContext";
+import DeleteModal from '@/components/DeleteModal';
 
 const { width } = Dimensions.get("window");
 
@@ -13,18 +15,20 @@ const HandleReportPage = () => {
     const [report, setReport] = useState(null);
     const [errorMessage, setErrorMessage] = useState("");
     const [message, setMessage] = useState("");
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const { showLoading, hideLoading } = useLoading();
     const router = useRouter();
 
     const getReport = useCallback(async () => {
-        setLoading(true);
+        showLoading();
         try {
             const response = await API.get(`/reports/${reportId}`);
             setReport(response.data.report);
         } catch (error) {
             console.error("Error fetching report:", error);
-            setErrorMessage(error.message);
+            setErrorMessage(error.response?.data?.message || error.message);
         } finally {
-            setLoading(false);
+            hideLoading();
         }
     }, [reportId]);
 
@@ -33,6 +37,7 @@ const HandleReportPage = () => {
     }, [getReport]);
 
     const handleIgnore = useCallback(async () => {
+        showLoading();
         try {
             await API.put(`/reports/dismiss/${report.reported._id}`);
             await API.delete(`/reports/${reportId}`);
@@ -40,11 +45,15 @@ const HandleReportPage = () => {
             setTimeout(() => router.dismiss(), 1000);
         } catch (error) {
             console.error("Error ignoring report:", error);
-            setErrorMessage(error.message);
+            setErrorMessage(error.response?.data?.message || error.message);
+        } finally {
+            hideLoading();
         }
     }, [reportId, router, report]);
 
     const removeUser = async () => {
+        showLoading();
+        setLoading(true);
         try {
             await API.put(`/admin/remove/${report.reported._id}`);
             setMessage(`${report?.reported.username} removed.`);
@@ -53,28 +62,16 @@ const HandleReportPage = () => {
         } catch (error) {
             console.error("Error removing user:", error);
             setErrorMessage(error.response?.data?.message || error.message);
+        } finally {
+            hideLoading();
+            setLoading(false);
+            setDeleteModalVisible(false);
         }
     };
 
     const handleRemove = useCallback(async () => {
-        if (Platform.OS === 'web') {
-            removeUser();
-            return;
-        }
-        Alert.alert(
-            "Remove User",
-            "Are you sure you want to remove this user?",
-            [
-                {text: 'Cancel', style: 'cancel'},
-                {
-                    text: 'Remove User',
-                    style: 'destructive',
-                    onPress: removeUser
-                }
-            ],
-            { cancelable: true }
-        );
-    }, [report, router, reportId]);
+        setDeleteModalVisible(true);
+    }, []);
 
     return (
         <AdminGuard>
@@ -128,6 +125,14 @@ const HandleReportPage = () => {
                     {errorMessage || "Error fetching report"}
                 </Text>
             }
+            <DeleteModal
+                isVisible={deleteModalVisible}
+                title="Remove User"
+                message={`Are you sure you want to remove ${report.reported.username}`}
+                onConfirm={() => removeUser()}
+                onCancel={() => setDeleteModalVisible(false)}
+                isLoading={loading}
+                />
         </AdminGuard>
     );
 };

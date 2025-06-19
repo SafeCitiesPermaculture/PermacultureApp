@@ -128,7 +128,11 @@ const ConversationsPage = () => {
       const newConvoId = res.data?._id || res._id;
       if (!newConvoId) {
         console.error("New conversation ID is missing:", res);
-        Alert.alert("Error", "Failed to create conversation.");
+        if (Platform.OS === "web") {
+          alert("Error: Failed to create conversation");
+        } else {
+          Alert.alert("Error", "Failed to create conversation.");
+        }
         return;
       }
 
@@ -136,7 +140,11 @@ const ConversationsPage = () => {
 
     } catch (err) {
       console.error("Error starting chat:", err);
-      Alert.alert("Error", "One or more usernames invalid.");
+      if (Platform.OS === 'web') {
+        alert("Error: One or more usernames invalid.")
+      } else {
+        Alert.alert("Error", "One or more usernames invalid.");
+      }
     }
   };
 
