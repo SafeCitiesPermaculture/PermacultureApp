@@ -95,13 +95,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cancelButton: {
-    backgroundColor: Colors.greyTextBox,
+    backgroundColor: "#136326",
   },
   confirmButton: {
-    backgroundColor: 'red',
+    backgroundColor: '#e03636',
   },
   buttonText: {
-    color: Colors.white,
+    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },

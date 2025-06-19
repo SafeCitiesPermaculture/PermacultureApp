@@ -10,6 +10,7 @@ import {
 import Colors from "@/constants/Colors";
 import API from "@/api/api";
 import { useLoading } from "@/context/LoadingContext";
+import PasswordInput from "@/components/PasswordInput";
 
 const SignupPage = () => {
     const router = useRouter();
@@ -143,23 +144,16 @@ const SignupPage = () => {
                 onChangeText={setEmail}
                 autoCapitalize="none"
             />
-            <TextInput
-                style={styles.textInput}
-                placeholder="Password..."
-                secureTextEntry={true}
+            <PasswordInput
                 value={password}
                 onChangeText={setPassword}
-                autoCapitalize="none"
-                textContentType="newPassword"
-            />
-            <TextInput
-                style={styles.textInput}
+                style={{width: "90%"}}
+                />
+            <PasswordInput
+                style={{width:"90%"}}
                 placeholder="Confirm password..."
-                secureTextEntry={true}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                autoCapitalize="none"
-                textContentType="newPassword"
             />
             <Text style={styles.passwordDescription}>
                 Passwords must be 8+ characters, contain at least one uppercase

@@ -2,22 +2,22 @@ import {
     View,
     Text,
     StyleSheet,
-    TextInput,
-    ActivityIndicator,
     TouchableOpacity,
 } from "react-native";
 import React, { useState, useCallback } from "react";
 import API from "@/api/api";
 import Colors from "@/constants/Colors";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import PasswordInput from "@/components/PasswordInput";
+import { useLoading } from "@/context/LoadingContext";
 
 const ResetPasswordPage = () => {
     const { resetPasswordToken } = useLocalSearchParams();
-    const [loading, setLoading] = useState(false);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const router = useRouter();
+    const { showLoading, hideLoading } = useLoading();
 
     const handleSubmit = useCallback(async () => {
         // Data validation
@@ -60,7 +60,7 @@ const ResetPasswordPage = () => {
         }
 
         setErrorMessage("");
-        setLoading(true);
+        showLoading();
         try {
             const response = await API.put(
                 `/auth/reset-password/${resetPasswordToken}`,
@@ -75,28 +75,23 @@ const ResetPasswordPage = () => {
         } catch (error) {
             setErrorMessage(error.response?.data?.message || error.message);
         } finally {
-            setLoading(false);
+            hideLoading();
         }
     }, [password, confirmPassword, resetPasswordToken]);
 
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Reset Password</Text>
-            <TextInput
-                placeholder="New password..."
+            <PasswordInput
                 value={password}
                 onChangeText={setPassword}
-                style={styles.textInput}
-                autoCapitalize="none"
-                secureTextEntry={true}
-            />
-            <TextInput
-                placeholder="Confirm new password..."
+                style={{width: "90%"}}
+                />
+            <PasswordInput
+                style={{width:"90%"}}
+                placeholder="Confirm password..."
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                style={styles.textInput}
-                autoCapitalize="none"
-                secureTextEntry={true}
             />
             <Text style={styles.passwordDescription}>
                 Passwords must be 8+ characters, contain at least one uppercase
@@ -107,9 +102,6 @@ const ResetPasswordPage = () => {
             </TouchableOpacity>
             {errorMessage && (
                 <Text style={styles.errorMessage}>{errorMessage}</Text>
-            )}
-            {loading && (
-                <ActivityIndicator size="large" color={Colors.greenRegular} />
             )}
         </View>
     );
@@ -124,16 +116,6 @@ const styles = StyleSheet.create({
     header: {
         alignItems: "center",
         fontSize: 32,
-    },
-    textInput: {
-        height: 40,
-        margin: 12,
-        borderWidth: 1,
-        padding: 10,
-        width: "90%",
-        fontSize: 16,
-        flexDirection: 'row',
-        justifyContent: 'space-between'
     },
     errorMessage: {
         fontSize: 16,

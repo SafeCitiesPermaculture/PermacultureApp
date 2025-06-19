@@ -8,14 +8,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Alert,
+  Platform,
   Dimensions,
+  Alert
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useFocusEffect } from "@react-navigation/native";
 import TaskCard from "@/components/TaskCard";
 import API from "@/api/api";
-import { createEmitAndSemanticDiagnosticsBuilderProgram } from "typescript";
 import DeleteModal from "@/components/DeleteModal";
 import { useLoading } from "@/context/LoadingContext";
 
@@ -115,6 +115,13 @@ const CompletedTasksPage = () => {
         setDeletingId(null);
         setToBeDeletedId(taskId);
         setDeleteModalVisible(true);
+        setSelectedTasks(prevSelected => {
+            const newSelected = new Set(prevSelected);
+            if (prevSelected.has(taskId)) {
+                newSelected.delete(taskId);
+            }
+            return newSelected;
+            });
     }, []);
 
     const deleteAll = useCallback(async () => {
@@ -140,7 +147,11 @@ const CompletedTasksPage = () => {
 
     const handleMassDelete = async () => {
         if (selectedTasks.size === tasks.length) {
-            setErrorMessage("No tasks to be deleted. Only completed, checked tasks will be deleted.");
+            if (Platform.OS === "web") {
+              alert("No tasks to be deleted. Only completed, checked tasks will be deleted.");
+            } else {
+              Alert.alert("No tasks to be deleted. Only completed, checked tasks will be deleted.");
+            }
             return;
         }
 
