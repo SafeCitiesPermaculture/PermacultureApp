@@ -2,6 +2,7 @@ import Colors from "@/constants/Colors";
 import React, { useContext } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import folders from "@/assets/images/folder 2 icon.png";
+import downloadIcon from "@/assets/images/download-icon.png";
 import { AuthContext } from "@/context/AuthContext";
 
 const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
@@ -26,8 +27,8 @@ const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
                 }}
             >
                 <Image
-                    source={file.isFolder ? folders : ""}
-                    style={styles.folderIcons}
+                    source={file.isFolder ? folders : downloadIcon}
+                    style={styles.icons}
                 />
                 <View style={styles.textContent}>
                     <Text style={styles.searchText}>{file.name}</Text>
@@ -46,7 +47,7 @@ const FileListing = ({ file, displayFile, deleteFile, enterFolder }) => {
 };
 
 const styles = StyleSheet.create({
-    folderIcons: {
+    icons: {
         width: 40,
         height: 40,
         alignItems: "center",
@@ -58,6 +59,7 @@ const styles = StyleSheet.create({
     searchText: {
         color: "#555",
         fontSize: 16,
+        width: "80%",
     },
     button: {
         flex: 1,
