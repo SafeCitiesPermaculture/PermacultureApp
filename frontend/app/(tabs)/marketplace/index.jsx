@@ -107,13 +107,13 @@ const MarketplacePage = () => {
                         onPress={() => router.push("/marketplace/my-listings")}
                         style={styles.mylistingbutton}
                     >
-                    <View
+                    {/*<View
                         style={{
                             flex: 1,
                             justifyContent: "center",
                             alignItems: "flex-start",
                         }}
-                    >
+                    >*/}
                         <Text
                             style={{
                                 fontSize: 16,
@@ -123,7 +123,7 @@ const MarketplacePage = () => {
                         >
                             My listings
                         </Text>
-                    </View>
+                    {/*</View>*/}
                 </TouchableOpacity>         
 
                 <View style={styles.titleContainer}>
@@ -258,6 +258,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: "bold",
+        paddingBottom: 4,
     },
     chatContainer: {
         flex: 1,
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
     },
     mylistingbutton:{
         backgroundColor: Colors.greenButton,
-        padding: 10,
+        padding: 5,
         borderRadius: 5,
         borderColor: "grey",
         shadowColor: "#D3D3D3",

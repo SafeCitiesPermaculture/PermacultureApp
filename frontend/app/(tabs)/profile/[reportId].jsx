@@ -128,7 +128,7 @@ const HandleReportPage = () => {
             <DeleteModal
                 isVisible={deleteModalVisible}
                 title="Remove User"
-                message={`Are you sure you want to remove ${report.reported.username}`}
+                message={`Are you sure you want to remove ${report?.reported?.username}`}
                 onConfirm={() => removeUser()}
                 onCancel={() => setDeleteModalVisible(false)}
                 isLoading={loading}
