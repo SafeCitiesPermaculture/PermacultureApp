@@ -3,9 +3,12 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 const devUrl = "http://localhost:3000/api";
+const devSocketUrl = "http://localhost:3000";
 const prodUrl = "https://permacultureapp.onrender.com/api";
+const prodSocketUrl = "https://permacultureapp.onrender.com";
 
 const BACKEND_URL = __DEV__ ? devUrl : prodUrl;
+const SOCKET_URL = __DEV__ ? devSocketUrl : prodSocketUrl;
 
 
 const STORAGE_KEY = "tokens";
@@ -141,6 +144,6 @@ const logout = async () => {
     await clearTokens();
 };
 
-export { login, logout, getTokens, BACKEND_URL };
+export { login, logout, getTokens, BACKEND_URL, SOCKET_URL };
 
 export default API;
