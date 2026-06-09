@@ -25,6 +25,12 @@ const AdminPage = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.button}
+                        onPress={() => router.push("/profile/manageFarms")}
+                    >
+                        <Text style={styles.buttonText}>Manage Farms</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.button}
                         onPress={() => router.push("/profile/reports")}
                     >
                         <Text style={styles.buttonText}>View Reports</Text>

@@ -21,6 +21,7 @@ export const useImagePicker = (setUploadedImage) => {
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             quality: 1,
             allowsEditing: false,
         });
@@ -29,10 +30,15 @@ export const useImagePicker = (setUploadedImage) => {
 
         const asset = result.assets[0];
 
+        // NOTE: asset.type is just "image"/"video" — NOT a real MIME type.
+        // Prefer asset.mimeType (e.g. "image/heic", "image/png") and the real
+        // fileName so HEIC and other formats upload correctly. The backend also
+        // derives the type from the extension as a safety net.
+        const name = asset.fileName || asset.uri.split("/").pop() || "photo.jpg";
         setUploadedImage({
             uri: asset.uri,
-            name: asset.uri.split("/").pop(),
-            type: asset.type || "image/jpeg",
+            name,
+            type: asset.mimeType || "image/jpeg",
         });
     };
 

@@ -21,14 +21,16 @@ router.put("/change-password", userController.changePassword);
 router.put('/update-profile', async (req, res) => {
   try {
     const userId = req.user._id;
-    const { username, password, farmName, email } = req.body;
+    const { username, email, farms } = req.body;
 
     const update = {};
     if (username) update.username = username;
-    if (farmName) update.farmName = farmName;
     if (email) update.email = email;
+    // `farms` is an array of Farm ids (empty array to unassign).
+    if (Array.isArray(farms)) update.farms = farms;
 
-    const updatedUser = await User.findByIdAndUpdate(userId, update, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(userId, update, { new: true })
+      .populate("farms", "name");
     res.json({ message: 'Profile updated', user: updatedUser });
   } catch (err) {
     console.error('Update profile error:', err);
@@ -39,12 +41,13 @@ router.put('/update-profile', async (req, res) => {
 // GET /api/user/me
 router.get("/me", async (req, res) => {
   try {
-    const user = req.user;
+    const user = await User.findById(req.user._id).populate("farms", "name");
     res.json({
       _id: user._id,
       username: user.username,
       email: user.email,
-      farmName: user.farmName,
+      farms: user.farms,                     // [{ _id, name }]
+      farmName: user.farms?.length ? user.farms.map((f) => f.name).join(", ") : "",
     });
   } catch (err) {
     console.error("GET /me failed:", err);

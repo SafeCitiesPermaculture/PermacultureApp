@@ -12,8 +12,12 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     isVerified: { type: Boolean, default: false },
     userRole: { type: String, enum: ["user", "admin"], default: "user" }, //allows for more roles to be added easily
-    isSafeCities: { type: Boolean, default: false },
+    // Farms the user belongs to (empty = unassigned / "N/A"). Source of truth.
+    // A user can belong to multiple farms.
+    farms: [{ type: mongoose.Schema.Types.ObjectId, ref: "Farm" }],
     profilePicture: { type: String, default: "" },
+    // Legacy fields kept for migration + backward compatibility. Superseded by `farm`.
+    isSafeCities: { type: Boolean, default: false },
     farmName: { type: String, default: "" },
     timesReported: { type: Number, default: 0 },
     isRemoved: { type: Boolean, default: false },

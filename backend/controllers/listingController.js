@@ -1,63 +1,9 @@
 const Listing = require("../models/Listing");
-const { google } = require("googleapis");
-const { Readable } = require("stream");
-
-require("dotenv").config();
-const googleDriveCredentials = JSON.parse(
-    process.env.GOOGLE_DRIVE_CREDENTIALS_JSON || "{}"
-);
-googleDriveCredentials.private_key = googleDriveCredentials.private_key.replace(
-    /\\n/g,
-    "\n"
-);
-
-//set up google drive api
-const auth = new google.auth.JWT({
-    email: googleDriveCredentials.client_email,
-    key: googleDriveCredentials.private_key,
-    scopes: ["https://www.googleapis.com/auth/drive"],
-});
-const drive = google.drive({ version: "v3", auth });
-
-const uploadImageToDrive = async (file) => {
-    const bufferStream = Readable.from(file.buffer);
-
-    const response = await drive.files.create({
-        requestBody: {
-            name: file.originalname,
-            mimeType: file.mimetype,
-        },
-        media: {
-            mimeType: file.mimetype,
-            body: bufferStream,
-        },
-        fields: "id",
-    });
-
-    const fileId = response.data.id;
-
-    //make file public
-    await drive.permissions.create({
-        fileId,
-        requestBody: {
-            role: "reader",
-            type: "anyone",
-        },
-    });
-
-    //share with main safe cities gmail
-    await drive.permissions.create({
-        fileId,
-        requestBody: {
-            type: "user",
-            role: "writer",
-            emailAddress: "safecitiespermaculture@gmail.com",
-        },
-    });
-
-    const publicUrl = `https://drive.google.com/uc?id=${fileId}`;
-    return publicUrl;
-};
+const {
+    uploadBufferToCloudinary,
+    deleteFromCloudinary,
+    publicIdFromUrl,
+} = require("../utils/cloudinaryUpload");
 
 const createListing = async (req, res) => {
     try {
@@ -106,11 +52,14 @@ const createListing = async (req, res) => {
         }
 
         let imageUrl = "";
-        try {
-            imageUrl = await uploadImageToDrive(req.file);
-        } catch (uploadError) {
-            console.error("Error in uploadImageToDrive:", uploadError);
-            return res.status(500).json({ message: "Failed to upload image.", error: uploadError.message });
+        if (req.file) {
+            try {
+                const result = await uploadBufferToCloudinary(req.file, "marketplace");
+                imageUrl = result.url;
+            } catch (uploadError) {
+                console.error("Error uploading listing image:", uploadError.message);
+                return res.status(500).json({ message: "Failed to upload image.", error: uploadError.message });
+            }
         }
 
         const newListing = Listing({
@@ -271,18 +220,11 @@ const removeListing = async(req, res) => {
             return res.status(403).json({ message: "You cannot remove this listing." });
         }
 
-        // Delete image from google drive
-        if (listing.picture && listing.picture.includes("drive.google.com")) {
-            const match = listing.picture.match(/id=([^&]+)/);
-            const fileId = match ? match[0].substring(3) : null;
-
-            if (fileId) {
-                try {
-                    await drive.files.delete({ fileId });
-                } catch (driveError) {
-                    console.error("Failed to delete image from drive:", driveError);
-                }
-            }
+        // Delete the listing image from Cloudinary (legacy Drive images are just
+        // left in place — the Drive client was removed from this controller).
+        const publicId = publicIdFromUrl(listing.picture);
+        if (publicId) {
+            await deleteFromCloudinary(publicId);
         }
 
         await Listing.findByIdAndDelete(id);

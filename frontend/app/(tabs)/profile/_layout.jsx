@@ -28,6 +28,7 @@ const ProfileLayout = () => {
                 options={{ title: "Admin Approval" }}
             />
             <Stack.Screen name="manageUsers" options={{ title: "Users" }} />
+            <Stack.Screen name="manageFarms" options={{ title: "Farms" }} />
             <Stack.Screen
                 name="user/[userId]"
                 options={{ title: "Manage User" }}
