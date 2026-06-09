@@ -26,7 +26,9 @@ const ManageUserCard = ({ user }) => {
                 <Text style={styles.farmText}>
                     Farm:{" "}
                     <Text style={styles.farmNameInnerText}>
-                        {user.farmName.length > 0 ? user.farmName : "N/A"}
+                        {user.farms?.length
+                            ? user.farms.map((f) => f.name).join(", ")
+                            : "N/A"}
                     </Text>
                 </Text>
             </View>

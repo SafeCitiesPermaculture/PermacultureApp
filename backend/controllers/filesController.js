@@ -11,13 +11,46 @@ googleDriveCredentials.private_key = googleDriveCredentials.private_key.replace(
     "\n"
 );
 
-//set up google drive api
+// Service account client — used for READING/downloading files. It owns the
+// legacy docs and is shared on new ones, so it can read everything. (It cannot
+// CREATE files: service accounts have no Drive storage quota.)
 const auth = new google.auth.JWT({
     email: googleDriveCredentials.client_email,
     key: googleDriveCredentials.private_key,
     scopes: ["https://www.googleapis.com/auth/drive"],
 });
 const drive = google.drive({ version: "v3", auth });
+
+// OAuth client acting as the real Gmail account (15GB quota) — used for CREATING
+// files/folders and deleting app-created ones. Files it creates are owned by the
+// Gmail account, so uploads actually succeed.
+const SERVICE_ACCOUNT_EMAIL = googleDriveCredentials.client_email;
+const oauthClient = new google.auth.OAuth2(
+    process.env.GOOGLE_OAUTH_CLIENT_ID,
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET
+);
+oauthClient.setCredentials({
+    refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
+});
+const driveOwner = google.drive({ version: "v3", auth: oauthClient });
+
+// Share a newly-created Drive file with the service account (reader) so the
+// service-account reader/indexer can access it.
+const shareWithServiceAccount = async (fileId) => {
+    if (!SERVICE_ACCOUNT_EMAIL) return;
+    try {
+        await driveOwner.permissions.create({
+            fileId,
+            requestBody: {
+                type: "user",
+                role: "reader",
+                emailAddress: SERVICE_ACCOUNT_EMAIL,
+            },
+        });
+    } catch (err) {
+        console.error("Failed to share with service account:", err.message);
+    }
+};
 
 //Upload a file to google drive
 const handleUpload = async (req, res) => {
@@ -44,22 +77,15 @@ const handleUpload = async (req, res) => {
             body: bufferStream,
         };
 
-        //upload to google
-        const driveRes = await drive.files.create({
+        //upload to google as the Gmail account (owner has storage quota)
+        const driveRes = await driveOwner.files.create({
             resource: fileMetadata,
             media: media,
             fields: "id, webViewLink",
         });
 
-        //share with main safe cities gmail
-        await drive.permissions.create({
-            fileId: driveRes.data.id,
-            requestBody: {
-                type: "user",
-                role: "writer",
-                emailAddress: "safecitiespermaculture@gmail.com",
-            },
-        });
+        //share with the service account so the reader/indexer can access it
+        await shareWithServiceAccount(driveRes.data.id);
 
         //save metadata to mongo
         const savedFile = await File.create({
@@ -162,8 +188,17 @@ const deleteFileHelper = async (fileObject) => {
         }
     }
 
-    //delete from google drive
-    await drive.files.delete({ fileId: fileObject.driveFileId });
+    //delete from google drive — new files are owned by the Gmail account (OAuth),
+    //legacy files by the service account; try the owner, fall back to the other.
+    try {
+        await driveOwner.files.delete({ fileId: fileObject.driveFileId });
+    } catch (ownerErr) {
+        try {
+            await drive.files.delete({ fileId: fileObject.driveFileId });
+        } catch (saErr) {
+            console.error(`Drive delete failed for ${fileObject.name}:`, saErr.message);
+        }
+    }
 
     //delete from mongo
     await File.findByIdAndDelete(fileObject._id);
@@ -175,7 +210,8 @@ const createFolder = async (req, res) => {
     try {
         //get arguments
         const { name, parent } = req.body;
-        const parentFolder = await File.findById(parent);
+        const parentFolder =
+            parent && parent !== "null" ? await File.findById(parent) : null;
 
         //construct metadata
         const folderMetadata = {
@@ -186,21 +222,14 @@ const createFolder = async (req, res) => {
                 : [],
         };
 
-        //create folder in drive
-        const folder = await drive.files.create({
+        //create folder in drive as the Gmail account
+        const folder = await driveOwner.files.create({
             resource: folderMetadata,
             fields: "id, webViewLink",
         });
 
-        //share with Safe Cities account
-        await drive.permissions.create({
-            fileId: folder.data.id,
-            requestBody: {
-                type: "user",
-                role: "writer",
-                emailAddress: "safecitiespermaculture@gmail.com",
-            },
-        });
+        //share with the service account so the reader/indexer can access it
+        await shareWithServiceAccount(folder.data.id);
 
         //save to mongo
         const savedFolder = await File.create({

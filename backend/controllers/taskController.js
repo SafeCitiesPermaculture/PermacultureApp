@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const { uploadBufferToCloudinary, deleteFromCloudinary } = require("../utils/cloudinaryUpload");
 
 const createTask = async (req, res) => {
     if (!req.user.isVerified || req.user.isRemoved) {
@@ -51,9 +52,38 @@ const markCompleted = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
+        // Only the assignee or an admin may complete a task.
+        const isAdmin = req.user.userRole === "admin";
+        const isOwner = task.assignedTo.toString() === req.user._id.toString();
+        if (!isAdmin && !isOwner) {
+            return res.status(403).json({ message: "Unauthorized: you cannot complete this task" });
+        }
+
+        // Optional completion note describing how the task was done.
+        if (typeof req.body.completionNote === "string") {
+            task.completionNote = req.body.completionNote;
+        }
+
+        // Optional completion photo (multipart upload).
+        if (req.file) {
+            try {
+                const { url, publicId } = await uploadBufferToCloudinary(req.file, "task-completions");
+                task.completionPhoto = url;
+                task.completionPhotoId = publicId;
+            } catch (uploadError) {
+                console.error("Completion photo upload failed:", uploadError.message);
+                return res.status(500).json({
+                    message: "Failed to upload completion photo",
+                    reason: uploadError.message,
+                });
+            }
+        }
+
         task.isCompleted = true;
+        task.completedAt = new Date();
+        task.completedBy = req.user._id;
         await task.save();
-        return res.status(201).json({ message: "Task marked completed" });
+        return res.status(201).json({ message: "Task marked completed", task });
     } catch (error) {
         return res.status(500).json({ message: "Server error when marking task completed" });
     }
@@ -72,11 +102,26 @@ const markIncomplete = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
+        const isAdmin = req.user.userRole === "admin";
+        const isOwner = task.assignedTo.toString() === req.user._id.toString();
+        if (!isAdmin && !isOwner) {
+            return res.status(403).json({ message: "Unauthorized: you cannot edit this task" });
+        }
+
+        // Clear the completion record when reverting.
+        if (task.completionPhotoId) {
+            await deleteFromCloudinary(task.completionPhotoId);
+        }
         task.isCompleted = false;
+        task.completedAt = null;
+        task.completedBy = null;
+        task.completionNote = "";
+        task.completionPhoto = "";
+        task.completionPhotoId = "";
         await task.save();
-        return res.status(201).json({ message: "Task marked completed" });
+        return res.status(201).json({ message: "Task marked incomplete" });
     } catch (error) {
-        return res.status(500).json({ message: "Server error when marking task completed" });
+        return res.status(500).json({ message: "Server error when marking task incomplete" });
     }
 };
 
@@ -114,6 +159,47 @@ const deleteTask = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: "Server error when deleting task" });
     }
-}
+};
 
-module.exports = { createTask, getTasks, markCompleted, getCompletedTasks, markIncomplete, deleteTask };
+/**
+ * Admin: list every task, optionally filtered by assignee or completion state.
+ * Query params: assignedTo (userId), isCompleted ("true"/"false").
+ * Populates the assignee and the user who completed it so admins can review
+ * who did what and how (note + photo live on the task itself).
+ */
+const getAllTasks = async (req, res) => {
+    try {
+        const filter = {};
+        if (req.query.assignedTo) {
+            filter.assignedTo = req.query.assignedTo;
+        }
+        if (req.query.isCompleted === "true") {
+            filter.isCompleted = true;
+        } else if (req.query.isCompleted === "false") {
+            filter.isCompleted = false;
+        }
+
+        const tasks = await Task.find(filter)
+            .populate({
+                path: "assignedTo",
+                select: "username farms",
+                populate: { path: "farms", select: "name" },
+            })
+            .populate("completedBy", "username")
+            .sort({ dueDateTime: 1 });
+
+        return res.status(200).json({ message: "Tasks retrieved", tasks });
+    } catch (error) {
+        return res.status(500).json({ message: "Server error when retrieving tasks" });
+    }
+};
+
+module.exports = {
+    createTask,
+    getTasks,
+    markCompleted,
+    getCompletedTasks,
+    markIncomplete,
+    deleteTask,
+    getAllTasks,
+};

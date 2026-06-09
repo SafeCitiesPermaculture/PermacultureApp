@@ -39,3 +39,5 @@ yarn-error.*
 
 # Google drive
 credentials/
+# Local DB dumps (contain password hashes/tokens) — never commit
+backups/

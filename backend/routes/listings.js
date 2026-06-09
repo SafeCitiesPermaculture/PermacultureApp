@@ -3,17 +3,22 @@ const router = express.Router();
 const listingController = require("../controllers/listingController");
 const multer = require("multer");
 
+// Accept images by MIME type OR by file extension. Phones (esp. HEIC) often
+// send "application/octet-stream" or an empty type, so relying on MIME alone
+// rejects valid photos. Cloudinary (resource_type: image) is the final guard.
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif|svg)$/i;
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    const mime = file.mimetype || "";
+    if (mime.startsWith("image/") || IMAGE_EXT.test(file.originalname || "")) {
         cb(null, true);
     } else {
         cb(new Error("Only image files are allowed!"), false);
     }
 };
-const upload = multer({ 
+const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 5 * 1024 * 1024
+        fileSize: 25 * 1024 * 1024
     },
     fileFilter
  });

@@ -1,23 +1,10 @@
 const User = require("../models/User");
-const { google } = require("googleapis");
-const { Readable } = require("stream");
-const path = require("path");
+const {
+    uploadBufferToCloudinary,
+    deleteFromCloudinary,
+    publicIdFromUrl,
+} = require("../utils/cloudinaryUpload");
 require("dotenv").config();
-const googleDriveCredentials = JSON.parse(
-    process.env.GOOGLE_DRIVE_CREDENTIALS_JSON || "{}"
-);
-googleDriveCredentials.private_key = googleDriveCredentials.private_key.replace(
-    /\\n/g,
-    "\n"
-);
-
-//set up google drive api
-const auth = new google.auth.JWT({
-    email: googleDriveCredentials.client_email,
-    key: googleDriveCredentials.private_key,
-    scopes: ["https://www.googleapis.com/auth/drive"],
-});
-const drive = google.drive({ version: "v3", auth });
 
 //set the profile picture for the user
 const updateProfilePicture = async (req, res) => {
@@ -39,60 +26,24 @@ const updateProfilePicture = async (req, res) => {
         //store old picture url for deletion
         const oldPictureUrl = user.profilePicture;
 
-        //send to google drive
-        const fileMetadata = {
-            name: file.originalname,
-            parent: null,
-        };
-
-        const bufferStream = new Readable();
-        bufferStream.push(req.file.buffer);
-        bufferStream.push(null);
-
-        const media = {
-            mimeType: req.file.mimetype,
-            body: bufferStream,
-        };
-
-        const response = await drive.files.create({
-            resource: fileMetadata,
-            media,
-            fields: "id",
-        });
-
-        const fileId = response.data.id;
-
-        //make file public
-        await drive.permissions.create({
-            fileId,
-            requestBody: {
-                role: "reader",
-                type: "anyone",
-            },
-        });
-
-        //share with main safe cities gmail
-        await drive.permissions.create({
-            fileId: response.data.id,
-            requestBody: {
-                type: "user",
-                role: "writer",
-                emailAddress: "safecitiespermaculture@gmail.com",
-            },
-        });
-
-        //get link
-        const publicUrl = `https://drive.google.com/uc?id=${fileId}`;
+        //upload to Cloudinary
+        let publicUrl;
+        try {
+            const result = await uploadBufferToCloudinary(file, "profile-pics");
+            publicUrl = result.url;
+        } catch (uploadError) {
+            console.error("Profile picture upload failed:", uploadError.message);
+            return res.status(500).json({ error: "Image upload failed", reason: uploadError.message });
+        }
 
         //add to user
         user.profilePicture = publicUrl;
         await user.save();
 
-        //attempt to delete old picture
-        const match = oldPictureUrl.match(/id=([^&]+)/);
-        if (match) {
-            const oldFileId = match[1];
-            await drive.files.delete({ fileId: oldFileId });
+        //attempt to delete old Cloudinary picture (legacy Drive images are left as-is)
+        const oldPublicId = publicIdFromUrl(oldPictureUrl);
+        if (oldPublicId) {
+            await deleteFromCloudinary(oldPublicId);
         }
 
         res.status(200).json({ url: publicUrl });

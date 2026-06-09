@@ -111,7 +111,11 @@ const handleLogin = async (req, res) => {
 
         await new Token({ userId: user._id, token: refreshToken }).save();
 
-        res.json({ accessToken, refreshToken, user });
+        await user.populate("farms", "name");
+        const userObj = user.toObject();
+        userObj.farmName = user.farms?.length ? user.farms.map((f) => f.name).join(", ") : "";
+
+        res.json({ accessToken, refreshToken, user: userObj });
     } catch (err) {
         res.status(500).json({ error: `Server error. ${err}` });
     }
@@ -156,8 +160,11 @@ const refreshUserData = async (req, res) => {
     const token = authHeader.split(" ")[1];
     try {
         const payload = jwt.verify(token, ACCESS_TOKEN_SECRET);
-        const user = await User.findById(payload.userId);
-        res.json({ user });
+        const user = await User.findById(payload.userId).populate("farms", "name");
+        // Expose a display-friendly farmName derived from the farm references.
+        const userObj = user.toObject();
+        userObj.farmName = user.farms?.length ? user.farms.map((f) => f.name).join(", ") : "";
+        res.json({ user: userObj });
     } catch (err) {
         console.log(err);
         return res.status(401).json({ message: "Invalid token" });

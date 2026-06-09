@@ -27,6 +27,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import DeleteModal from "@/components/DeleteModal";
+import CompletionModal from "@/components/CompletionModal";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -54,6 +55,7 @@ const SchedulePage = () => {
     const [showWorkerPicker, setShowWorkerPicker] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [toBeDeletedId, setToBeDeletedId] = useState(null);
+    const [completionModalVisible, setCompletionModalVisible] = useState(false);
     const { userData, isAdmin } = useContext(AuthContext);
     const router = useRouter();
 
@@ -259,26 +261,51 @@ const SchedulePage = () => {
         });
     }, []);
 
-    const handleMarkSelectedCompleted = async () => {
+    const handleMarkSelectedCompleted = () => {
         if (selectedTasks.size === 0) {
             setErrorMessage("No tasks selected to mark as completed.");
             return;
         }
+        setErrorMessage("");
+        setCompletionModalVisible(true);
+    };
 
+    // Builds the request body for completing a task: multipart when a photo is
+    // attached (so it can be streamed to Drive), JSON otherwise.
+    const completeTask = async (taskId, { note, photo }) => {
+        if (photo) {
+            const formData = new FormData();
+            if (Platform.OS === "web") {
+                formData.append("photo", photo.fileObject, photo.name);
+            } else {
+                formData.append("photo", {
+                    uri: photo.uri,
+                    name: photo.name,
+                    type: photo.type,
+                });
+            }
+            if (note) formData.append("completionNote", note);
+            await API.put(`/tasks/complete/${taskId}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+        } else {
+            await API.put(`/tasks/complete/${taskId}`, { completionNote: note });
+        }
+        await cancelTaskNotification(taskId);
+    };
+
+    const confirmCompletion = async ({ note, photo }) => {
         setCompletingTasks(true);
         setErrorMessage("");
-
         try {
-            const completionPromises = Array.from(selectedTasks).map(
-                async (taskId) => {
-                    await API.put(`/tasks/complete/${taskId}`);
-                    await cancelTaskNotification(taskId);
-                }
+            const completionPromises = Array.from(selectedTasks).map((taskId) =>
+                completeTask(taskId, { note, photo })
             );
-            await Promise.all(completionPromises); // Wait for all completion requests to finish
+            await Promise.all(completionPromises);
 
             setErrorMessage("Selected tasks marked as completed!");
             setSelectedTasks(new Set());
+            setCompletionModalVisible(false);
             getTasks();
         } catch (error) {
             setErrorMessage(error.message);
@@ -346,6 +373,16 @@ const SchedulePage = () => {
                     </TouchableOpacity>
                 </View>
                 </View>
+                {isAdmin && (
+                    <TouchableOpacity
+                        onPress={() => router.push("/schedule/AdminTasks")}
+                        style={styles.adminTasksButton}
+                    >
+                        <Text style={styles.adminTasksButtonText}>
+                            View Workers&apos; Tasks
+                        </Text>
+                    </TouchableOpacity>
+                )}
                 <View style={styles.taskArea}>
                     {loading ? (
                         <ActivityIndicator
@@ -600,6 +637,14 @@ const SchedulePage = () => {
                 }}
                 isLoading={!!deletingId}
                 />
+
+            <CompletionModal
+                isVisible={completionModalVisible}
+                count={selectedTasks.size}
+                onConfirm={confirmCompletion}
+                onCancel={() => setCompletionModalVisible(false)}
+                isLoading={completingTasks}
+            />
         </SafeAreaView>
     );
 };
@@ -812,6 +857,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "flex-start",
         paddingTop: 1,
+    },
+    adminTasksButton: {
+        alignSelf: "center",
+        backgroundColor: Colors.greenButton,
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        marginBottom: 15,
+    },
+    adminTasksButtonText: {
+        fontSize: 14,
+        fontWeight: "bold",
     },
     webDatePickerWrapper: {
         borderWidth: 1,

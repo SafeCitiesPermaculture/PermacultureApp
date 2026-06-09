@@ -53,6 +53,7 @@ const ScheduleLayout = () => {
     >
       <Stack.Screen name="index" options={{ title: "Schedule" }} />
       <Stack.Screen name="CompletedTasks" options={{  title: "Completed Tasks" }} />
+      <Stack.Screen name="AdminTasks" options={{ title: "Workers' Tasks" }} />
     </Stack>
   );
 };
