@@ -21,6 +21,7 @@ export default function TabLayout() {
                 <Tabs.Screen name="marketplace" />
                 <Tabs.Screen name="profile" />
                 <Tabs.Screen name="schedule" />
+                <Tabs.Screen name="chatbot" />
             </Tabs>
         </AuthGuard>
     );
