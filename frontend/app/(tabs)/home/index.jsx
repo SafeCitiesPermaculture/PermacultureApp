@@ -62,7 +62,7 @@ export default function HomeScreen() {
         },
         {
             label: "Farm Assistant",
-            icon: require("@/assets/images/schedule icon.png"),
+            icon: require("@/assets/images/assistant icon.png"),
             onPress: () => {
                 if (pathname !== "/chatbot") {
                     router.push("/chatbot");

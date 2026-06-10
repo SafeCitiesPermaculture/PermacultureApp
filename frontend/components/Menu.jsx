@@ -8,6 +8,7 @@ import homeIcon from "@/assets/images/home icon transparent.png";
 import infoIcon from "@/assets/images/Info icon.png";
 import scheduleIcon from "@/assets/images/schedule icon.png";
 import profileIcon from "@/assets/images/profile icon.png";
+import assistantIcon from "@/assets/images/assistant icon.png";
 
 export default function Menu({ state, navigation }) {
     const router = useRouter();
@@ -21,7 +22,7 @@ export default function Menu({ state, navigation }) {
         { label: "Documents", icon: infoIcon, route: "documents" },
         { label: "Schedule", icon: scheduleIcon, route: "schedule" },
         { label: "Profile", icon: profileIcon, route: "profile" },
-        { label: "Assistant", icon: null, route: "chatbot", emoji: "🌿" },
+        { label: "Assistant", icon: assistantIcon, route: "chatbot" },
     ];
 
     return (
@@ -46,11 +47,7 @@ export default function Menu({ state, navigation }) {
                     >
                         {item.icon ? (
                             <Image source={item.icon} style={styles.icon} />
-                        ) : (
-                            <View style={styles.emojiIconWrapper}>
-                                <Text style={styles.emojiIcon}>{item.emoji}</Text>
-                            </View>
-                        )}
+                        ) : null}
                         <Text style={styles.label}>{item.label}</Text>
                     </TouchableOpacity>
                 );
@@ -85,15 +82,5 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 12,
         color: "black", // Adjust color as needed
-    },
-    emojiIconWrapper: {
-    width: 24,
-    height: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-    },
-    emojiIcon: {
-        fontSize: 20,
     },
 });
