@@ -60,6 +60,15 @@ export default function HomeScreen() {
                 }
             },
         },
+        {
+            label: "Farm Assistant",
+            icon: require("@/assets/images/schedule icon.png"),
+            onPress: () => {
+                if (pathname !== "/chatbot") {
+                    router.push("/chatbot");
+                }
+            },
+        },
     ];
 
     return (

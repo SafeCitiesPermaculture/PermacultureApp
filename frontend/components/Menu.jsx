@@ -6,7 +6,6 @@ import { useRouter, usePathname } from "expo-router";
 // Icon imports
 import homeIcon from "@/assets/images/home icon transparent.png";
 import infoIcon from "@/assets/images/Info icon.png";
-import marketIcon from "@/assets/images/marketplace icon.png";
 import scheduleIcon from "@/assets/images/schedule icon.png";
 import profileIcon from "@/assets/images/profile icon.png";
 
@@ -19,10 +18,10 @@ export default function Menu({ state, navigation }) {
 
     const menuItems = [
         { label: "Home", icon: homeIcon, route: "home" },
-        { label: "Marketplace", icon: marketIcon, route: "marketplace" },
         { label: "Documents", icon: infoIcon, route: "documents" },
         { label: "Schedule", icon: scheduleIcon, route: "schedule" },
         { label: "Profile", icon: profileIcon, route: "profile" },
+        { label: "Assistant", icon: null, route: "chatbot", emoji: "🌿" },
     ];
 
     return (
@@ -45,7 +44,13 @@ export default function Menu({ state, navigation }) {
                             }
                         }}
                     >
-                        <Image source={item.icon} style={styles.icon} />
+                        {item.icon ? (
+                            <Image source={item.icon} style={styles.icon} />
+                        ) : (
+                            <View style={styles.emojiIconWrapper}>
+                                <Text style={styles.emojiIcon}>{item.emoji}</Text>
+                            </View>
+                        )}
                         <Text style={styles.label}>{item.label}</Text>
                     </TouchableOpacity>
                 );
@@ -80,5 +85,15 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 12,
         color: "black", // Adjust color as needed
+    },
+    emojiIconWrapper: {
+    width: 24,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+    },
+    emojiIcon: {
+        fontSize: 20,
     },
 });
