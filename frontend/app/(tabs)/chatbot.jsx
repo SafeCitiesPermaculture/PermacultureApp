@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import colors from "@/constants/Colors.js";
+import { AI_API } from "@/api/api";
 
 const { width } = Dimensions.get("window");
 const SIDEBAR_WIDTH = width * 0.72;
@@ -164,29 +165,29 @@ export default function ChatbotScreen() {
         setIsLoading(true);
 
         try {
-            const apiMessages = [
-                ...currentSession.messages.map((m) => ({
-                    role: m.role,
-                    content: m.text,
-                })),
-                { role: "user", content: userMsg.text || "(image attached)" },
-            ];
+            // Prior turns become history; the new message is sent separately.
+            const history = currentSession.messages.map((m) => ({
+                role: m.role,
+                content: m.text,
+            }));
 
-            const response = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-20250514",
-                    max_tokens: 1000,
-                    system:
-                        "You are a helpful permaculture and farm management assistant. You help with growing techniques, crop planning, soil health, composting, water management, and sustainable farming practices. Be concise and practical.",
-                    messages: apiMessages,
-                }),
+            // Calls the FastAPI AI service (Gemini 2.5 Flash + Drive File Search
+            // RAG). Auth + the provider key are handled server-side via AI_API.
+            const { data } = await AI_API.post("/chat", {
+                message: userMsg.text || "(image attached)",
+                history,
             });
 
-            const data = await response.json();
-            const replyText =
-                data.content?.[0]?.text || "Sorry, I couldn't generate a response.";
+            let replyText =
+                data?.reply || "Sorry, I couldn't generate a response.";
+            // Surface the Drive documents the answer was grounded in.
+            if (data?.sources?.length) {
+                const cited = data.sources
+                    .map((s) => s.title)
+                    .filter(Boolean)
+                    .join(", ");
+                if (cited) replyText += `\n\n📄 Sources: ${cited}`;
+            }
 
             const assistantMsg = {
                 id: (Date.now() + 1).toString(),

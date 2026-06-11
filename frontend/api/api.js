@@ -7,8 +7,14 @@ const devSocketUrl = "http://localhost:3000";
 const prodUrl = "https://permacultureapp.onrender.com/api";
 const prodSocketUrl = "https://permacultureapp.onrender.com";
 
+// FastAPI AI assistant service (separate backend from Express).
+const devAiUrl = "http://localhost:8000";
+// TODO: set to the deployed Render AI service URL once it's live.
+const prodAiUrl = "https://afc-estate-ai.onrender.com";
+
 const BACKEND_URL = __DEV__ ? devUrl : prodUrl;
 const SOCKET_URL = __DEV__ ? devSocketUrl : prodSocketUrl;
+const AI_BASE_URL = __DEV__ ? devAiUrl : prodAiUrl;
 
 
 const STORAGE_KEY = "tokens";
@@ -117,6 +123,38 @@ const tryRefreshToken = async () => {
     }
 };
 
+// Separate axios instance for the FastAPI AI assistant service. Different base
+// URL from the Express backend, but the SAME access token (the AI service
+// verifies the same JWT) and the same refresh-on-401 retry flow.
+const AI_API = axios.create({ baseURL: AI_BASE_URL });
+
+AI_API.interceptors.request.use(async (config) => {
+    const tokens = await getTokens();
+    if (tokens?.accessToken) {
+        config.headers.authorization = `Bearer ${tokens.accessToken}`;
+    }
+    return config;
+});
+
+AI_API.interceptors.response.use(
+    (res) => res,
+    async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status == 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            const refreshed = await tryRefreshToken();
+            if (refreshed) {
+                const newTokens = await getTokens();
+                originalRequest.headers.authorization = `Bearer ${newTokens.accessToken}`;
+                return AI_API(originalRequest);
+            }
+            await clearTokens();
+            return Promise.reject("Session expired. Please log in again.");
+        }
+        return Promise.reject(error);
+    }
+);
+
 //Auth functions
 const login = async (username, password) => {
     try {
@@ -144,6 +182,6 @@ const logout = async () => {
     await clearTokens();
 };
 
-export { login, logout, getTokens, BACKEND_URL, SOCKET_URL };
+export { login, logout, getTokens, BACKEND_URL, SOCKET_URL, AI_BASE_URL, AI_API };
 
 export default API;
