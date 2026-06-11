@@ -1,0 +1,20 @@
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+
+# Config / validation
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# MongoDB (async) — talks to the SAME Atlas cluster as the Express backend
+motor>=3.6.0
+
+# JWT verification — must match the Express backend's jsonwebtoken (HS256)
+PyJWT>=2.10.0
+
+# Gemini 2.5 Flash + File Search
+google-genai>=0.8.0
+
+# Google Drive (service account, reuses GOOGLE_DRIVE_CREDENTIALS_JSON)
+google-api-python-client>=2.150.0
+google-auth>=2.37.0

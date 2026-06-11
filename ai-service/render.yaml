@@ -1,0 +1,28 @@
+# Second Render service for the AI Assistant (separate from the Express
+# backend). Set the secret env vars in the Render dashboard — reuse the values
+# from the existing backend service for ACCESS_TOKEN_SECRET, MONGODB_URI, and
+# GOOGLE_DRIVE_CREDENTIALS_JSON. Leave GEMINI_API_KEY blank until provisioned.
+services:
+  - type: web
+    name: afc-estate-ai
+    runtime: python
+    rootDir: ai-service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ACCESS_TOKEN_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GOOGLE_DRIVE_CREDENTIALS_JSON
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: AI_CONVERSATIONS_FOLDER_NAME
+        value: AI Conversations
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:8081,https://sc-permaculture.vercel.app,https://afc-estate.vercel.app
