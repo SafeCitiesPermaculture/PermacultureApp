@@ -31,6 +31,35 @@ function createSession(title = "New Chat") {
     };
 }
 
+/**
+ * Lightweight markdown renderer for assistant replies: turns **bold** into
+ * bold spans and leading "* "/"- " bullets into "• ". Avoids pulling in a full
+ * markdown library. Returns nodes to place inside a single <Text>.
+ */
+function renderRichText(text) {
+    const nodes = [];
+    const lines = String(text).split("\n");
+    lines.forEach((line, li) => {
+        const withBullet = line.replace(/^(\s*)[*-]\s+/, "$1• ");
+        const parts = withBullet.split(/(\*\*[^*]+\*\*)/g);
+        parts.forEach((part, pi) => {
+            if (!part) return;
+            const bold = part.match(/^\*\*([^*]+)\*\*$/);
+            if (bold) {
+                nodes.push(
+                    <Text key={`${li}-${pi}`} style={{ fontWeight: "bold" }}>
+                        {bold[1]}
+                    </Text>
+                );
+            } else {
+                nodes.push(part);
+            }
+        });
+        if (li < lines.length - 1) nodes.push("\n");
+    });
+    return nodes;
+}
+
 export default function ChatbotScreen() {
     const [sessions, setSessions] = useState([createSession("New Chat")]);
     const [savedSessionIds, setSavedSessionIds] = useState([]);
@@ -256,7 +285,7 @@ export default function ChatbotScreen() {
                     )}
                     {item.text ? (
                         <Text style={isUser ? styles.userText : styles.assistantText}>
-                            {item.text}
+                            {isUser ? item.text : renderRichText(item.text)}
                         </Text>
                     ) : null}
                     <Text style={styles.timestamp}>{item.timestamp}</Text>

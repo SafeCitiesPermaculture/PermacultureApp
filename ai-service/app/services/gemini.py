@@ -64,20 +64,26 @@ def _generate(
     config = types.GenerateContentConfig(**kwargs) if kwargs else None
 
     # Gemini occasionally returns transient 5xx (e.g. 503 "high demand").
-    # Retry a few times with short backoff before surfacing a friendly error.
+    # Try the primary model with backoff, then fall back to a lighter model
+    # before surfacing a friendly error.
+    models = [settings.gemini_model]
+    fallback = "gemini-2.5-flash-lite"
+    if fallback != settings.gemini_model:
+        models.append(fallback)
+
     last_exc = None
-    for attempt in range(3):
-        try:
-            return client.models.generate_content(
-                model=settings.gemini_model,
-                contents=prompt,
-                config=config,
-            )
-        except genai_errors.ServerError as exc:
-            last_exc = exc
-            if attempt < 2:
-                time.sleep(1.5 * (attempt + 1))
-                continue
+    for model in models:
+        for attempt in range(2):
+            try:
+                return client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=config,
+                )
+            except genai_errors.ServerError as exc:
+                last_exc = exc
+                if attempt == 0:
+                    time.sleep(1.5)
     raise GeminiUnavailableError(
         "The assistant is busy right now. Please try again in a moment."
     ) from last_exc
