@@ -176,6 +176,8 @@ export default function ChatbotScreen() {
             const { data } = await AI_API.post("/chat", {
                 message: userMsg.text || "(image attached)",
                 history,
+                // Let the assistant see the user's open schedule tasks.
+                include_tasks: true,
             });
 
             let replyText =
