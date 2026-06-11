@@ -11,17 +11,40 @@ router = APIRouter(tags=["chat"])
 
 
 async def _load_task_context(user: dict) -> str:
-    """Render the user's open tasks as plain text for the model."""
-    cursor = (
-        get_database()
-        .tasks.find({"assignedTo": user["_id"], "isCompleted": False})
-        .sort("dueDateTime", 1)
-    )
-    lines = []
-    async for task in cursor:
-        due = task.get("dueDateTime")
-        lines.append(f"- {task.get('name', 'Untitled')} (due {due})")
-    return "\n".join(lines) if lines else "No open tasks."
+    """Render open tasks as plain text for the model.
+
+    Admins see ALL open tasks across the organisation (with the assignee's
+    name); regular users see only their own.
+    """
+    db = get_database()
+    is_admin = user.get("userRole") == "admin"
+
+    query = {"isCompleted": False}
+    if not is_admin:
+        query["assignedTo"] = user["_id"]
+
+    tasks = [t async for t in db.tasks.find(query).sort("dueDateTime", 1)]
+    if not tasks:
+        return "There are no open tasks." if is_admin else "You have no open tasks."
+
+    if is_admin:
+        # Map assignee ids -> usernames so the admin can ask who has what.
+        ids = list({t["assignedTo"] for t in tasks if t.get("assignedTo")})
+        names = {}
+        async for u in db.users.find({"_id": {"$in": ids}}):
+            names[u["_id"]] = u.get("username", "Unknown")
+        lines = [
+            f"- {names.get(t.get('assignedTo'), 'Unassigned')}: "
+            f"{t.get('name', 'Untitled')} (due {t.get('dueDateTime')})"
+            for t in tasks
+        ]
+        return "All open tasks across the organisation:\n" + "\n".join(lines)
+
+    lines = [
+        f"- {t.get('name', 'Untitled')} (due {t.get('dueDateTime')})"
+        for t in tasks
+    ]
+    return "\n".join(lines)
 
 
 @router.post("/chat", response_model=ChatResponse)

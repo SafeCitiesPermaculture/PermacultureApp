@@ -102,8 +102,10 @@ def generate_chat(
     system = (
         "You are the Safe Cities permaculture assistant. Answer using the "
         "organisation's documents and the provided context. If you don't know, "
-        "say so plainly. When the user's current tasks are provided and they "
-        "ask about their schedule, tasks, or what's due, answer from that list."
+        "say so plainly. When a task list is provided and the user asks about "
+        "their schedule, tasks, or what's due, answer from that list. If the "
+        "list is labelled as all tasks across the organisation (admin view), "
+        "you may tell the user who has which tasks."
     )
     resp = _generate(
         prompt, system_instruction=system, file_search_store=file_search_store
