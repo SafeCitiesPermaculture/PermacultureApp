@@ -59,7 +59,7 @@ async def chat(body: ChatRequest, user: dict = Depends(get_current_user)):
             task_context=task_context,
             file_search_store=store,
         )
-    except gemini.GeminiNotConfiguredError as exc:
+    except (gemini.GeminiNotConfiguredError, gemini.GeminiUnavailableError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )

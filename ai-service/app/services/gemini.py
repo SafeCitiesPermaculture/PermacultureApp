@@ -9,6 +9,7 @@ RAG over the Drive corpus is intended to run through Gemini File Search; the
 retrieval wiring is marked with TODOs where the File Search store plugs in.
 """
 
+import time
 from functools import lru_cache
 
 from app.config import get_settings
@@ -17,6 +18,11 @@ from app.schemas import ChatTurn, Source
 
 class GeminiNotConfiguredError(RuntimeError):
     """Raised when GEMINI_API_KEY is missing — surfaced to clients as 503."""
+
+
+class GeminiUnavailableError(RuntimeError):
+    """Raised when Gemini is transiently unavailable (e.g. 503 high demand)
+    after retries are exhausted — surfaced to clients as a friendly 503."""
 
 
 @lru_cache
@@ -42,7 +48,7 @@ def _generate(
     settings = get_settings()
     client = _client()
 
-    from google.genai import types
+    from google.genai import types, errors as genai_errors
 
     kwargs = {}
     if system_instruction:
@@ -57,11 +63,24 @@ def _generate(
         ]
     config = types.GenerateContentConfig(**kwargs) if kwargs else None
 
-    return client.models.generate_content(
-        model=settings.gemini_model,
-        contents=prompt,
-        config=config,
-    )
+    # Gemini occasionally returns transient 5xx (e.g. 503 "high demand").
+    # Retry a few times with short backoff before surfacing a friendly error.
+    last_exc = None
+    for attempt in range(3):
+        try:
+            return client.models.generate_content(
+                model=settings.gemini_model,
+                contents=prompt,
+                config=config,
+            )
+        except genai_errors.ServerError as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+    raise GeminiUnavailableError(
+        "The assistant is busy right now. Please try again in a moment."
+    ) from last_exc
 
 
 def _extract_sources(resp) -> list[Source]:

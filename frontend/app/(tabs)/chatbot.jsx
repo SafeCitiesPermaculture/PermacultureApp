@@ -209,10 +209,15 @@ export default function ChatbotScreen() {
                 )
             );
         } catch (err) {
+            // Show the server's friendly message (e.g. "assistant is busy")
+            // when present; otherwise a generic fallback.
+            const serverMsg = err?.response?.data?.detail;
             const errMsg = {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
-                text: "Something went wrong. Please check your connection and try again.",
+                text:
+                    serverMsg ||
+                    "Something went wrong. Please check your connection and try again.",
                 timestamp: new Date().toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -615,7 +620,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 10,
         paddingBottom: Platform.OS === "ios" ? 8 : 8,
-        marginBottom: 60,
+        // Clear the absolutely-positioned tab bar (Menu.jsx, height 85). Native
+        // gets extra clearance from SafeAreaView's bottom inset; web does not.
+        marginBottom: Platform.OS === "web" ? 85 : 60,
         backgroundColor: "#FCFBF4",
         borderTopWidth: 1,
         borderTopColor: "#F3EADD",

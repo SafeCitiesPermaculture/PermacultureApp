@@ -13,7 +13,7 @@ router = APIRouter(tags=["summarize"])
 async def summarize(body: SummarizeRequest, user: dict = Depends(get_current_user)):
     try:
         summary = gemini.summarize(body.transcript, title=body.title)
-    except gemini.GeminiNotConfiguredError as exc:
+    except (gemini.GeminiNotConfiguredError, gemini.GeminiUnavailableError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )

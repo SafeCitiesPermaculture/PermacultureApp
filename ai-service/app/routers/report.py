@@ -17,7 +17,7 @@ async def report(body: ReportRequest, user: dict = Depends(get_current_user)):
             context=body.context,
             parameters=body.parameters,
         )
-    except gemini.GeminiNotConfiguredError as exc:
+    except (gemini.GeminiNotConfiguredError, gemini.GeminiUnavailableError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
