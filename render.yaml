@@ -1,7 +1,9 @@
-# Second Render service for the AI Assistant (separate from the Express
-# backend). Set the secret env vars in the Render dashboard — reuse the values
-# from the existing backend service for ACCESS_TOKEN_SECRET, MONGODB_URI, and
-# GOOGLE_DRIVE_CREDENTIALS_JSON. Leave GEMINI_API_KEY blank until provisioned.
+# Render Blueprint for the AI Assistant service (separate from the Express
+# backend). Deploy via Render dashboard: New → Blueprint → pick this repo.
+# Render reads this file and pre-fills everything except the secret env vars
+# (marked sync:false) — you enter those once. Reuse the SAME values as the
+# existing backend service for ACCESS_TOKEN_SECRET, MONGODB_URI (→ db), and
+# GOOGLE_DRIVE_CREDENTIALS_JSON.
 services:
   - type: web
     name: afc-estate-ai
