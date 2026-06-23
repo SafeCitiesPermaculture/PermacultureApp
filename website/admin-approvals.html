@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Admin · Member approvals
+  Wired to: GET /admin/unverified · PUT /admin/verify/:id · DELETE /admin/denyverify/:id
+  Admin-only (backend enforces; we also gate the UI on the cached role).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Approvals · Admin · Safe Cities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="profile" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h1 class="page-title">Member approvals</h1>
+          </div>
+          <a class="btn btn--ghost btn--sm" href="profile.html">← Back to profile</a>
+        </header>
+
+        <nav class="admin-tabs" aria-label="Admin sections">
+          <a href="admin-approvals.html" class="is-current" aria-current="page">Approvals</a>
+          <a href="admin-users.html">Users</a>
+          <a href="admin-tasks.html">Tasks</a>
+          <a href="admin-reports.html">Reports</a>
+          <a href="admin-farms.html">Farms</a>
+        </nav>
+
+        <section aria-labelledby="lbl">
+          <h2 class="sr-only" id="lbl">Pending members</h2>
+          <div id="list" class="card-stack"></div>
+          <p class="state" id="loading">Loading…</p>
+          <p class="state" id="empty" hidden>No members awaiting approval. 🎉</p>
+          <p class="state state--error" id="error" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="admin-guard.js"></script>
+    <script>
+      var listEl = document.getElementById("list");
+      var loading = document.getElementById("loading");
+      var empty = document.getElementById("empty");
+      var error = document.getElementById("error");
+
+      function load() {
+        listEl.innerHTML = "";
+        loading.hidden = false; empty.hidden = true; error.hidden = true;
+        SC.Admin.unverified()
+          .then(function (users) {
+            loading.hidden = true;
+            users = users || [];
+            if (!users.length) { empty.hidden = false; return; }
+            users.forEach(function (u) { listEl.appendChild(row(u)); });
+          })
+          .catch(function (err) {
+            loading.hidden = true; error.hidden = false;
+            error.textContent = err.message || "Could not load pending members.";
+          });
+      }
+
+      function row(u) {
+        var card = document.createElement("article");
+        card.className = "admin-row";
+        var info = document.createElement("div");
+        var name = document.createElement("h3"); name.className = "admin-row__name"; name.textContent = u.username || "(no name)";
+        var meta = document.createElement("p"); meta.className = "admin-row__meta";
+        var farms = (u.farms || []).map(function (f) { return f.name; }).join(", ");
+        meta.textContent = (u.email || "") + (farms ? " · " + farms : "");
+        info.appendChild(name); info.appendChild(meta);
+
+        var actions = document.createElement("div");
+        actions.className = "admin-row__actions";
+        actions.appendChild(btn("Approve", "btn--leaf btn--sm", function () {
+          SC.Admin.verify(u._id).then(function () { SC.toast("Member approved", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+        actions.appendChild(btn("Deny", "btn--ghost btn--sm", function () {
+          if (!confirm("Deny and delete " + u.username + "'s account?")) return;
+          SC.Admin.deny(u._id).then(function () { SC.toast("Application denied", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+
+        card.appendChild(info); card.appendChild(actions);
+        return card;
+      }
+      function btn(label, cls, fn) {
+        var b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label;
+        b.addEventListener("click", fn); return b;
+      }
+
+      load();
+    </script>
+  </body>
+</html>

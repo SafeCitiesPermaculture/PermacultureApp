@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Admin · Manage users
+  Wired to: GET /admin/verified · PUT /admin/remove/:id ·
+            PUT /admin/user/reset-password/:id { newPassword }
+  Admin-only.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Users · Admin · Safe Cities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="profile" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h1 class="page-title">Manage users</h1>
+          </div>
+          <a class="btn btn--ghost btn--sm" href="profile.html">← Back to profile</a>
+        </header>
+
+        <nav class="admin-tabs" aria-label="Admin sections">
+          <a href="admin-approvals.html">Approvals</a>
+          <a href="admin-users.html" class="is-current" aria-current="page">Users</a>
+          <a href="admin-tasks.html">Tasks</a>
+          <a href="admin-reports.html">Reports</a>
+          <a href="admin-farms.html">Farms</a>
+        </nav>
+
+        <div class="toolbar">
+          <label class="sr-only" for="search">Search users</label>
+          <input id="search" class="input-search" type="search" placeholder="Search by username or email…" />
+        </div>
+
+        <section aria-labelledby="lbl">
+          <h2 class="sr-only" id="lbl">Verified users</h2>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Username</th><th>Email</th><th>Role</th><th>Farm</th><th>Reports</th><th>Status</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+          <p class="state" id="loading">Loading…</p>
+          <p class="state" id="empty" hidden>No users found.</p>
+          <p class="state state--error" id="error" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="admin-guard.js"></script>
+    <script>
+      var tbody = document.getElementById("tbody");
+      var loading = document.getElementById("loading");
+      var empty = document.getElementById("empty");
+      var error = document.getElementById("error");
+      var search = document.getElementById("search");
+      var users = [];
+
+      function load() {
+        loading.hidden = false; empty.hidden = true; error.hidden = true;
+        SC.Admin.verified()
+          .then(function (data) {
+            loading.hidden = true;
+            users = data || [];
+            render();
+          })
+          .catch(function (err) {
+            loading.hidden = true; error.hidden = false;
+            error.textContent = err.message || "Could not load users.";
+          });
+      }
+
+      function render() {
+        var q = search.value.trim().toLowerCase();
+        var rows = users.filter(function (u) {
+          if (!q) return true;
+          return (u.username || "").toLowerCase().indexOf(q) !== -1 ||
+                 (u.email || "").toLowerCase().indexOf(q) !== -1;
+        });
+        tbody.innerHTML = "";
+        empty.hidden = rows.length > 0;
+        rows.forEach(function (u) { tbody.appendChild(row(u)); });
+      }
+
+      function cell(text) { var td = document.createElement("td"); td.textContent = text; return td; }
+
+      function row(u) {
+        var tr = document.createElement("tr");
+        tr.appendChild(cell(u.username || ""));
+        tr.appendChild(cell(u.email || ""));
+        tr.appendChild(cell(u.userRole === "admin" ? "Admin" : "Member"));
+        tr.appendChild(cell((u.farms || []).map(function (f) { return f.name; }).join(", ")));
+        tr.appendChild(cell(String(u.timesReported || 0)));
+        tr.appendChild(cell(u.isRemoved ? "Removed" : "Active"));
+
+        var actions = document.createElement("td");
+        actions.className = "admin-table__actions";
+        if (!u.isRemoved) {
+          actions.appendChild(btn("Remove", "btn--ghost btn--sm", function () {
+            if (!confirm("Remove " + u.username + "? They won't be able to post or message.")) return;
+            SC.Admin.remove(u._id).then(function () { SC.toast("User removed", "success"); load(); })
+              .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+          }));
+        }
+        actions.appendChild(btn("Reset password", "btn--ghost btn--sm", function () {
+          var pw = prompt("Set a new password for " + u.username + " (min 6 characters):");
+          if (!pw) return;
+          if (pw.length < 6) { SC.toast("Password too short", "error"); return; }
+          SC.Admin.resetPassword(u._id, pw).then(function () { SC.toast("Password updated", "success"); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+        tr.appendChild(actions);
+        return tr;
+      }
+      function btn(label, cls, fn) {
+        var b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label;
+        b.addEventListener("click", fn); return b;
+      }
+
+      search.addEventListener("input", render);
+      load();
+    </script>
+  </body>
+</html>

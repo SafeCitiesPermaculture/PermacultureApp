@@ -6,7 +6,10 @@ require("dotenv").config();
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const EMAIL_USERNAME = process.env.EMAIL_USERNAME;
-const FRONTEND_URL = "afc-estate.vercel.app";
+// Base URL of the deployed frontend (where reset-password.html is hosted).
+// Must include the scheme so the emailed reset link is a valid absolute URL.
+// Override per-environment via the FRONTEND_URL env var.
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://afc-estate.vercel.app";
 
 //Helper functions
 const generateAccessToken = (user) => {

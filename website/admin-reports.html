@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Admin · Reports
+  Wired to: GET /reports/ · PUT /reports/dismiss/:id · DELETE /reports/:reportId
+  Dismiss decrements the reported user's strike count; delete just removes the
+  report record. Admin-only.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reports · Admin · Safe Cities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="profile" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h1 class="page-title">Reports</h1>
+          </div>
+          <a class="btn btn--ghost btn--sm" href="profile.html">← Back to profile</a>
+        </header>
+
+        <nav class="admin-tabs" aria-label="Admin sections">
+          <a href="admin-approvals.html">Approvals</a>
+          <a href="admin-users.html">Users</a>
+          <a href="admin-tasks.html">Tasks</a>
+          <a href="admin-reports.html" class="is-current" aria-current="page">Reports</a>
+          <a href="admin-farms.html">Farms</a>
+        </nav>
+
+        <section aria-labelledby="lbl">
+          <h2 class="sr-only" id="lbl">Submitted reports</h2>
+          <div id="list" class="card-stack"></div>
+          <p class="state" id="loading">Loading…</p>
+          <p class="state" id="empty" hidden>No reports. All clear.</p>
+          <p class="state state--error" id="error" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="admin-guard.js"></script>
+    <script>
+      var listEl = document.getElementById("list");
+      var loading = document.getElementById("loading");
+      var empty = document.getElementById("empty");
+      var error = document.getElementById("error");
+
+      function load() {
+        listEl.innerHTML = "";
+        loading.hidden = false; empty.hidden = true; error.hidden = true;
+        SC.Reports.all()
+          .then(function (data) {
+            loading.hidden = true;
+            var reports = (data && data.reports) || [];
+            if (!reports.length) { empty.hidden = false; return; }
+            reports.forEach(function (r) { listEl.appendChild(card(r)); });
+          })
+          .catch(function (err) {
+            loading.hidden = true; error.hidden = false;
+            error.textContent = err.message || "Could not load reports.";
+          });
+      }
+
+      function card(r) {
+        var el = document.createElement("article");
+        el.className = "admin-row admin-row--stacked";
+
+        var info = document.createElement("div");
+        var title = document.createElement("h3");
+        title.className = "admin-row__name";
+        title.textContent = (r.reported && r.reported.username ? r.reported.username : "Unknown") + " was reported";
+        var who = document.createElement("p");
+        who.className = "admin-row__meta";
+        who.textContent = "by " + (r.reportedBy && r.reportedBy.username ? r.reportedBy.username : "Unknown") +
+                          " · " + SC.formatDate(r.createdAt);
+        var desc = document.createElement("p");
+        desc.className = "admin-row__desc";
+        desc.textContent = r.description || "";
+        info.appendChild(title); info.appendChild(who); info.appendChild(desc);
+
+        var actions = document.createElement("div");
+        actions.className = "admin-row__actions";
+        actions.appendChild(btn("Dismiss", "btn--leaf btn--sm", function () {
+          // Dismiss = consider it handled; decrements the user's strike count.
+          SC.Reports.dismiss(r._id).then(function () { SC.toast("Report dismissed", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+        actions.appendChild(btn("Delete", "btn--ghost btn--sm", function () {
+          if (!confirm("Delete this report record?")) return;
+          SC.Reports.remove(r._id).then(function () { SC.toast("Report deleted", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+
+        el.appendChild(info); el.appendChild(actions);
+        return el;
+      }
+      function btn(label, cls, fn) {
+        var b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label;
+        b.addEventListener("click", fn); return b;
+      }
+
+      load();
+    </script>
+  </body>
+</html>

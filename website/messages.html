@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Messages
+  Wired to: GET /conversations · POST /conversations {usernames} ·
+            GET /conversations/:id/messages · POST /conversations/:id/messages {text}
+  Real-time uses Socket.IO in the mobile app; to avoid adding a library here we
+  poll the open thread every few seconds instead. Requires login.
+  Deep link: messages.html?c=<conversationId> opens that thread.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Messages · Safe Cities Permaculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="marketplace" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Marketplace</p>
+            <h1 class="page-title">Messages</h1>
+          </div>
+          <a class="btn btn--ghost btn--sm" href="marketplace.html">← Back to marketplace</a>
+        </header>
+
+        <div class="messenger">
+          <!-- Conversation list -->
+          <aside class="messenger__list" aria-label="Conversations">
+            <div class="messenger__new">
+              <label class="sr-only" for="newUser">Start a chat with username</label>
+              <input id="newUser" type="text" placeholder="Username…" />
+              <button class="btn btn--leaf btn--sm" id="newChatBtn">Start</button>
+            </div>
+            <ul id="convoList" class="convo-list"></ul>
+            <p class="state" id="convoLoading">Loading…</p>
+            <p class="state" id="convoEmpty" hidden>No conversations yet.</p>
+          </aside>
+
+          <!-- Active thread -->
+          <section class="messenger__thread" aria-label="Conversation" aria-live="polite">
+            <div class="thread__head" id="threadHead" hidden>
+              <h2 class="thread__title" id="threadTitle"></h2>
+            </div>
+            <div class="thread__log" id="threadLog">
+              <p class="state thread__placeholder" id="threadPlaceholder">Select a conversation to start chatting.</p>
+            </div>
+            <form class="thread__composer" id="composer" hidden>
+              <label class="sr-only" for="message">Message</label>
+              <input id="message" type="text" placeholder="Type a message…" autocomplete="off" required />
+              <button class="btn btn--leaf" type="submit" id="sendBtn">Send</button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var convoListEl = document.getElementById("convoList");
+      var convoLoading = document.getElementById("convoLoading");
+      var convoEmpty = document.getElementById("convoEmpty");
+      var threadLog = document.getElementById("threadLog");
+      var threadHead = document.getElementById("threadHead");
+      var threadTitle = document.getElementById("threadTitle");
+      var threadPlaceholder = document.getElementById("threadPlaceholder");
+      var composer = document.getElementById("composer");
+      var input = document.getElementById("message");
+
+      var me = SC.getCachedUser();
+      document.addEventListener("sc:user", function (e) { me = e.detail; });
+
+      var activeId = null;
+      var pollTimer = null;
+      var lastCount = 0;
+
+      // -------------------------------------------------- Conversation list
+      function loadConversations() {
+        SC.Messages.conversations()
+          .then(function (convos) {
+            convoLoading.hidden = true;
+            convoListEl.innerHTML = "";
+            convoEmpty.hidden = (convos && convos.length) > 0;
+            (convos || []).forEach(function (c) {
+              convoListEl.appendChild(convoItem(c));
+            });
+            // Open a deep-linked conversation if present.
+            var wanted = new URLSearchParams(location.search).get("c");
+            if (wanted && !activeId) {
+              var wc = findConvo(convos, wanted);
+              openThread(wanted, titleFor(wc), avatarUrlFor(wc));
+            }
+          })
+          .catch(function (err) {
+            convoLoading.hidden = true;
+            convoLoading.textContent = err.message || "Could not load conversations.";
+          });
+      }
+
+      function findConvo(convos, id) {
+        return (convos || []).filter(function (c) { return c._id === id; })[0];
+      }
+
+      // A readable title: the other participant, or a group name.
+      function titleFor(c) {
+        if (!c) return "Conversation";
+        if (c.name) return c.name;
+        if (c.otherUser && c.otherUser.username) return c.otherUser.username;
+        var others = (c.participants || []).filter(function (p) {
+          return !me || p._id !== me._id;
+        });
+        return others.map(function (p) { return p.username; }).join(", ") || "Conversation";
+      }
+
+      // The other participant's avatar (1:1 chats). Groups fall back to the logo.
+      function avatarUrlFor(c) {
+        if (!c) return "";
+        if (c.otherUser && c.otherUser.profilePicture) return c.otherUser.profilePicture;
+        var other = (c.participants || []).filter(function (p) { return !me || p._id !== me._id; })[0];
+        return other ? other.profilePicture : "";
+      }
+
+      function convoItem(c) {
+        var li = document.createElement("li");
+        li.className = "convo";
+        var btn = document.createElement("button");
+        btn.className = "convo__btn";
+        btn.appendChild(SC.avatarEl(avatarUrlFor(c), 38, titleFor(c)));
+        var txt = document.createElement("span");
+        txt.className = "convo__txt";
+        txt.innerHTML = '<span class="convo__name"></span><span class="convo__last"></span>';
+        txt.querySelector(".convo__name").textContent = titleFor(c);
+        txt.querySelector(".convo__last").textContent = c.lastMessage || "";
+        btn.appendChild(txt);
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".convo__btn").forEach(function (b) { b.classList.remove("is-active"); });
+          btn.classList.add("is-active");
+          openThread(c._id, titleFor(c), avatarUrlFor(c));
+        });
+        li.appendChild(btn);
+        return li;
+      }
+
+      // -------------------------------------------------- Open a thread
+      function openThread(id, title, avatarUrl) {
+        activeId = id;
+        lastCount = 0;
+        threadHead.hidden = false;
+        composer.hidden = false;
+        threadTitle.textContent = title || "Conversation";
+        // Show the other participant's avatar next to the title.
+        var existing = document.getElementById("threadAvatar");
+        if (existing) existing.remove();
+        var av = SC.avatarEl(avatarUrl, 38, title || "");
+        av.id = "threadAvatar";
+        threadHead.insertBefore(av, threadTitle);
+        threadLog.innerHTML = '<p class="state">Loading messages…</p>';
+        refreshMessages(true);
+
+        // Poll for new messages while this thread is open.
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(function () { refreshMessages(false); }, 4000);
+        input.focus();
+      }
+
+      function refreshMessages(scroll) {
+        if (!activeId) return;
+        var id = activeId;
+        SC.Messages.list(id)
+          .then(function (messages) {
+            if (id !== activeId) return; // user switched threads mid-flight
+            // Skip a re-render if nothing changed (avoids scroll jumps on poll).
+            if (!scroll && messages.length === lastCount) return;
+            lastCount = messages.length;
+            renderMessages(messages);
+          })
+          .catch(function () { /* transient; next poll retries */ });
+      }
+
+      function renderMessages(messages) {
+        threadLog.innerHTML = "";
+        if (!messages.length) {
+          threadLog.innerHTML = '<p class="state">No messages yet — say hello!</p>';
+          return;
+        }
+        messages.forEach(function (m) {
+          var mine = me && m.sender && (m.sender._id === me._id);
+          var wrap = document.createElement("div");
+          wrap.className = "msg msg--" + (mine ? "me" : "them");
+          var who = document.createElement("span");
+          who.className = "msg__who";
+          who.textContent = mine ? "You" : ((m.sender && m.sender.username) || "Unknown");
+          var body = document.createElement("p");
+          body.className = "msg__text";
+          body.textContent = m.text || "";
+          var time = document.createElement("span");
+          time.className = "msg__time";
+          time.textContent = SC.formatDate(m.createdAt);
+          wrap.appendChild(who);
+          wrap.appendChild(body);
+          wrap.appendChild(time);
+          threadLog.appendChild(wrap);
+        });
+        threadLog.scrollTop = threadLog.scrollHeight;
+      }
+
+      // -------------------------------------------------- Send
+      composer.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text || !activeId) return;
+        input.value = "";
+        SC.Messages.send(activeId, text)
+          .then(function () { refreshMessages(true); loadConversations(); })
+          .catch(function (err) { SC.toast(err.message || "Could not send", "error"); });
+      });
+
+      // -------------------------------------------------- Start new chat
+      document.getElementById("newChatBtn").addEventListener("click", function () {
+        var username = document.getElementById("newUser").value.trim();
+        if (!username) return;
+        SC.Messages.start([username])
+          .then(function (convo) {
+            document.getElementById("newUser").value = "";
+            loadConversations();
+            openThread(convo._id, titleFor(convo), avatarUrlFor(convo));
+          })
+          .catch(function (err) { SC.toast(err.message || "Could not start chat", "error"); });
+      });
+
+      // Stop polling when the page is hidden to save requests.
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden && pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        else if (!document.hidden && activeId && !pollTimer) {
+          pollTimer = setInterval(function () { refreshMessages(false); }, 4000);
+        }
+      });
+
+      loadConversations();
+    </script>
+  </body>
+</html>

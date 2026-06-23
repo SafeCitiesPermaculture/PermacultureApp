@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — AI Assistant
+  Wired to the FastAPI AI service: POST /chat { message, history, include_tasks }
+  -> { reply, sources }. Uses the same JWT as the rest of the app. Requires login.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assistant · Safe Cities Permaculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="assistant" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="app-main app-main--chat">
+      <div class="container chat">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Ask anything</p>
+            <h1 class="page-title">Assistant</h1>
+          </div>
+          <!-- When on, the model is given the user's open tasks as context. -->
+          <label class="switch">
+            <input type="checkbox" id="taskToggle" />
+            <span>Include my tasks</span>
+          </label>
+        </header>
+
+        <!-- Conversation transcript. aria-live so new replies are announced. -->
+        <section class="chat__log" id="log" aria-live="polite" aria-label="Conversation"></section>
+
+        <!-- Composer -->
+        <form class="chat__composer" id="composer">
+          <label class="sr-only" for="message">Your message</label>
+          <textarea id="message" rows="1" placeholder="Ask about documents, tasks, permaculture…" required></textarea>
+          <button class="btn btn--leaf" type="submit" id="sendBtn" aria-label="Send message">Send</button>
+        </form>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var log = document.getElementById("log");
+      var composer = document.getElementById("composer");
+      var input = document.getElementById("message");
+      var sendBtn = document.getElementById("sendBtn");
+      var taskToggle = document.getElementById("taskToggle");
+
+      // Running history in the shape the API expects: [{role, content}].
+      var history = [];
+
+      // Friendly opening message.
+      addBubble("assistant", "Hi! I'm the Safe Cities assistant. Ask me about our documents, your tasks, or permaculture know-how.");
+
+      // ---------------------------------------------- Lightweight markdown
+      // The model returns light markdown (bold, bullets). We render a safe subset
+      // by escaping everything first, then re-introducing a few tags.
+      function renderMarkdown(text) {
+        var safe = SC.escapeHtml(text);
+        // **bold**
+        safe = safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        // bullet lines starting with "- " or "* "
+        var lines = safe.split("\n");
+        var html = "";
+        var inList = false;
+        lines.forEach(function (line) {
+          var m = line.match(/^\s*[-*]\s+(.*)$/);
+          if (m) {
+            if (!inList) { html += "<ul>"; inList = true; }
+            html += "<li>" + m[1] + "</li>";
+          } else {
+            if (inList) { html += "</ul>"; inList = false; }
+            if (line.trim()) html += "<p>" + line + "</p>";
+          }
+        });
+        if (inList) html += "</ul>";
+        return html;
+      }
+
+      function addBubble(role, text, sources) {
+        var wrap = document.createElement("div");
+        wrap.className = "bubble bubble--" + role;
+        var body = document.createElement("div");
+        body.className = "bubble__body";
+        body.innerHTML = role === "assistant" ? renderMarkdown(text) : "<p>" + SC.escapeHtml(text) + "</p>";
+        wrap.appendChild(body);
+
+        // Render any cited Drive documents as links.
+        if (sources && sources.length) {
+          var src = document.createElement("div");
+          src.className = "bubble__sources";
+          src.innerHTML = "<span>Sources:</span>";
+          sources.forEach(function (s) {
+            var item;
+            if (s.drive_link) {
+              item = document.createElement("a");
+              item.href = s.drive_link;
+              item.target = "_blank";
+              item.rel = "noopener";
+            } else {
+              item = document.createElement("span");
+            }
+            item.className = "bubble__source";
+            item.textContent = s.title || "Document";
+            src.appendChild(item);
+          });
+          wrap.appendChild(src);
+        }
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+        return body;
+      }
+
+      // ---------------------------------------------- Auto-grow the textarea
+      input.addEventListener("input", function () {
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 160) + "px";
+      });
+      // Enter sends; Shift+Enter makes a newline.
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          composer.requestSubmit();
+        }
+      });
+
+      // ---------------------------------------------- Send
+      composer.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+
+        addBubble("user", text);
+        history.push({ role: "user", content: text });
+        input.value = "";
+        input.style.height = "auto";
+        sendBtn.disabled = true;
+
+        // Typing indicator while we wait for the model.
+        var typing = addBubble("assistant", "…");
+        typing.parentElement.classList.add("is-typing");
+
+        SC.Assistant.chat(text, history.slice(0, -1), taskToggle.checked)
+          .then(function (data) {
+            typing.parentElement.remove();
+            addBubble("assistant", data.reply || "(no reply)", data.sources);
+            history.push({ role: "assistant", content: data.reply || "" });
+          })
+          .catch(function (err) {
+            typing.parentElement.remove();
+            var note = err.status === 503
+              ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
+              : (err.message || "Something went wrong.");
+            addBubble("assistant", note);
+          })
+          .then(function () {
+            sendBtn.disabled = false;
+            input.focus();
+          });
+      });
+    </script>
+  </body>
+</html>

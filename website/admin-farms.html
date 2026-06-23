@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Admin · Farms
+  Wired to: GET /farms/?all=true · POST /farms/ {name} ·
+            PUT /farms/:id {name?, isActive?} · DELETE /farms/:id
+  Admin-only.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Farms · Admin · Safe Cities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="profile" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h1 class="page-title">Farms</h1>
+          </div>
+          <a class="btn btn--ghost btn--sm" href="profile.html">← Back to profile</a>
+        </header>
+
+        <nav class="admin-tabs" aria-label="Admin sections">
+          <a href="admin-approvals.html">Approvals</a>
+          <a href="admin-users.html">Users</a>
+          <a href="admin-tasks.html">Tasks</a>
+          <a href="admin-reports.html">Reports</a>
+          <a href="admin-farms.html" class="is-current" aria-current="page">Farms</a>
+        </nav>
+
+        <!-- Create farm -->
+        <form class="inline-form" id="createForm">
+          <label class="sr-only" for="farmName">New farm name</label>
+          <input id="farmName" type="text" placeholder="New farm name…" required />
+          <button class="btn btn--marigold" type="submit">+ Add farm</button>
+        </form>
+
+        <section aria-labelledby="lbl">
+          <h2 class="sr-only" id="lbl">Farms</h2>
+          <div id="list" class="card-stack"></div>
+          <p class="state" id="loading">Loading…</p>
+          <p class="state" id="empty" hidden>No farms yet.</p>
+          <p class="state state--error" id="error" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="admin-guard.js"></script>
+    <script>
+      var listEl = document.getElementById("list");
+      var loading = document.getElementById("loading");
+      var empty = document.getElementById("empty");
+      var error = document.getElementById("error");
+
+      function load() {
+        listEl.innerHTML = "";
+        loading.hidden = false; empty.hidden = true; error.hidden = true;
+        SC.Farms.all(true) // include inactive
+          .then(function (data) {
+            loading.hidden = true;
+            var farms = (data && data.farms) || [];
+            if (!farms.length) { empty.hidden = false; return; }
+            farms.forEach(function (f) { listEl.appendChild(row(f)); });
+          })
+          .catch(function (err) {
+            loading.hidden = true; error.hidden = false;
+            error.textContent = err.message || "Could not load farms.";
+          });
+      }
+
+      function row(f) {
+        var el = document.createElement("article");
+        el.className = "admin-row";
+        var info = document.createElement("div");
+        var name = document.createElement("h3"); name.className = "admin-row__name"; name.textContent = f.name || "(unnamed)";
+        var meta = document.createElement("p"); meta.className = "admin-row__meta";
+        meta.textContent = f.isActive ? "Active" : "Inactive";
+        info.appendChild(name); info.appendChild(meta);
+
+        var actions = document.createElement("div");
+        actions.className = "admin-row__actions";
+        actions.appendChild(btn(f.isActive ? "Deactivate" : "Activate", "btn--ghost btn--sm", function () {
+          SC.Farms.update(f._id, { isActive: !f.isActive })
+            .then(function () { SC.toast("Farm updated", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+        actions.appendChild(btn("Rename", "btn--ghost btn--sm", function () {
+          var name = prompt("New name for this farm:", f.name);
+          if (!name || name === f.name) return;
+          SC.Farms.update(f._id, { name: name })
+            .then(function () { SC.toast("Farm renamed", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+        actions.appendChild(btn("Delete", "btn--ghost btn--sm", function () {
+          if (!confirm('Delete "' + f.name + '"? Members on this farm will be unassigned.')) return;
+          SC.Farms.remove(f._id)
+            .then(function () { SC.toast("Farm deleted", "success"); load(); })
+            .catch(function (e) { SC.toast(e.message || "Failed", "error"); });
+        }));
+
+        el.appendChild(info); el.appendChild(actions);
+        return el;
+      }
+      function btn(label, cls, fn) {
+        var b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label;
+        b.addEventListener("click", fn); return b;
+      }
+
+      document.getElementById("createForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var input = document.getElementById("farmName");
+        var name = input.value.trim();
+        if (!name) return;
+        SC.Farms.create(name)
+          .then(function () { input.value = ""; SC.toast("Farm added", "success"); load(); })
+          .catch(function (err) { SC.toast(err.message || "Could not add farm", "error"); });
+      });
+
+      load();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Schedule (Tasks)
+  Wired to: GET /tasks/ · GET /tasks/completed · POST /tasks/ ·
+            PUT /tasks/complete/:id · PUT /tasks/incomplete/:id · DELETE /tasks/:id
+  Requires login (data-requires-auth). Header/footer injected by app.js.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schedule · Safe Cities Permaculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="schedule" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="app-main">
+      <div class="container">
+        <!-- Page header: title + a primary action. -->
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Your tasks</p>
+            <h1 class="page-title">Schedule</h1>
+          </div>
+          <button class="btn btn--marigold" id="addTaskBtn">+ New task</button>
+        </header>
+
+        <!-- Tabs to switch between open and completed tasks. -->
+        <div class="tabs" role="tablist" aria-label="Task lists">
+          <button class="tab is-active" id="tabOpen" role="tab" aria-selected="true">Open</button>
+          <button class="tab" id="tabDone" role="tab" aria-selected="false">Completed</button>
+          <!-- Admins only: every open task across all members. Revealed by JS. -->
+          <button class="tab" id="tabAll" role="tab" aria-selected="false" hidden>All users</button>
+        </div>
+
+        <!-- Task list + loading / empty states live here. -->
+        <section aria-labelledby="listLabel">
+          <h2 class="sr-only" id="listLabel">Task list</h2>
+          <div id="taskList" class="task-list"></div>
+          <p class="state" id="loadingState">Loading tasks…</p>
+          <p class="state" id="emptyState" hidden>Nothing here yet.</p>
+          <p class="state state--error" id="errorState" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <!-- ===================== New-task dialog (native <dialog>) ===================== -->
+    <dialog id="taskDialog" class="dialog">
+      <form method="dialog" class="dialog__form" id="taskForm">
+        <h2 class="dialog__title">New task</h2>
+        <div class="field">
+          <label for="taskName">Task name</label>
+          <input id="taskName" name="name" type="text" required />
+        </div>
+        <div class="field">
+          <label for="taskDue">Due date &amp; time</label>
+          <input id="taskDue" name="due" type="datetime-local" required />
+        </div>
+        <p class="form-msg" id="taskFormMsg" role="alert"></p>
+        <div class="dialog__actions">
+          <button type="button" class="btn btn--ghost" id="taskCancel">Cancel</button>
+          <button type="submit" class="btn btn--leaf" id="taskSave">Add task</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- ===================== Complete-task dialog ===================== -->
+    <dialog id="doneDialog" class="dialog">
+      <form method="dialog" class="dialog__form" id="doneForm">
+        <h2 class="dialog__title">Mark as complete</h2>
+        <div class="field">
+          <label for="doneNote">Completion note (optional)</label>
+          <textarea id="doneNote" name="completionNote" rows="3"></textarea>
+        </div>
+        <div class="field">
+          <label for="donePhoto">Photo (optional)</label>
+          <input id="donePhoto" name="photo" type="file" accept="image/*" />
+        </div>
+        <p class="form-msg" id="doneFormMsg" role="alert"></p>
+        <div class="dialog__actions">
+          <button type="button" class="btn btn--ghost" id="doneCancel">Cancel</button>
+          <button type="submit" class="btn btn--leaf" id="doneSave">Complete task</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      // --------------------------------------------------------- Elements
+      var listEl = document.getElementById("taskList");
+      var loadingEl = document.getElementById("loadingState");
+      var emptyEl = document.getElementById("emptyState");
+      var errorEl = document.getElementById("errorState");
+      var tabOpen = document.getElementById("tabOpen");
+      var tabDone = document.getElementById("tabDone");
+      var view = "open"; // or "done"
+
+      // --------------------------------------------------------- Load + render
+      function load() {
+        listEl.innerHTML = "";
+        loadingEl.hidden = false;
+        emptyEl.hidden = true;
+        errorEl.hidden = true;
+
+        var fetcher;
+        if (view === "open") fetcher = SC.Tasks.open();
+        else if (view === "done") fetcher = SC.Tasks.completed();
+        else fetcher = SC.Admin.tasks({ isCompleted: false }); // admin: everyone's open tasks
+        fetcher
+          .then(function (data) {
+            var tasks = data.tasks || [];
+            loadingEl.hidden = true;
+            if (!tasks.length) { emptyEl.hidden = false; return; }
+            tasks.forEach(function (t) { listEl.appendChild(taskCard(t)); });
+          })
+          .catch(function (err) {
+            loadingEl.hidden = true;
+            errorEl.hidden = false;
+            errorEl.textContent = err.message || "Could not load tasks.";
+          });
+      }
+
+      // Build one task row. Uses DOM APIs (not innerHTML) for user-supplied text
+      // to avoid any chance of HTML injection.
+      function taskCard(t) {
+        var card = document.createElement("article");
+        card.className = "task";
+
+        var main = document.createElement("div");
+        main.className = "task__main";
+        var h = document.createElement("h3");
+        h.className = "task__name";
+        h.textContent = t.name || "Untitled task";
+        var meta = document.createElement("p");
+        meta.className = "task__meta";
+        if (view === "done") {
+          meta.textContent = "Completed " + SC.formatDate(t.completedAt);
+          if (t.completionNote) meta.textContent += " · " + t.completionNote;
+        } else {
+          // "open" (my tasks) and "all" (admin: everyone's). In the admin view
+          // prefix the assignee's name so it's clear whose task it is.
+          var prefix = "";
+          if (view === "all") {
+            var who = t.assignedTo && t.assignedTo.username ? t.assignedTo.username : "Unassigned";
+            prefix = who + " · ";
+          }
+          var due = new Date(t.dueDateTime);
+          var overdue = !isNaN(due) && due < new Date();
+          meta.textContent = prefix + "Due " + SC.formatDate(t.dueDateTime);
+          if (overdue) { meta.classList.add("is-overdue"); meta.textContent += " · Overdue"; }
+        }
+        main.appendChild(h);
+        main.appendChild(meta);
+
+        var actions = document.createElement("div");
+        actions.className = "task__actions";
+        if (view === "done") {
+          actions.appendChild(button("Reopen", "btn--ghost btn--sm", function () { reopen(t); }));
+        } else {
+          // Admins may complete/delete any task; the backend enforces this.
+          actions.appendChild(button("Complete", "btn--leaf btn--sm", function () { openDone(t); }));
+          actions.appendChild(button("Delete", "btn--ghost btn--sm", function () { removeTask(t); }));
+        }
+
+        card.appendChild(main);
+        card.appendChild(actions);
+        return card;
+      }
+
+      function button(label, cls, onClick) {
+        var b = document.createElement("button");
+        b.className = "btn " + cls;
+        b.textContent = label;
+        b.addEventListener("click", onClick);
+        return b;
+      }
+
+      // --------------------------------------------------------- Actions
+      function removeTask(t) {
+        if (!confirm('Delete "' + t.name + '"?')) return;
+        SC.Tasks.remove(t._id).then(function () {
+          SC.toast("Task deleted", "success");
+          load();
+        }).catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
+      }
+
+      function reopen(t) {
+        SC.Tasks.reopen(t._id).then(function () {
+          SC.toast("Task reopened", "success");
+          load();
+        }).catch(function (e) { SC.toast(e.message || "Could not reopen", "error"); });
+      }
+
+      // --------------------------------------------------------- Tabs
+      var tabAll = document.getElementById("tabAll");
+      var tabMap = { open: tabOpen, done: tabDone, all: tabAll };
+      function setView(v) {
+        view = v;
+        Object.keys(tabMap).forEach(function (key) {
+          var on = key === v;
+          tabMap[key].classList.toggle("is-active", on);
+          tabMap[key].setAttribute("aria-selected", String(on));
+        });
+        load();
+      }
+      tabOpen.addEventListener("click", function () { setView("open"); });
+      tabDone.addEventListener("click", function () { setView("done"); });
+      tabAll.addEventListener("click", function () { setView("all"); });
+
+      // Reveal the org-wide "All users" tab for admins (cached role, then fresh).
+      function applyRole(u) {
+        if (u && u.userRole === "admin") tabAll.hidden = false;
+      }
+      applyRole(SC.getCachedUser());
+      document.addEventListener("sc:user", function (e) { applyRole(e.detail); });
+
+      // --------------------------------------------------------- New task dialog
+      var taskDialog = document.getElementById("taskDialog");
+      var taskForm = document.getElementById("taskForm");
+      var taskMsg = document.getElementById("taskFormMsg");
+      document.getElementById("addTaskBtn").addEventListener("click", function () {
+        taskMsg.textContent = "";
+        taskForm.reset();
+        taskDialog.showModal();
+      });
+      document.getElementById("taskCancel").addEventListener("click", function () { taskDialog.close(); });
+      taskForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = document.getElementById("taskName").value.trim();
+        var due = document.getElementById("taskDue").value;
+        if (!name || !due) { taskMsg.textContent = "Please fill in both fields."; return; }
+        var saveBtn = document.getElementById("taskSave");
+        saveBtn.disabled = true;
+        // datetime-local has no timezone; convert to a proper ISO string.
+        SC.Tasks.create({ name: name, dueDateTime: new Date(due).toISOString() })
+          .then(function () {
+            taskDialog.close();
+            SC.toast("Task added", "success");
+            if (view !== "open") setView("open"); else load();
+          })
+          .catch(function (err) { taskMsg.textContent = err.message || "Could not add task."; })
+          .then(function () { saveBtn.disabled = false; });
+      });
+
+      // --------------------------------------------------------- Complete dialog
+      var doneDialog = document.getElementById("doneDialog");
+      var doneForm = document.getElementById("doneForm");
+      var doneMsg = document.getElementById("doneFormMsg");
+      var doneTarget = null;
+      function openDone(t) {
+        doneTarget = t;
+        doneForm.reset();
+        doneMsg.textContent = "";
+        doneDialog.showModal();
+      }
+      document.getElementById("doneCancel").addEventListener("click", function () { doneDialog.close(); });
+      doneForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!doneTarget) return;
+        var saveBtn = document.getElementById("doneSave");
+        saveBtn.disabled = true;
+        // Build multipart so the optional photo can ride along.
+        var fd = new FormData();
+        var note = document.getElementById("doneNote").value.trim();
+        var photo = document.getElementById("donePhoto").files[0];
+        if (note) fd.append("completionNote", note);
+        if (photo) fd.append("photo", photo);
+        SC.Tasks.complete(doneTarget._id, fd)
+          .then(function () {
+            doneDialog.close();
+            SC.toast("Task completed 🎉", "success");
+            load();
+          })
+          .catch(function (err) { doneMsg.textContent = err.message || "Could not complete task."; })
+          .then(function () { saveBtn.disabled = false; });
+      });
+
+      // --------------------------------------------------------- Go
+      load();
+    </script>
+  </body>
+</html>

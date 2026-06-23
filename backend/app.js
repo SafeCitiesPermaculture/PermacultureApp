@@ -32,11 +32,16 @@ app.use((req, res, next) => {
     next();
 });
 
-// Allow requests from frontend (adjust the origin as needed)
+// Allow requests from frontend (adjust the origin as needed).
+// localhost:3000 + the Render host are the origins the rebuilt static site is
+// served from — browsers send that Origin header even on same-origin POSTs, so
+// they must be allow-listed for login etc. to work.
 const allowedOrigins = [
     "http://localhost:8081",
+    "http://localhost:3000",
     "https://sc-permaculture.vercel.app",
     "https://afc-estate.vercel.app",
+    "https://permacultureapp.onrender.com",
 ];
 
 app.use(
@@ -52,6 +57,12 @@ app.use(
     })
 );
 
+// Serve the rebuilt static website (plain HTML/CSS/JS in /website) from the
+// same origin as the API. This is additive — it does not change any API
+// behaviour — and means the static pages can call "/api/..." without CORS.
+// Mounted BEFORE the auth middleware below so the pages are publicly reachable.
+app.use(express.static(path.join(__dirname, "../website")));
+
 //connect to mongodb
 mongoose
     .connect(process.env.MONGODB_URI)
@@ -66,6 +77,13 @@ app.get("/privacy-policy", (req, res) => {
 //serve the contact page
 app.get("/contact", (req, res) => {
     res.sendFile(path.join(__dirname, "contact.html"));
+});
+
+// Serve the static reset-password page for the link emailed by the reset flow
+// (FRONTEND_URL/reset-password/<token>). The page reads the token from the URL.
+// Additive only — does not change any API behaviour.
+app.get("/reset-password/:token", (req, res) => {
+    res.sendFile(path.join(__dirname, "../website/reset-password.html"));
 });
 
 //unprotected file proxy route

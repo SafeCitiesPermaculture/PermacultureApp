@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Documents
+  Wired to: GET /files/list?parent=<id> · POST /files/:id (download stream)
+  Folders are navigated client-side via a breadcrumb stack. Requires login.
+  (Upload / folder-create are admin-only on the backend and can be added later.)
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documents · Safe Cities Permaculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="documents" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Shared resources</p>
+            <h1 class="page-title">Documents</h1>
+          </div>
+        </header>
+
+        <!-- Breadcrumb trail; the first crumb is the root folder. -->
+        <nav class="crumbs" id="crumbs" aria-label="Folder path"></nav>
+
+        <section aria-labelledby="filesLabel">
+          <h2 class="sr-only" id="filesLabel">Files and folders</h2>
+          <ul id="fileList" class="file-list"></ul>
+          <p class="state" id="loadingState">Loading…</p>
+          <p class="state" id="emptyState" hidden>This folder is empty.</p>
+          <p class="state state--error" id="errorState" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var listEl = document.getElementById("fileList");
+      var crumbsEl = document.getElementById("crumbs");
+      var loadingEl = document.getElementById("loadingState");
+      var emptyEl = document.getElementById("emptyState");
+      var errorEl = document.getElementById("errorState");
+
+      // The folder path the user has drilled into. Root is represented by null.
+      var stack = [{ id: null, name: "Home" }];
+
+      function current() { return stack[stack.length - 1]; }
+
+      function load() {
+        listEl.innerHTML = "";
+        loadingEl.hidden = false;
+        emptyEl.hidden = true;
+        errorEl.hidden = true;
+        renderCrumbs();
+        SC.Files.list(current().id)
+          .then(function (data) {
+            var files = (data && data.files) || [];
+            loadingEl.hidden = true;
+            // Folders first, then files; alphabetical within each group.
+            files.sort(function (a, b) {
+              if (!!a.isFolder !== !!b.isFolder) return a.isFolder ? -1 : 1;
+              return (a.name || "").localeCompare(b.name || "");
+            });
+            if (!files.length) { emptyEl.hidden = false; return; }
+            files.forEach(function (f) { listEl.appendChild(row(f)); });
+          })
+          .catch(function (err) {
+            loadingEl.hidden = true;
+            errorEl.hidden = false;
+            errorEl.textContent = err.message || "Could not load files.";
+          });
+      }
+
+      function renderCrumbs() {
+        crumbsEl.innerHTML = "";
+        stack.forEach(function (crumb, i) {
+          var isLast = i === stack.length - 1;
+          if (i > 0) {
+            var sep = document.createElement("span");
+            sep.className = "crumbs__sep";
+            sep.textContent = "/";
+            sep.setAttribute("aria-hidden", "true");
+            crumbsEl.appendChild(sep);
+          }
+          if (isLast) {
+            var span = document.createElement("span");
+            span.className = "crumbs__current";
+            span.setAttribute("aria-current", "page");
+            span.textContent = crumb.name;
+            crumbsEl.appendChild(span);
+          } else {
+            var btn = document.createElement("button");
+            btn.className = "crumbs__link";
+            btn.textContent = crumb.name;
+            btn.addEventListener("click", function () {
+              stack = stack.slice(0, i + 1); // pop back to this crumb
+              load();
+            });
+            crumbsEl.appendChild(btn);
+          }
+        });
+      }
+
+      function row(f) {
+        var li = document.createElement("li");
+        li.className = "file" + (f.isFolder ? " file--folder" : "");
+
+        var icon = document.createElement("span");
+        icon.className = "file__icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.innerHTML = f.isFolder
+          ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/></svg>';
+
+        var name = document.createElement("span");
+        name.className = "file__name";
+        name.textContent = f.name || "(untitled)";
+
+        li.appendChild(icon);
+        li.appendChild(name);
+
+        if (f.isFolder) {
+          // Whole row opens the folder.
+          li.tabIndex = 0;
+          li.setAttribute("role", "button");
+          li.setAttribute("aria-label", "Open folder " + (f.name || ""));
+          var open = function () { stack.push({ id: f._id, name: f.name }); load(); };
+          li.addEventListener("click", open);
+          li.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+          });
+        } else {
+          var dl = document.createElement("button");
+          dl.className = "btn btn--ghost btn--sm file__dl";
+          dl.textContent = "Download";
+          dl.addEventListener("click", function () { download(f, dl); });
+          li.appendChild(dl);
+        }
+        return li;
+      }
+
+      // The backend streams the file back from Google Drive. We read it as a
+      // Blob and trigger a browser download with the original name.
+      function download(f, btn) {
+        btn.disabled = true;
+        var label = btn.textContent;
+        btn.textContent = "Downloading…";
+        SC.Files.download(f._id)
+          .then(function (res) { return res.blob(); })
+          .then(function (blob) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = f.name || "download";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          })
+          .catch(function (e) { SC.toast(e.message || "Download failed", "error"); })
+          .then(function () { btn.disabled = false; btn.textContent = label; });
+      }
+
+      load();
+    </script>
+  </body>
+</html>

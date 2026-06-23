@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Admin · Task overview
+  Wired to: GET /admin/tasks?assignedTo=<id>&isCompleted=<true|false>
+            GET /admin/verified  (to populate the assignee filter)
+  Read-only org-wide view of every task. Admin-only.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tasks · Admin · Safe Cities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="profile" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h1 class="page-title">Task overview</h1>
+          </div>
+          <a class="btn btn--ghost btn--sm" href="profile.html">← Back to profile</a>
+        </header>
+
+        <nav class="admin-tabs" aria-label="Admin sections">
+          <a href="admin-approvals.html">Approvals</a>
+          <a href="admin-users.html">Users</a>
+          <a href="admin-tasks.html" class="is-current" aria-current="page">Tasks</a>
+          <a href="admin-reports.html">Reports</a>
+          <a href="admin-farms.html">Farms</a>
+        </nav>
+
+        <!-- Filters: by assignee and by completion status. -->
+        <div class="filters">
+          <div class="field">
+            <label for="assignee">Assignee</label>
+            <select id="assignee"><option value="">Everyone</option></select>
+          </div>
+          <div class="field">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="">All</option>
+              <option value="false">Open</option>
+              <option value="true">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <section aria-labelledby="lbl">
+          <h2 class="sr-only" id="lbl">Tasks</h2>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Task</th><th>Assignee</th><th>Due</th><th>Status</th><th>Completed</th></tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+          <p class="state" id="loading">Loading…</p>
+          <p class="state" id="empty" hidden>No tasks match these filters.</p>
+          <p class="state state--error" id="error" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script src="admin-guard.js"></script>
+    <script>
+      var tbody = document.getElementById("tbody");
+      var loading = document.getElementById("loading");
+      var empty = document.getElementById("empty");
+      var error = document.getElementById("error");
+      var assigneeSel = document.getElementById("assignee");
+      var statusSel = document.getElementById("status");
+
+      // Populate the assignee dropdown from the verified users list.
+      SC.Admin.verified()
+        .then(function (users) {
+          (users || []).forEach(function (u) {
+            var opt = document.createElement("option");
+            opt.value = u._id;
+            opt.textContent = u.username;
+            assigneeSel.appendChild(opt);
+          });
+        })
+        .catch(function () { /* dropdown stays "Everyone" only */ });
+
+      function load() {
+        loading.hidden = false; empty.hidden = true; error.hidden = true;
+        var query = {};
+        if (assigneeSel.value) query.assignedTo = assigneeSel.value;
+        if (statusSel.value) query.isCompleted = statusSel.value;
+
+        SC.Admin.tasks(query)
+          .then(function (data) {
+            loading.hidden = true;
+            var tasks = (data && data.tasks) || [];
+            tbody.innerHTML = "";
+            empty.hidden = tasks.length > 0;
+            tasks.forEach(function (t) { tbody.appendChild(row(t)); });
+          })
+          .catch(function (err) {
+            loading.hidden = true; error.hidden = false;
+            error.textContent = err.message || "Could not load tasks.";
+          });
+      }
+
+      function name(ref) {
+        // assignedTo / completedBy may be a populated object or a bare id.
+        if (!ref) return "—";
+        return ref.username || String(ref);
+      }
+      function cell(text, cls) {
+        var td = document.createElement("td");
+        td.textContent = text;
+        if (cls) td.className = cls;
+        return td;
+      }
+
+      function row(t) {
+        var tr = document.createElement("tr");
+        tr.appendChild(cell(t.name || "Untitled"));
+        tr.appendChild(cell(name(t.assignedTo)));
+        tr.appendChild(cell(SC.formatDate(t.dueDateTime)));
+
+        var statusTd = document.createElement("td");
+        var pill = document.createElement("span");
+        pill.className = "pill " + (t.isCompleted ? "pill--done" : "pill--open");
+        pill.textContent = t.isCompleted ? "Completed" : "Open";
+        // Flag overdue open tasks.
+        if (!t.isCompleted) {
+          var due = new Date(t.dueDateTime);
+          if (!isNaN(due) && due < new Date()) {
+            pill.className = "pill pill--overdue";
+            pill.textContent = "Overdue";
+          }
+        }
+        statusTd.appendChild(pill);
+        tr.appendChild(statusTd);
+
+        var done = t.isCompleted
+          ? (name(t.completedBy) + " · " + SC.formatDate(t.completedAt))
+          : "—";
+        tr.appendChild(cell(done));
+        return tr;
+      }
+
+      assigneeSel.addEventListener("change", load);
+      statusSel.addEventListener("change", load);
+      load();
+    </script>
+  </body>
+</html>

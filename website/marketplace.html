@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Marketplace
+  Wired to: GET /listings/get · GET /listings/get-my-listings ·
+            GET /listings/get/:id · POST /listings/post · DELETE /listings/remove/:id
+  Requires login. Header/footer injected by app.js.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marketplace · Safe Cities Permaculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="marketplace" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Community marketplace</p>
+            <h1 class="page-title">Marketplace</h1>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn btn--ghost btn--sm" href="messages.html">Messages</a>
+            <button class="btn btn--marigold" id="postBtn">+ Post a listing</button>
+          </div>
+        </header>
+
+        <div class="tabs" role="tablist" aria-label="Listing views">
+          <button class="tab is-active" id="tabAll" role="tab" aria-selected="true">All listings</button>
+          <button class="tab" id="tabMine" role="tab" aria-selected="false">My listings</button>
+        </div>
+
+        <!-- Optional client-side search across title/location. -->
+        <div class="toolbar">
+          <label class="sr-only" for="search">Search listings</label>
+          <input id="search" class="input-search" type="search" placeholder="Search by title or location…" />
+        </div>
+
+        <section aria-labelledby="gridLabel">
+          <h2 class="sr-only" id="gridLabel">Listings</h2>
+          <div id="grid" class="listing-grid"></div>
+          <p class="state" id="loadingState">Loading listings…</p>
+          <p class="state" id="emptyState" hidden>No listings to show.</p>
+          <p class="state state--error" id="errorState" hidden></p>
+        </section>
+      </div>
+    </main>
+
+    <!-- ===================== Post-listing dialog ===================== -->
+    <dialog id="postDialog" class="dialog">
+      <form method="dialog" class="dialog__form" id="postForm">
+        <h2 class="dialog__title">Post a listing</h2>
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" name="title" type="text" required maxlength="120" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="price">Price (R)</label>
+            <input id="price" name="price" type="number" min="0" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="location">Location</label>
+            <input id="location" name="location" type="text" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="3" maxlength="500"></textarea>
+        </div>
+        <div class="field">
+          <label for="image">Photo (optional)</label>
+          <input id="image" name="image" type="file" accept="image/*" />
+        </div>
+        <p class="form-msg" id="postMsg" role="alert"></p>
+        <div class="dialog__actions">
+          <button type="button" class="btn btn--ghost" id="postCancel">Cancel</button>
+          <button type="submit" class="btn btn--leaf" id="postSave">Post listing</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- ===================== Listing detail dialog ===================== -->
+    <dialog id="detailDialog" class="dialog dialog--wide">
+      <div class="dialog__form" id="detailBody"><!-- filled dynamically --></div>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" id="detailClose">Close</button>
+      </div>
+    </dialog>
+
+    <!-- ===================== Report-a-user dialog ===================== -->
+    <dialog id="reportDialog" class="dialog">
+      <form method="dialog" class="dialog__form" id="reportForm">
+        <h2 class="dialog__title">Report <span id="reportName">this user</span></h2>
+        <p class="panel__hint">Tell an admin what's wrong. Repeated reports restrict an account.</p>
+        <div class="field">
+          <label for="reportReason">Reason</label>
+          <textarea id="reportReason" rows="3" required></textarea>
+        </div>
+        <p class="form-msg" id="reportMsg" role="alert"></p>
+        <div class="dialog__actions">
+          <button type="button" class="btn btn--ghost" id="reportCancel">Cancel</button>
+          <button type="submit" class="btn btn--leaf" id="reportSubmit">Submit report</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var grid = document.getElementById("grid");
+      var loadingEl = document.getElementById("loadingState");
+      var emptyEl = document.getElementById("emptyState");
+      var errorEl = document.getElementById("errorState");
+      var searchEl = document.getElementById("search");
+      var tabAll = document.getElementById("tabAll");
+      var tabMine = document.getElementById("tabMine");
+
+      var view = "all"; // or "mine"
+      var allListings = []; // last loaded set (for client-side search)
+      var me = SC.getCachedUser();
+      document.addEventListener("sc:user", function (e) { me = e.detail; render(); });
+
+      // ----------------------------------------------------------- Load
+      function load() {
+        grid.innerHTML = "";
+        loadingEl.hidden = false;
+        emptyEl.hidden = true;
+        errorEl.hidden = true;
+        var fetcher = view === "all" ? SC.Listings.all() : SC.Listings.mine();
+        fetcher
+          .then(function (data) {
+            allListings = data.listings || [];
+            loadingEl.hidden = true;
+            render();
+          })
+          .catch(function (err) {
+            loadingEl.hidden = true;
+            errorEl.hidden = false;
+            errorEl.textContent = err.message || "Could not load listings.";
+          });
+      }
+
+      // --------------------------------------------------------- Render grid
+      function render() {
+        var q = searchEl.value.trim().toLowerCase();
+        var items = allListings.filter(function (l) {
+          if (!q) return true;
+          return (l.title || "").toLowerCase().indexOf(q) !== -1 ||
+                 (l.location || "").toLowerCase().indexOf(q) !== -1;
+        });
+        grid.innerHTML = "";
+        emptyEl.hidden = items.length > 0;
+        items.forEach(function (l) { grid.appendChild(card(l)); });
+      }
+
+      function card(l) {
+        var el = document.createElement("article");
+        el.className = "listing";
+
+        var media = document.createElement("div");
+        media.className = "listing__media";
+        if (l.picture) {
+          var img = document.createElement("img");
+          img.src = l.picture;
+          img.alt = l.title || "Listing photo";
+          img.loading = "lazy";
+          media.appendChild(img);
+        } else {
+          media.classList.add("listing__media--empty");
+          media.textContent = "No photo";
+        }
+
+        var body = document.createElement("div");
+        body.className = "listing__body";
+        var title = document.createElement("h3");
+        title.className = "listing__title";
+        title.textContent = l.title || "Untitled";
+        var price = document.createElement("p");
+        price.className = "listing__price";
+        price.textContent = SC.currency(l.price);
+        var loc = document.createElement("p");
+        loc.className = "listing__loc";
+        loc.textContent = l.location || "";
+        var seller = document.createElement("p");
+        seller.className = "listing__seller";
+        var sellerName = (l.postedBy && l.postedBy.username) || "Unknown";
+        seller.appendChild(SC.avatarEl(l.postedBy && l.postedBy.profilePicture, 24, sellerName));
+        var sellerText = document.createElement("span");
+        sellerText.textContent = "by " + sellerName;
+        seller.appendChild(sellerText);
+
+        body.appendChild(title);
+        body.appendChild(price);
+        body.appendChild(loc);
+        body.appendChild(seller);
+
+        el.appendChild(media);
+        el.appendChild(body);
+        el.tabIndex = 0;
+        el.setAttribute("role", "button");
+        el.setAttribute("aria-label", "View " + (l.title || "listing"));
+        el.addEventListener("click", function () { openDetail(l._id); });
+        el.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(l._id); }
+        });
+        return el;
+      }
+
+      // --------------------------------------------------------- Detail dialog
+      var detailDialog = document.getElementById("detailDialog");
+      var detailBody = document.getElementById("detailBody");
+      document.getElementById("detailClose").addEventListener("click", function () { detailDialog.close(); });
+
+      function openDetail(id) {
+        detailBody.innerHTML = '<p class="state">Loading…</p>';
+        detailDialog.showModal();
+        SC.Listings.one(id).then(function (data) {
+          var l = data.listing || data;
+          var mine = me && l.postedBy && (l.postedBy._id === me._id);
+          var html = "";
+          if (l.picture) {
+            html += '<img class="detail__img" src="' + SC.escapeHtml(l.picture) +
+                    '" alt="' + SC.escapeHtml(l.title || "Listing photo") + '" />';
+          }
+          html += '<h2 class="dialog__title">' + SC.escapeHtml(l.title || "Untitled") + "</h2>";
+          html += '<p class="detail__price">' + SC.escapeHtml(SC.currency(l.price)) + "</p>";
+          html += '<p class="detail__loc">📍 ' + SC.escapeHtml(l.location || "") + "</p>";
+          if (l.description) html += "<p>" + SC.escapeHtml(l.description) + "</p>";
+          html += '<p class="detail__seller">Posted by <strong>' +
+                  SC.escapeHtml((l.postedBy && l.postedBy.username) || "Unknown") + "</strong></p>";
+          if (mine) {
+            html += '<button class="btn btn--ghost btn--sm" id="deleteListing">Delete this listing</button>';
+          } else if (l.postedBy && l.postedBy.username) {
+            html += '<div class="detail__actions">';
+            html += '<button class="btn btn--leaf btn--sm" id="messageSeller">Message seller</button>';
+            html += '<button class="btn btn--ghost btn--sm" id="reportSeller">Report</button>';
+            html += '</div>';
+          }
+          detailBody.innerHTML = html;
+
+          // Message seller -> start (or reuse) a conversation, then open it.
+          var msgBtn = document.getElementById("messageSeller");
+          if (msgBtn) {
+            msgBtn.addEventListener("click", function () {
+              msgBtn.disabled = true;
+              SC.Messages.start([l.postedBy.username])
+                .then(function (convo) { location.href = "messages.html?c=" + convo._id; })
+                .catch(function (e) {
+                  msgBtn.disabled = false;
+                  SC.toast(e.message || "Could not start chat", "error");
+                });
+            });
+          }
+
+          // Report seller -> open the report dialog for this user.
+          var reportBtn = document.getElementById("reportSeller");
+          if (reportBtn) {
+            reportBtn.addEventListener("click", function () { openReport(l.postedBy); });
+          }
+
+          var del = document.getElementById("deleteListing");
+          if (del) {
+            del.addEventListener("click", function () {
+              if (!confirm("Delete this listing?")) return;
+              SC.Listings.remove(l._id).then(function () {
+                detailDialog.close();
+                SC.toast("Listing deleted", "success");
+                load();
+              }).catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
+            });
+          }
+        }).catch(function (err) {
+          detailBody.innerHTML = '<p class="state state--error">' + SC.escapeHtml(err.message || "Could not load listing.") + "</p>";
+        });
+      }
+
+      // --------------------------------------------------------- Report dialog
+      var reportDialog = document.getElementById("reportDialog");
+      var reportForm = document.getElementById("reportForm");
+      var reportMsg = document.getElementById("reportMsg");
+      var reportTarget = null;
+      function openReport(seller) {
+        if (!me) { SC.toast("Please wait — loading your account…", "error"); return; }
+        reportTarget = seller;
+        document.getElementById("reportName").textContent = seller.username || "this user";
+        reportForm.reset();
+        reportMsg.textContent = "";
+        reportDialog.showModal();
+      }
+      document.getElementById("reportCancel").addEventListener("click", function () { reportDialog.close(); });
+      reportForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!reportTarget || !me) return;
+        var description = document.getElementById("reportReason").value.trim();
+        if (!description) { reportMsg.textContent = "Please describe the problem."; return; }
+        var btn = document.getElementById("reportSubmit");
+        btn.disabled = true;
+        SC.Reports.create({ reported: reportTarget._id, reportedBy: me._id, description: description })
+          .then(function () {
+            reportDialog.close();
+            SC.toast("Report submitted. Thank you.", "success");
+          })
+          .catch(function (err) { reportMsg.textContent = err.message || "Could not submit report."; })
+          .then(function () { btn.disabled = false; });
+      });
+
+      // --------------------------------------------------------- Post dialog
+      var postDialog = document.getElementById("postDialog");
+      var postForm = document.getElementById("postForm");
+      var postMsg = document.getElementById("postMsg");
+      document.getElementById("postBtn").addEventListener("click", function () {
+        postForm.reset();
+        postMsg.textContent = "";
+        postDialog.showModal();
+      });
+      document.getElementById("postCancel").addEventListener("click", function () { postDialog.close(); });
+      postForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var saveBtn = document.getElementById("postSave");
+        saveBtn.disabled = true;
+        var fd = new FormData();
+        fd.append("title", document.getElementById("title").value.trim());
+        fd.append("price", document.getElementById("price").value);
+        fd.append("location", document.getElementById("location").value.trim());
+        fd.append("description", document.getElementById("description").value.trim());
+        var image = document.getElementById("image").files[0];
+        if (image) fd.append("image", image);
+        SC.Listings.create(fd)
+          .then(function () {
+            postDialog.close();
+            SC.toast("Listing posted", "success");
+            setView("mine");
+          })
+          .catch(function (err) { postMsg.textContent = err.message || "Could not post listing."; })
+          .then(function () { saveBtn.disabled = false; });
+      });
+
+      // --------------------------------------------------------- Tabs + search
+      function setView(v) {
+        view = v;
+        var all = v === "all";
+        tabAll.classList.toggle("is-active", all);
+        tabMine.classList.toggle("is-active", !all);
+        tabAll.setAttribute("aria-selected", String(all));
+        tabMine.setAttribute("aria-selected", String(!all));
+        load();
+      }
+      tabAll.addEventListener("click", function () { setView("all"); });
+      tabMine.addEventListener("click", function () { setView("mine"); });
+      searchEl.addEventListener("input", render);
+
+      // --------------------------------------------------------- Go
+      load();
+    </script>
+  </body>
+</html>

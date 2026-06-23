@@ -1,0 +1,1785 @@
+/* =============================================================================
+   Safe Cities Permaculture — Design system & home page styles
+   -----------------------------------------------------------------------------
+   Single external stylesheet for the whole site. It is organised as:
+     1.  Design tokens (CSS custom properties: colour, type, space, radius…)
+     2.  Base / reset
+     3.  Layout helpers (container, section, eyebrow, section heads)
+     4.  Reusable components (buttons, cards, header/nav, footer)
+     5.  Page sections (hero, who, vision, programmes, explore, cta)
+     6.  Motion + reduced-motion fallback
+     7.  Responsive breakpoints (mobile-first: base = small screens, then min-width)
+
+   Aesthetic: "bright organic" — a warm cream canvas, deep leaf greens, a sunny
+   marigold accent and terracotta earth tones. Character comes from Montserrat
+   weight contrast (900 display vs 400/500 body), not from extra fonts.
+============================================================================= */
+
+/* 1. ---------------------------------------------------------------- TOKENS */
+:root {
+  /* Palette */
+  --cream: #faf6ea;        /* page background */
+  --cream-deep: #f2e9d2;   /* alternating section background */
+  --leaf: #2f6b3d;         /* primary brand green */
+  --leaf-dark: #1d4a2a;    /* deep green for quote band / footer */
+  --leaf-bright: #7fb069;  /* fresh accent green */
+  --marigold: #f5b915;     /* sunny yellow accent */
+  --marigold-deep: #e0a500;
+  --terracotta: #cf6a3b;   /* clay earth tone */
+  --soil: #4a3526;         /* warm brown */
+  --ink: #20271e;          /* near-black, slightly green text */
+  --muted: #5c6356;        /* secondary text */
+  --line: #e3dac1;         /* hairline borders on cream */
+  --white: #ffffff;
+
+  /* Typography */
+  --font: "Montserrat", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Fluid type scale using clamp(min, preferred, max) so it adapts smoothly. */
+  --fs-900: clamp(2.6rem, 6vw + 1rem, 5rem);   /* hero h1 */
+  --fs-800: clamp(2rem, 3.5vw + 1rem, 3.25rem); /* section titles */
+  --fs-700: clamp(1.5rem, 2vw + 1rem, 2.25rem); /* vision text */
+  --fs-500: 1.25rem;
+  --fs-400: 1rem;
+  --fs-300: 0.875rem;
+
+  /* Spacing scale */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-5: 3rem;
+  --space-6: 4.5rem;
+  --space-7: 6.5rem;
+
+  /* Shape + depth */
+  --radius: 14px;
+  --radius-lg: 26px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 2px 8px rgba(31, 39, 30, 0.08);
+  --shadow-md: 0 14px 34px rgba(31, 39, 30, 0.12);
+  --shadow-lg: 0 26px 60px rgba(31, 39, 30, 0.18);
+
+  --maxw: 1140px;
+  --header-h: 76px;
+}
+
+/* 2. ------------------------------------------------------------------ BASE */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* offset anchor jumps so the sticky header doesn't cover headings */
+  scroll-padding-top: var(--header-h);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: var(--fs-400);
+  line-height: 1.65;
+  color: var(--ink);
+  background: var(--cream);
+  /* Subtle organic grain so large flat areas feel like paper, not plastic. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--leaf);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.08;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* Visible focus ring for ALL interactive elements (keyboard accessibility). */
+:focus-visible {
+  outline: 3px solid var(--marigold-deep);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Skip link: off-screen until focused, then drops into view. */
+.skip-link {
+  position: absolute;
+  left: var(--space-2);
+  top: -100px;
+  z-index: 200;
+  background: var(--leaf);
+  color: var(--white);
+  padding: 0.7rem 1.1rem;
+  border-radius: var(--radius);
+  font-weight: 700;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: var(--space-2);
+}
+
+/* 3. -------------------------------------------------------- LAYOUT HELPERS */
+.container {
+  width: min(100% - 2.5rem, var(--maxw));
+  margin-inline: auto;
+}
+
+.section {
+  padding-block: var(--space-6);
+}
+
+/* "Eyebrow": the small label above a heading. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-300);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+.eyebrow--light {
+  color: var(--marigold);
+}
+.eyebrow .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.section-title {
+  font-size: var(--fs-800);
+  font-weight: 900;
+  max-width: 18ch;
+}
+
+.section-head {
+  max-width: 60ch;
+  margin-bottom: var(--space-5);
+}
+.section-intro {
+  color: var(--muted);
+  font-size: var(--fs-500);
+  margin-top: var(--space-2);
+}
+
+/* 4. ------------------------------------------------------------ COMPONENTS */
+
+/* --- Buttons --------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;               /* comfortable tap target */
+  padding: 0.85rem 1.6rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.btn:hover {
+  transform: translateY(-2px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.btn--marigold {
+  background: var(--marigold);
+  color: var(--soil);
+  box-shadow: var(--shadow-md);
+}
+.btn--marigold:hover {
+  background: var(--marigold-deep);
+}
+.btn--leaf {
+  background: var(--leaf);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.btn--leaf:hover {
+  background: var(--leaf-dark);
+}
+/* Outline button for use on dark / photographic backgrounds. */
+.btn--ghost-light {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: var(--white);
+  backdrop-filter: blur(2px);
+}
+.btn--ghost-light:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* --- Brand (logo lockup) --------------------------------------------------- */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-decoration: none;
+  color: var(--ink);
+}
+.brand__logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.brand__name {
+  font-weight: 900;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+.brand__tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* --- Header + navigation --------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 246, 234, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--header-h);
+  gap: var(--space-2);
+}
+
+/* Hamburger button — shown on mobile, hidden from ~860px up (see breakpoints). */
+.nav-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.nav-toggle__bar {
+  height: 2.5px;
+  background: var(--ink);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+/* Animate the bars into an "X" when the menu is open. */
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* Mobile: nav is a dropdown panel, collapsed by default. */
+.primary-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background: var(--cream);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  /* Collapsed state: hidden from layout + assistive tech via [hidden] in JS,
+     but we also visually animate when toggled open with .is-open. */
+  display: none;
+}
+.primary-nav.is-open {
+  display: block;
+}
+.primary-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.primary-nav__link {
+  display: block;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.primary-nav__link:hover {
+  background: var(--cream-deep);
+}
+.primary-nav__link.is-current {
+  color: var(--leaf);
+}
+/* Underline indicator used on desktop; harmless on mobile. */
+.primary-nav__link--cta {
+  color: var(--leaf-dark);
+}
+
+/* --- Cards ----------------------------------------------------------------- */
+.card-grid,
+.feature-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.card-grid {
+  grid-template-columns: 1fr;
+}
+.card {
+  position: relative;
+  height: 100%;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Coloured top band — set per accent below. */
+  border-top: 6px solid var(--leaf);
+}
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+}
+.card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-2);
+  border-radius: 16px;
+  color: var(--white);
+  background: var(--leaf);
+}
+.card__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+.card__text {
+  color: var(--muted);
+  margin: 0;
+}
+/* Earthy accent variants cycle the card band + icon colour. */
+.card--leaf { border-top-color: var(--leaf); }
+.card--leaf .card__icon { background: var(--leaf); }
+.card--green { border-top-color: var(--leaf-bright); }
+.card--green .card__icon { background: var(--leaf-bright); }
+.card--marigold { border-top-color: var(--marigold); }
+.card--marigold .card__icon { background: var(--marigold); color: var(--soil); }
+.card--terracotta { border-top-color: var(--terracotta); }
+.card--terracotta .card__icon { background: var(--terracotta); }
+
+/* 5. ----------------------------------------------------------- PAGE SECTIONS */
+
+/* --- Hero ------------------------------------------------------------------ */
+.hero {
+  position: relative;
+  isolation: isolate;            /* contain the overlay's stacking context */
+  display: flex;
+  align-items: flex-end;
+  min-height: min(86vh, 720px);
+  padding-block: var(--space-6);
+  color: var(--white);
+  overflow: hidden;
+}
+.hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+.hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Leaf-green gradient overlay keeps text legible over the photo. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgba(29, 74, 42, 0.35) 0%,
+    rgba(29, 74, 42, 0.78) 78%,
+    rgba(20, 50, 28, 0.92) 100%
+  );
+}
+.hero__title {
+  font-size: var(--fs-900);
+  font-weight: 900;
+  max-width: 16ch;
+  margin-bottom: var(--space-3);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.25);
+}
+.hero__title em {
+  font-style: normal;
+  color: var(--marigold);
+}
+.hero__lead {
+  max-width: 46ch;
+  font-size: var(--fs-500);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: var(--space-4);
+}
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* --- Who we are ------------------------------------------------------------ */
+.who {
+  background: var(--cream-deep);
+}
+.who__grid {
+  display: grid;
+  gap: var(--space-4);
+}
+.who__body p {
+  font-size: var(--fs-500);
+}
+.stats {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+.stat__num {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: var(--leaf);
+  line-height: 1;
+}
+.stat__label {
+  font-size: var(--fs-300);
+  font-weight: 600;
+  color: var(--muted);
+  max-width: 14ch;
+}
+
+/* --- Vision & mission (quote band) ---------------------------------------- */
+.vision {
+  background: var(--leaf-dark);
+  color: var(--cream);
+  /* Slightly richer paper texture on the dark band. */
+}
+.vision__quote {
+  margin: 0;
+  max-width: 24ch;
+}
+.vision__text {
+  font-size: var(--fs-700);
+  font-weight: 800;
+  max-width: 22ch;
+}
+.vision__text .hl {
+  color: var(--marigold);
+}
+.vision__sub {
+  margin-top: var(--space-3);
+  max-width: 60ch;
+  color: rgba(250, 246, 234, 0.85);
+  font-size: var(--fs-500);
+}
+
+/* --- Explore (feature links) ---------------------------------------------- */
+.feature-grid {
+  grid-template-columns: 1fr;
+}
+.feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.feature:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--leaf-bright);
+}
+.feature__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: var(--cream-deep);
+  color: var(--leaf);
+}
+.feature__body {
+  display: flex;
+  flex-direction: column;
+}
+.feature__title {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+.feature__text {
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+.feature__arrow {
+  margin-left: auto;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--terracotta);
+  transition: transform 0.2s ease;
+}
+.feature:hover .feature__arrow {
+  transform: translateX(4px);
+}
+
+/* --- Call to action band --------------------------------------------------- */
+.cta-band {
+  text-align: center;
+}
+.cta-band__inner {
+  background: var(--marigold);
+  color: var(--soil);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-3);
+  box-shadow: var(--shadow-md);
+}
+.cta-band__title {
+  font-size: var(--fs-800);
+  font-weight: 900;
+}
+.cta-band__text {
+  margin: var(--space-2) auto var(--space-4);
+  max-width: 44ch;
+  font-size: var(--fs-500);
+  font-weight: 500;
+}
+
+/* --- Footer ---------------------------------------------------------------- */
+.site-footer {
+  background: var(--leaf-dark);
+  color: var(--cream);
+  padding-top: var(--space-6);
+  margin-top: var(--space-5);
+}
+.site-footer a {
+  color: var(--cream);
+}
+.site-footer__grid {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+}
+.site-footer__tag {
+  font-weight: 800;
+  margin: var(--space-2) 0 0.25rem;
+}
+.site-footer__muted {
+  color: rgba(250, 246, 234, 0.7);
+  font-size: var(--fs-300);
+  margin: 0;
+}
+.site-footer__heading {
+  font-size: var(--fs-300);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--marigold);
+  margin: 0 0 var(--space-2);
+}
+.site-footer__nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: space-between;
+  align-items: center;
+  padding-block: var(--space-3);
+  border-top: 1px solid rgba(250, 246, 234, 0.15);
+  font-size: var(--fs-300);
+  color: rgba(250, 246, 234, 0.75);
+}
+.site-footer__totop {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* 6. ---------------------------------------------------------------- MOTION */
+/* Elements with .reveal start hidden + nudged down, then animate in. main.js
+   adds .is-visible as they scroll into view (and immediately for the hero). */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+/* Stagger the hero's revealed children for a choreographed load. */
+.hero .reveal:nth-child(1) { transition-delay: 0.05s; }
+.hero .reveal:nth-child(2) { transition-delay: 0.15s; }
+.hero .reveal:nth-child(3) { transition-delay: 0.25s; }
+.hero .reveal:nth-child(4) { transition-delay: 0.35s; }
+
+/* Respect users who prefer reduced motion: disable transforms/animation. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 7. ----------------------------------------------------------- BREAKPOINTS */
+
+/* Small tablets and up: two-column card grids. */
+@media (min-width: 600px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop nav: hide the hamburger, lay the nav out horizontally inline. */
+@media (min-width: 860px) {
+  .nav-toggle {
+    display: none;
+  }
+  /* Reset the mobile dropdown back to an inline horizontal bar. */
+  .primary-nav {
+    position: static;
+    display: block;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  .primary-nav__list {
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    gap: 0.25rem;
+  }
+  .primary-nav__link {
+    padding: 0.5rem 0.85rem;
+  }
+  /* Underline-on-hover indicator for desktop links. */
+  .primary-nav__link {
+    position: relative;
+  }
+  .primary-nav__link::after {
+    content: "";
+    position: absolute;
+    left: 0.85rem;
+    right: 0.85rem;
+    bottom: 0.35rem;
+    height: 2px;
+    background: var(--marigold);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
+  }
+  .primary-nav__link:hover::after,
+  .primary-nav__link.is-current::after {
+    transform: scaleX(1);
+  }
+  /* Profile rendered as a pill button on desktop. */
+  .primary-nav__link--cta {
+    margin-left: 0.5rem;
+    background: var(--leaf);
+    color: var(--white);
+    border-radius: var(--radius-pill);
+  }
+  .primary-nav__link--cta::after {
+    display: none;
+  }
+  .primary-nav__link--cta:hover {
+    background: var(--leaf-dark);
+  }
+}
+
+/* Larger desktops: three programme columns + two-column editorial sections. */
+@media (min-width: 900px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .who__grid {
+    grid-template-columns: 1fr 1.2fr;
+    align-items: start;
+    gap: var(--space-6);
+  }
+  .site-footer__grid {
+    grid-template-columns: 1.4fr 1fr 1fr;
+  }
+}
+
+/* =============================================================================
+   APP PAGES — shared components for the logged-in pages (Marketplace, Documents,
+   Schedule, Assistant, Profile, Login). All reuse the tokens defined at the top.
+============================================================================= */
+
+/* Visually-hidden but available to screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Extra button sizes/variants used in the app shell -------------------- */
+.btn--sm {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  font-size: var(--fs-300);
+}
+.btn--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+.btn--ghost:hover {
+  background: var(--cream-deep);
+}
+
+/* Account area in the header (username + log out). */
+.primary-nav__account {
+  margin-top: var(--space-2);
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.account__name {
+  font-weight: 700;
+  font-size: var(--fs-300);
+}
+@media (min-width: 860px) {
+  .primary-nav__account {
+    margin-top: 0;
+    margin-left: 0.75rem;
+  }
+}
+
+/* --- App page scaffold ----------------------------------------------------- */
+.app-main {
+  padding-block: var(--space-5) var(--space-6);
+  min-height: 70vh;
+}
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.page-title {
+  font-size: var(--fs-800);
+  font-weight: 900;
+}
+
+/* --- Tabs ------------------------------------------------------------------ */
+.tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  margin-bottom: var(--space-3);
+  background: var(--cream-deep);
+  border-radius: var(--radius-pill);
+}
+.tab {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.tab.is-active {
+  background: var(--white);
+  color: var(--leaf-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- Toolbar + search ------------------------------------------------------ */
+.toolbar {
+  margin-bottom: var(--space-3);
+}
+.input-search {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* --- Form controls (shared) ------------------------------------------------ */
+.field {
+  margin-bottom: var(--space-3);
+}
+.field label {
+  display: block;
+  font-weight: 700;
+  font-size: var(--fs-300);
+  margin-bottom: 0.4rem;
+}
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="datetime-local"],
+input[type="file"],
+textarea,
+select {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--white);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--leaf-bright);
+  box-shadow: 0 0 0 3px rgba(127, 176, 105, 0.3);
+}
+textarea {
+  resize: vertical;
+}
+.field-row {
+  display: grid;
+  gap: var(--space-2);
+}
+@media (min-width: 520px) {
+  .field-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Inline form messages. */
+.form-msg {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-300);
+  font-weight: 600;
+  min-height: 1.2em;
+}
+.form-msg--error {
+  color: #b23a2e;
+}
+.form-msg--ok {
+  color: var(--leaf);
+}
+
+/* Text-style button (e.g. "Create an account"). */
+.linkbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 800;
+  color: var(--leaf);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Loading / empty / error state lines. */
+.state {
+  color: var(--muted);
+  padding: var(--space-3) 0;
+}
+.state--error {
+  color: #b23a2e;
+}
+
+/* --- Auth (login / signup) ------------------------------------------------- */
+.auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+  background: radial-gradient(120% 120% at 50% 0%, #2f6b3d 0%, #1d4a2a 60%, #143420 100%);
+}
+.auth__card {
+  width: min(100%, 420px);
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-4);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.auth__logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-inline: auto;
+}
+.auth__title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  margin-top: var(--space-2);
+}
+.auth__sub {
+  color: var(--muted);
+  margin: 0.4rem 0 var(--space-4);
+}
+.auth__card form {
+  text-align: left;
+}
+.auth__submit {
+  width: 100%;
+  margin-top: var(--space-1);
+}
+.auth__switch {
+  margin-top: var(--space-3);
+  font-size: var(--fs-300);
+  color: var(--muted);
+}
+
+/* --- Dialogs (native <dialog>) -------------------------------------------- */
+.dialog {
+  width: min(100% - 2rem, 480px);
+  border: 0;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  box-shadow: var(--shadow-lg);
+  background: var(--cream);
+  color: var(--ink);
+}
+.dialog--wide {
+  width: min(100% - 2rem, 600px);
+}
+.dialog::backdrop {
+  background: rgba(20, 50, 28, 0.55);
+  backdrop-filter: blur(2px);
+}
+.dialog__form {
+  padding: var(--space-4);
+}
+.dialog__title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  margin-bottom: var(--space-3);
+}
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0 var(--space-4) var(--space-4);
+}
+.dialog--wide .dialog__actions {
+  padding-top: 0;
+}
+
+/* --- Tasks (Schedule) ------------------------------------------------------ */
+.task-list {
+  display: grid;
+  gap: var(--space-2);
+}
+.task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--leaf-bright);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+.task__name {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.task__meta {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+.task__meta.is-overdue {
+  color: var(--terracotta);
+  font-weight: 700;
+}
+.task__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* --- Listings (Marketplace) ----------------------------------------------- */
+.listing-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+@media (min-width: 560px) {
+  .listing-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .listing-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.listing {
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.listing:hover,
+.listing:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.listing__media {
+  aspect-ratio: 4 / 3;
+  background: var(--cream-deep);
+}
+.listing__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.listing__media--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+.listing__body {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+.listing__title {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.listing__price {
+  color: var(--leaf);
+  font-weight: 900;
+  font-size: 1.2rem;
+  margin: 0.2rem 0;
+}
+.listing__loc,
+.listing__seller {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+.listing__seller {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+.detail__img {
+  width: 100%;
+  border-radius: var(--radius);
+  margin-bottom: var(--space-3);
+  max-height: 320px;
+  object-fit: cover;
+}
+.detail__price {
+  color: var(--leaf);
+  font-weight: 900;
+  font-size: 1.4rem;
+}
+.detail__loc,
+.detail__seller {
+  color: var(--muted);
+}
+
+/* --- Files (Documents) ----------------------------------------------------- */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-300);
+}
+.crumbs__link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--leaf);
+  cursor: pointer;
+}
+.crumbs__current {
+  font-weight: 700;
+  color: var(--muted);
+}
+.crumbs__sep {
+  color: var(--line);
+}
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.file {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+.file--folder {
+  cursor: pointer;
+}
+.file--folder:hover {
+  border-color: var(--leaf-bright);
+  background: #fcfbf5;
+}
+.file__icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--leaf);
+}
+.file--folder .file__icon {
+  color: var(--marigold-deep);
+}
+.file__name {
+  font-weight: 600;
+  word-break: break-word;
+}
+.file__dl {
+  margin-left: auto;
+}
+
+/* --- Assistant (chat) ------------------------------------------------------ */
+.app-main--chat {
+  display: flex;
+}
+.chat {
+  display: flex;
+  flex-direction: column;
+  /* Fill the space between header and footer so the composer sits at the base. */
+  min-height: calc(100vh - var(--header-h) - 8rem);
+}
+.chat__log {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+.bubble {
+  max-width: 80%;
+  padding: 0.4rem 0;
+}
+.bubble--user {
+  align-self: flex-end;
+  text-align: right;
+}
+.bubble--assistant {
+  align-self: flex-start;
+}
+.bubble__body {
+  display: inline-block;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.bubble--user .bubble__body {
+  background: var(--leaf);
+  color: var(--white);
+  border-bottom-right-radius: 6px;
+}
+.bubble--assistant .bubble__body {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 6px;
+}
+.bubble__body p {
+  margin: 0 0 0.5rem;
+}
+.bubble__body p:last-child {
+  margin-bottom: 0;
+}
+.bubble__body ul {
+  margin: 0.25rem 0;
+  padding-left: 1.2rem;
+}
+.bubble.is-typing .bubble__body {
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+.bubble__sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: var(--fs-300);
+  color: var(--muted);
+}
+.bubble__source {
+  background: var(--cream-deep);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.7rem;
+  color: var(--leaf-dark);
+  text-decoration: none;
+}
+.chat__composer {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line);
+}
+.chat__composer textarea {
+  flex: 1;
+  resize: none;
+  max-height: 160px;
+}
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-300);
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* --- Profile --------------------------------------------------------------- */
+.profile-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+@media (min-width: 760px) {
+  .profile-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* The identity card spans the full width on top. */
+  .profile-card {
+    grid-column: 1 / -1;
+  }
+}
+.panel {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+.panel__title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: var(--space-3);
+}
+.panel__hint {
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+.panel--admin {
+  border-top: 4px solid var(--marigold);
+}
+.profile-card {
+  text-align: center;
+}
+.avatar {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto var(--space-2);
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--cream-deep);
+  background: var(--cream-deep);
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar__upload {
+  cursor: pointer;
+  margin-top: var(--space-2);
+}
+.profile-card__name {
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+.profile-card__role {
+  color: var(--terracotta);
+  font-weight: 700;
+  font-size: var(--fs-300);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0.2rem 0;
+}
+.profile-card__farm {
+  color: var(--muted);
+}
+.admin-links {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.admin-links a {
+  display: block;
+  padding: 0.7rem 1rem;
+  background: var(--cream-deep);
+  border-radius: var(--radius);
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--leaf-dark);
+}
+.admin-links a:hover {
+  background: #ece0c2;
+}
+
+/* --- Toasts ---------------------------------------------------------------- */
+.toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(92%, 420px);
+}
+.toast {
+  padding: 0.8rem 1.1rem;
+  border-radius: var(--radius);
+  color: var(--white);
+  font-weight: 700;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.is-shown {
+  opacity: 1;
+  transform: none;
+}
+.toast--success { background: var(--leaf); }
+.toast--error { background: #b23a2e; }
+.toast--info { background: var(--soil); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   MESSAGING + ADMIN — components for messages.html and the admin-*.html pages.
+============================================================================= */
+
+/* Allow multiple actions in a page header. */
+.page-head__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* --- Messenger (inbox + thread) ------------------------------------------- */
+.messenger {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 820px) {
+  .messenger {
+    grid-template-columns: 300px 1fr;
+    align-items: start;
+  }
+}
+.messenger__list {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  box-shadow: var(--shadow-sm);
+}
+.messenger__new {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: var(--space-2);
+}
+.messenger__new input {
+  flex: 1;
+}
+.convo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.convo__btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.convo__txt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0; /* allow the last-message line to truncate */
+}
+
+/* Circular avatar image used in marketplace, messages, etc. */
+.avatar-img {
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--cream-deep);
+  border: 1px solid var(--line);
+}
+.convo__btn:hover {
+  background: var(--cream-deep);
+}
+.convo__btn.is-active {
+  background: var(--cream-deep);
+  box-shadow: inset 3px 0 0 var(--leaf);
+}
+.convo__name {
+  font-weight: 800;
+}
+.convo__last {
+  font-size: var(--fs-300);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.messenger__thread {
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  min-height: 60vh;
+}
+.thread__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+.thread__title {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.thread__log {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 56vh;
+}
+.thread__placeholder {
+  margin: auto;
+}
+.msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 78%;
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius);
+}
+.msg--them {
+  align-self: flex-start;
+  background: var(--cream-deep);
+}
+.msg--me {
+  align-self: flex-end;
+  background: var(--leaf);
+  color: var(--white);
+}
+.msg__who {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.msg__text {
+  margin: 0.1rem 0;
+}
+.msg__time {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  align-self: flex-end;
+}
+.thread__composer {
+  display: flex;
+  gap: 0.5rem;
+  padding: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+.thread__composer input {
+  flex: 1;
+}
+
+/* --- Admin shared --------------------------------------------------------- */
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: var(--space-4);
+  border-bottom: 2px solid var(--line);
+}
+.admin-tabs a {
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+.admin-tabs a:hover {
+  color: var(--leaf);
+}
+.admin-tabs a.is-current {
+  color: var(--leaf-dark);
+  border-bottom-color: var(--marigold);
+}
+
+/* Stacked cards (approvals, reports, farms). */
+.card-stack {
+  display: grid;
+  gap: var(--space-2);
+}
+.admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+.admin-row--stacked {
+  align-items: flex-start;
+}
+.admin-row__name {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.admin-row__meta {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+.admin-row__desc {
+  margin: 0.4rem 0 0;
+  max-width: 60ch;
+}
+.admin-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Inline "add" form (farms). */
+.inline-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: var(--space-4);
+  max-width: 460px;
+}
+.inline-form input {
+  flex: 1;
+}
+
+/* Users table. */
+.table-wrap {
+  overflow-x: auto;        /* horizontal scroll on small screens */
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;        /* keep columns readable; wrapper scrolls */
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-300);
+  vertical-align: middle;
+}
+.admin-table th {
+  background: var(--cream-deep);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.admin-table tbody tr:hover {
+  background: #fcfbf5;
+}
+.admin-table__actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+/* Filter bar (admin task overview). */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.filters .field {
+  margin-bottom: 0;
+  min-width: 180px;
+}
+
+/* Status pills (task overview). */
+.pill {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.pill--open {
+  background: var(--marigold);
+  color: var(--soil);
+}
+.pill--done {
+  background: var(--leaf);
+  color: var(--white);
+}
+.pill--overdue {
+  background: var(--terracotta);
+  color: var(--white);
+}
+
+/* Buttons row inside the listing detail dialog. */
+.detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: var(--space-2);
+}
+
+/* Forgot-password link row on the login card. */
+.auth__forgot {
+  margin: var(--space-2) 0 0;
+  text-align: center;
+  font-size: var(--fs-300);
+}

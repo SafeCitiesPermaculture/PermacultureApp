@@ -31,11 +31,15 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
 
-    # CORS — comma-separated list of allowed frontend origins.
+    # CORS — comma-separated list of allowed frontend origins. Includes the
+    # backend origin(s) because the rebuilt static site is served from there
+    # (same origin as the Express API) but still calls this AI service cross-origin.
     allowed_origins: str = (
         "http://localhost:8081,"
+        "http://localhost:3000,"
         "https://sc-permaculture.vercel.app,"
-        "https://afc-estate.vercel.app"
+        "https://afc-estate.vercel.app,"
+        "https://permacultureapp.onrender.com"
     )
 
     @property

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Profile
+  Wired to: GET /user/me · PUT /user/update-profile · PUT /user/change-password ·
+            PUT /user/image/:id
+  Requires login. Admin-only management links appear when userRole === "admin".
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile · Safe Cities Permaculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="profile" data-requires-auth>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="app-main">
+      <div class="container">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Your account</p>
+            <h1 class="page-title">Profile</h1>
+          </div>
+        </header>
+
+        <div class="profile-grid">
+          <!-- ---------------------------------- Identity / avatar card -->
+          <article class="panel profile-card">
+            <div class="avatar">
+              <img id="avatarImg" src="./assets/images/logo.png" alt="Your profile picture" />
+            </div>
+            <h2 class="profile-card__name" id="displayName">…</h2>
+            <p class="profile-card__role" id="displayRole"></p>
+            <p class="profile-card__farm" id="displayFarm"></p>
+
+            <!-- Avatar upload -->
+            <label class="btn btn--ghost btn--sm avatar__upload">
+              Change photo
+              <input id="avatarInput" type="file" accept="image/*" hidden />
+            </label>
+          </article>
+
+          <!-- ---------------------------------- Edit profile -->
+          <article class="panel">
+            <h2 class="panel__title">Account details</h2>
+            <form id="profileForm">
+              <div class="field">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" required />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" required />
+              </div>
+              <p class="form-msg" id="profileMsg" role="alert"></p>
+              <button class="btn btn--leaf" type="submit" id="profileSave">Save changes</button>
+            </form>
+          </article>
+
+          <!-- ---------------------------------- Change password -->
+          <article class="panel">
+            <h2 class="panel__title">Change password</h2>
+            <form id="passwordForm">
+              <div class="field">
+                <label for="oldPassword">Current password</label>
+                <input id="oldPassword" type="password" autocomplete="current-password" required />
+              </div>
+              <div class="field">
+                <label for="newPassword">New password</label>
+                <input id="newPassword" type="password" autocomplete="new-password" required minlength="6" />
+              </div>
+              <p class="form-msg" id="passwordMsg" role="alert"></p>
+              <button class="btn btn--leaf" type="submit" id="passwordSave">Update password</button>
+            </form>
+          </article>
+
+          <!-- ---------------------------------- Admin tools (admins only) -->
+          <article class="panel panel--admin" id="adminPanel" hidden>
+            <h2 class="panel__title">Admin tools</h2>
+            <p class="panel__hint">You're signed in as an administrator.</p>
+            <ul class="admin-links">
+              <li><a href="admin-approvals.html">Approve new members</a></li>
+              <li><a href="admin-users.html">Manage users</a></li>
+              <li><a href="admin-tasks.html">Task overview</a></li>
+              <li><a href="admin-reports.html">View reports</a></li>
+              <li><a href="admin-farms.html">Manage farms</a></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      var user = SC.getCachedUser() || {};
+
+      // Graceful fallback: legacy Google-Drive profile URLs (and any broken link)
+      // won't render in an <img>, so fall back to the logo instead of showing
+      // broken-image alt text. New uploads use Cloudinary and render fine.
+      var avatarEl = document.getElementById("avatarImg");
+      avatarEl.addEventListener("error", function () {
+        if (avatarEl.src.indexOf("logo.png") === -1) avatarEl.src = "./assets/images/logo.png";
+      });
+
+      // MERGE incoming fields onto the user we already have. This matters because
+      // /user/me returns only username/email/farms (no userRole or profilePicture),
+      // while the login response and /auth/userdata carry the full object — we
+      // must not let the partial response wipe the role or the profile picture.
+      function fill(u) {
+        if (u) user = Object.assign({}, user, u);
+        document.getElementById("displayName").textContent = user.username || "";
+        document.getElementById("displayRole").textContent =
+          user.userRole === "admin" ? "Administrator" : "Member";
+        document.getElementById("displayFarm").textContent = user.farmName ? ("Farm: " + user.farmName) : "";
+        document.getElementById("username").value = user.username || "";
+        document.getElementById("email").value = user.email || "";
+        if (user.profilePicture) document.getElementById("avatarImg").src = user.profilePicture;
+        document.getElementById("adminPanel").hidden = user.userRole !== "admin";
+      }
+      fill(null); // render from cached user
+
+      // Pull authoritative data from /user/me on load (merged, not replaced).
+      SC.Users.me()
+        .then(fill)
+        .catch(function () { /* keep cached values */ });
+      document.addEventListener("sc:user", function (e) { fill(e.detail); });
+
+      // ---------------------------------------------- Save profile
+      document.getElementById("profileForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var msg = document.getElementById("profileMsg");
+        var btn = document.getElementById("profileSave");
+        msg.textContent = "";
+        msg.className = "form-msg";
+        btn.disabled = true;
+        SC.Users.updateProfile({
+          username: document.getElementById("username").value.trim(),
+          email: document.getElementById("email").value.trim(),
+        })
+          .then(function (data) {
+            var u = (data && data.user) || data;
+            fill(Object.assign({}, user, u));
+            ok(msg, "Profile updated.");
+            SC.toast("Profile saved", "success");
+          })
+          .catch(function (err) { err1(msg, err.message || "Could not update profile."); })
+          .then(function () { btn.disabled = false; });
+      });
+
+      // ---------------------------------------------- Change password
+      document.getElementById("passwordForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var msg = document.getElementById("passwordMsg");
+        var btn = document.getElementById("passwordSave");
+        msg.textContent = "";
+        msg.className = "form-msg";
+        btn.disabled = true;
+        SC.Users.changePassword(
+          document.getElementById("oldPassword").value,
+          document.getElementById("newPassword").value
+        )
+          .then(function () {
+            document.getElementById("passwordForm").reset();
+            ok(msg, "Password updated.");
+            SC.toast("Password changed", "success");
+          })
+          .catch(function (err) { err1(msg, err.message || "Could not change password."); })
+          .then(function () { btn.disabled = false; });
+      });
+
+      // ---------------------------------------------- Avatar upload
+      document.getElementById("avatarInput").addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file || !user) return;
+        var fd = new FormData();
+        fd.append("file", file);
+        SC.Users.image(user._id, fd)
+          .then(function (data) {
+            if (data && data.url) {
+              document.getElementById("avatarImg").src = data.url;
+              user.profilePicture = data.url;
+              SC.toast("Photo updated", "success");
+            }
+          })
+          .catch(function (err) { SC.toast(err.message || "Upload failed", "error"); });
+      });
+
+      function ok(el, t) { el.textContent = t; el.className = "form-msg form-msg--ok"; }
+      function err1(el, t) { el.textContent = t; el.className = "form-msg form-msg--error"; }
+    </script>
+  </body>
+</html>

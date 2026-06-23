@@ -20,7 +20,7 @@ router.get("/conversations", async (req, res) => {
     const userId = new ObjectId(req.user._id);
 
     let conversations = await Conversation.find({ participants: userId })
-      .populate("participants", "username")
+      .populate("participants", "username profilePicture")
       .sort({ updatedAt: -1 });
 
     conversations = conversations.map((convo) => {
@@ -84,7 +84,7 @@ router.post("/conversations", async (req, res) => {
       await conversation.save();
     }
 
-    const populated = await conversation.populate("participants", "username");
+    const populated = await conversation.populate("participants", "username profilePicture");
     res.status(201).json(populated);
   } catch (err) {
     console.error("Error starting conversation:", err);
@@ -108,7 +108,7 @@ router.get("/conversations/:conversationId/messages", async (req, res) => {
       }
     );
     const messages = await Message.find({ conversation: req.params.conversationId })
-      .populate("sender", "username")
+      .populate("sender", "username profilePicture")
       .sort({ createdAt: 1 });
 
     res.json(messages);
@@ -121,7 +121,7 @@ router.get("/conversations/:conversationId/messages", async (req, res) => {
 router.get("/conversations/:conversationId", async (req, res) => {
   try {
     const convo = await Conversation.findById(req.params.conversationId)
-      .populate("participants", "username");
+      .populate("participants", "username profilePicture");
 
     if (!convo) {
       return res.status(404).json({ error: "Conversation not found" });
@@ -169,7 +169,7 @@ router.post("/conversations/:conversationId/messages", async (req, res) => {
       }
     );
 
-    const populated = await message.populate("sender", "username");
+    const populated = await message.populate("sender", "username profilePicture");
     res.status(201).json(populated);
   } catch (err) {
     console.error("Error sending message:", err);
@@ -186,7 +186,7 @@ router.put("/conversations/:id/rename", async (req, res) => {
       req.params.id,
       { name },
       { new: true }
-    ).populate("participants", "username");
+    ).populate("participants", "username profilePicture");
 
     res.json(convo);
   } catch (err) {

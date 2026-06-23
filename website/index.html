@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Home page
+  -------------------------------------
+  Plain, framework-free HTML5. Structure only lives here; all styling is in
+  styles.css and the small amount of behaviour (mobile menu + scroll reveal)
+  lives in main.js. Semantic landmarks are used throughout so the page is
+  navigable by assistive tech: <header> <nav> <main> <section> <article> <footer>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Safe Cities Permaculture — Igniting Community Transformation</title>
+    <meta
+      name="description"
+      content="Safe Cities is a South African non-profit in Elsies River, Cape Town, delivering social development and skills training — from permaculture to leadership — that empowers youth, women, men and children."
+    />
+
+    <!-- Montserrat from Google Fonts. Loaded via <link> (not @import) so the
+         browser can start the font request earlier. We pull a wide weight range
+         because the whole design relies on weight contrast for character. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="main.js" defer></script>
+  </head>
+
+  <body>
+    <!-- Accessibility: lets keyboard users jump straight to the main content. -->
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <!-- ============================ SITE HEADER ============================ -->
+    <header class="site-header" id="top">
+      <div class="container site-header__inner">
+        <!-- Brand: the existing blue "SafeCities" logo, kept as-is. -->
+        <a class="brand" href="index.html" aria-label="Safe Cities Permaculture — home">
+          <img
+            class="brand__logo"
+            src="./assets/images/logo.png"
+            alt="Safe Cities Permaculture logo"
+            width="56"
+            height="56"
+          />
+          <span class="brand__text">
+            <span class="brand__name">Safe Cities</span>
+            <span class="brand__tag">Igniting Community Transformation</span>
+          </span>
+        </a>
+
+        <!-- Mobile menu button. Hidden on desktop via CSS; toggled by main.js.
+             aria-expanded/aria-controls keep its state announced to screen readers. -->
+        <button
+          class="nav-toggle"
+          id="navToggle"
+          aria-expanded="false"
+          aria-controls="primaryNav"
+          aria-label="Open menu"
+        >
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+        </button>
+
+        <!-- Primary navigation — same link set as the app's tabs. -->
+        <nav class="primary-nav" id="primaryNav" aria-label="Primary">
+          <ul class="primary-nav__list">
+            <li><a class="primary-nav__link is-current" href="index.html" aria-current="page">Home</a></li>
+            <li><a class="primary-nav__link" href="marketplace.html">Marketplace</a></li>
+            <li><a class="primary-nav__link" href="documents.html">Documents</a></li>
+            <li><a class="primary-nav__link" href="schedule.html">Schedule</a></li>
+            <li><a class="primary-nav__link" href="assistant.html">Assistant</a></li>
+            <li><a class="primary-nav__link primary-nav__link--cta" href="profile.html">Profile</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ================================ HERO ================================ -->
+      <section class="hero" aria-labelledby="hero-title">
+        <!-- Background photo of a community food garden, dimmed by a leaf-green
+             overlay (handled in CSS) so the headline stays readable. -->
+        <div class="hero__media" aria-hidden="true">
+          <img src="./assets/images/garden.jpeg" alt="" width="960" height="640" />
+        </div>
+
+        <div class="container hero__inner">
+          <p class="eyebrow eyebrow--light reveal">
+            <span class="dot" aria-hidden="true"></span> Elsies River · Cape Town · South Africa
+          </p>
+          <h1 class="hero__title reveal" id="hero-title">
+            Igniting <em>community</em> transformation
+          </h1>
+          <p class="hero__lead reveal">
+            Safe Cities is a non-profit growing skills, gardens and leaders —
+            equipping our community to build a self-sustaining future.
+          </p>
+          <div class="hero__actions reveal">
+            <a class="btn btn--marigold" href="#programs">Explore our programmes</a>
+            <a class="btn btn--ghost-light" href="marketplace.html">Visit the marketplace</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= WHO WE ARE ============================= -->
+      <section class="section who" aria-labelledby="who-title">
+        <div class="container who__grid">
+          <div class="who__intro">
+            <p class="eyebrow">Who we are</p>
+            <h2 class="section-title" id="who-title">
+              Rooted in Elsies River, growing across the community
+            </h2>
+          </div>
+          <div class="who__body">
+            <p>
+              Safe Cities is a Non-Profit Organization based in Elsies River. We
+              focus on <strong>Social Development</strong> and
+              <strong>Skills Training</strong> — Capacity Building &amp; Theatre
+              Training, Construction Skills Training, Perma-Culture Skills
+              Training, the Young Leaders Initiative, and the Wellness &amp;
+              Women Empowerment Program.
+            </p>
+            <!-- A few quick "impact" figures. Numbers are illustrative; swap in
+                 real ones when available. -->
+            <ul class="stats" aria-label="Our reach at a glance">
+              <li class="stat">
+                <span class="stat__num">5</span>
+                <span class="stat__label">core programmes</span>
+              </li>
+              <li class="stat">
+                <span class="stat__num">1</span>
+                <span class="stat__label">community, many futures</span>
+              </li>
+              <li class="stat">
+                <span class="stat__num">All</span>
+                <span class="stat__label">ages welcomed</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================== VISION & MISSION ========================== -->
+      <!-- Rendered as a bold quote band to break the rhythm and carry the brand. -->
+      <section class="section vision" aria-labelledby="vision-title">
+        <div class="container">
+          <p class="eyebrow eyebrow--light">Vision &amp; mission</p>
+          <blockquote class="vision__quote">
+            <h2 id="vision-title" class="vision__text">
+              Our vision is to ensure that individuals are
+              <span class="hl">trained and equipped</span> through our
+              programmes — better preparing them for an evolving society.
+            </h2>
+            <p class="vision__sub">
+              We focus on leadership training, self-sustainability and community
+              upliftment, believing in empowering and educating youth, women,
+              men and children.
+            </p>
+          </blockquote>
+        </div>
+      </section>
+
+      <!-- ============================== PROGRAMMES ============================= -->
+      <section class="section programs" id="programs" aria-labelledby="programs-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">What we do</p>
+            <h2 class="section-title" id="programs-title">Our programmes</h2>
+            <p class="section-intro">
+              Practical, hands-on training that turns skills into livelihoods and
+              neighbours into leaders.
+            </p>
+          </div>
+
+          <!-- Each programme is an <article>: a self-contained content unit.
+               The accent class tints the card's top band an earthy colour. -->
+          <ul class="card-grid">
+            <li>
+              <article class="card card--leaf">
+                <span class="card__icon" aria-hidden="true">
+                  <!-- masks / theatre -->
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5s1 6 5 6 5-6 5-6"/><path d="M11 13s1 6 5 6 5-6 5-6"/><path d="M3 5h10M11 13h10"/></svg>
+                </span>
+                <h3 class="card__title">Capacity Building &amp; Theatre Training</h3>
+                <p class="card__text">
+                  Confidence, communication and creativity through the
+                  performing arts and capacity-building workshops.
+                </p>
+              </article>
+            </li>
+            <li>
+              <article class="card card--terracotta">
+                <span class="card__icon" aria-hidden="true">
+                  <!-- tools / construction -->
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7a4 4 0 0 0-5 5L4 17l3 3 5-5a4 4 0 0 0 5-5"/><path d="m15 8 3-3 1 1-3 3"/></svg>
+                </span>
+                <h3 class="card__title">Construction Skills Training</h3>
+                <p class="card__text">
+                  Building trade skills that open doors to employment and help
+                  members shape their own surroundings.
+                </p>
+              </article>
+            </li>
+            <li>
+              <article class="card card--green">
+                <span class="card__icon" aria-hidden="true">
+                  <!-- leaf / permaculture -->
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-9 0 12-4 16-9 16Z"/><path d="M4 20c4-4 8-6 12-7"/></svg>
+                </span>
+                <h3 class="card__title">Perma-Culture Skills Training</h3>
+                <p class="card__text">
+                  Growing food and self-sustainability — permaculture gardens
+                  that feed families and restore the land.
+                </p>
+              </article>
+            </li>
+            <li>
+              <article class="card card--marigold">
+                <span class="card__icon" aria-hidden="true">
+                  <!-- rising star / youth leaders -->
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.5 5 5.5.8-4 3.9 1 5.5-5-2.6L7.5 21l1-5.5-4-3.9 5.5-.8L12 3Z"/></svg>
+                </span>
+                <h3 class="card__title">Young Leaders Initiative</h3>
+                <p class="card__text">
+                  Nurturing the next generation of leaders with mentorship,
+                  responsibility and a voice in their community.
+                </p>
+              </article>
+            </li>
+            <li>
+              <article class="card card--leaf">
+                <span class="card__icon" aria-hidden="true">
+                  <!-- heart / wellness & women -->
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.4-9.5-9A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 9.5 5C19 16.6 12 21 12 21Z"/></svg>
+                </span>
+                <h3 class="card__title">Wellness &amp; Women Empowerment</h3>
+                <p class="card__text">
+                  Health, dignity and opportunity — supporting women to thrive
+                  and lead within their families and beyond.
+                </p>
+              </article>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- =========================== EXPLORE THE APP =========================== -->
+      <!-- Feature links that mirror the app: Marketplace and Documents. -->
+      <section class="section explore" aria-labelledby="explore-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Explore</p>
+            <h2 class="section-title" id="explore-title">Jump into the platform</h2>
+          </div>
+
+          <div class="feature-grid">
+            <a class="feature" href="marketplace.html">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 4.5 4h15L21 9"/><path d="M3 9h18v3a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0Z"/><path d="M5 12v8h14v-8"/></svg>
+              </span>
+              <span class="feature__body">
+                <span class="feature__title">Marketplace</span>
+                <span class="feature__text">Buy, sell and share what the community grows and makes.</span>
+              </span>
+              <span class="feature__arrow" aria-hidden="true">→</span>
+            </a>
+
+            <a class="feature" href="documents.html">
+              <span class="feature__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13a0 0 0 0 1 0 0H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+              </span>
+              <span class="feature__body">
+                <span class="feature__title">Documents</span>
+                <span class="feature__text">Resources, guides and records for members and staff.</span>
+              </span>
+              <span class="feature__arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================== GET IN TOUCH ========================== -->
+      <section class="section cta-band" aria-labelledby="cta-title">
+        <div class="container cta-band__inner">
+          <h2 class="cta-band__title" id="cta-title">Want to get involved?</h2>
+          <p class="cta-band__text">
+            Volunteer, partner or learn more about our work in Elsies River.
+          </p>
+          <a class="btn btn--leaf" href="mailto:safecitiespermaculture@gmail.com">Email us</a>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================== SITE FOOTER ============================ -->
+    <footer class="site-footer">
+      <div class="container site-footer__grid">
+        <div class="site-footer__brand">
+          <img
+            class="brand__logo"
+            src="./assets/images/logo.png"
+            alt="Safe Cities Permaculture logo"
+            width="48"
+            height="48"
+          />
+          <p class="site-footer__tag">Igniting Community Transformation</p>
+          <p class="site-footer__muted">A non-profit organisation based in Elsies River, Cape Town.</p>
+        </div>
+
+        <nav class="site-footer__nav" aria-label="Footer">
+          <h2 class="site-footer__heading">Explore</h2>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="marketplace.html">Marketplace</a></li>
+            <li><a href="documents.html">Documents</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li><a href="assistant.html">Assistant</a></li>
+            <li><a href="profile.html">Profile</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-footer__contact">
+          <h2 class="site-footer__heading">Contact</h2>
+          <p>
+            <a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>
+          </p>
+          <p class="site-footer__muted">Elsies River · Cape Town · South Africa</p>
+        </div>
+      </div>
+
+      <div class="container site-footer__bottom">
+        <p>&copy; <span id="year">2026</span> Safe Cities Permaculture. All rights reserved.</p>
+        <a class="site-footer__totop" href="#top">Back to top ↑</a>
+      </div>
+    </footer>
+  </body>
+</html>

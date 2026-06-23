@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture — Login / Sign up
+  Talks to the existing backend: POST /auth/login and POST /auth/signup.
+  The shared shell (header/footer) is injected by app.js; this page does NOT
+  require auth (no data-requires-auth).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Log in · Safe Cities Permaculture</title>
+    <meta name="description" content="Log in to the Safe Cities Permaculture community platform." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-page="login">
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <main id="main" class="auth">
+      <div class="auth__card">
+        <img class="auth__logo" src="./assets/images/logo.png" alt="Safe Cities Permaculture logo" width="72" height="72" />
+        <h1 class="auth__title" id="authTitle">Welcome back</h1>
+        <p class="auth__sub" id="authSub">Log in to continue to your community platform.</p>
+
+        <!-- A single form whose fields change between "login" and "signup".
+             The email field is only shown when registering. -->
+        <form id="authForm" novalidate>
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" required />
+          </div>
+
+          <div class="field" id="emailField" hidden>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" />
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required minlength="6" />
+          </div>
+
+          <!-- Inline status message (errors / confirmations), announced politely. -->
+          <p class="form-msg" id="formMsg" role="alert" aria-live="assertive"></p>
+
+          <button class="btn btn--leaf auth__submit" type="submit" id="submitBtn">Log in</button>
+        </form>
+
+        <p class="auth__forgot" id="forgotRow">
+          <a class="linkbtn" href="forgot-password.html">Forgot your password?</a>
+        </p>
+
+        <p class="auth__switch">
+          <span id="switchText">New to Safe Cities?</span>
+          <button type="button" class="linkbtn" id="switchBtn">Create an account</button>
+        </p>
+      </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+    <script>
+      // ------------------------------------------------------------- State
+      var mode = "login"; // or "signup"
+      var form = document.getElementById("authForm");
+      var emailField = document.getElementById("emailField");
+      var msg = document.getElementById("formMsg");
+      var submitBtn = document.getElementById("submitBtn");
+
+      // Where to go after a successful login (?next=schedule.html), default home.
+      var params = new URLSearchParams(location.search);
+      var next = params.get("next") || "index.html";
+
+      // Already signed in? Skip the form.
+      if (SC.isLoggedIn()) location.replace(next);
+
+      // ------------------------------------------------ Toggle login/signup
+      document.getElementById("switchBtn").addEventListener("click", function () {
+        mode = mode === "login" ? "signup" : "login";
+        var isSignup = mode === "signup";
+        emailField.hidden = !isSignup;
+        document.getElementById("forgotRow").hidden = isSignup; // only relevant when logging in
+        document.getElementById("email").required = isSignup;
+        document.getElementById("password").setAttribute(
+          "autocomplete", isSignup ? "new-password" : "current-password"
+        );
+        document.getElementById("authTitle").textContent = isSignup ? "Join Safe Cities" : "Welcome back";
+        document.getElementById("authSub").textContent = isSignup
+          ? "Create an account — an admin will verify you before first login."
+          : "Log in to continue to your community platform.";
+        submitBtn.textContent = isSignup ? "Create account" : "Log in";
+        document.getElementById("switchText").textContent = isSignup
+          ? "Already have an account?" : "New to Safe Cities?";
+        document.getElementById("switchBtn").textContent = isSignup ? "Log in instead" : "Create an account";
+        msg.textContent = "";
+        msg.className = "form-msg";
+      });
+
+      // ----------------------------------------------------- Submit handler
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        msg.textContent = "";
+        msg.className = "form-msg";
+        var username = document.getElementById("username").value.trim();
+        var password = document.getElementById("password").value;
+        var email = document.getElementById("email").value.trim();
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = mode === "signup" ? "Creating…" : "Logging in…";
+
+        var action = mode === "signup"
+          ? SC.signup(username, email, password).then(function () {
+              // Signup succeeds but the account needs admin verification.
+              showOk("Account created! An admin will verify you shortly — you can log in once approved.");
+              document.getElementById("switchBtn").click(); // flip back to login
+            })
+          : SC.login(username, password).then(function () {
+              location.href = next;
+            });
+
+        action.catch(function (err) {
+          showErr((err && err.message) || "Something went wrong. Please try again.");
+        }).then(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = mode === "signup" ? "Create account" : "Log in";
+        });
+      });
+
+      function showErr(text) { msg.textContent = text; msg.className = "form-msg form-msg--error"; }
+      function showOk(text) { msg.textContent = text; msg.className = "form-msg form-msg--ok"; }
+    </script>
+  </body>
+</html>
