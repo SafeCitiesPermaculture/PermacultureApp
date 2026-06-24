@@ -1,0 +1,29 @@
+name: Keep AI service warm
+
+# Render's free tier spins the AI service down after ~15 min of inactivity, so
+# the first request after idle takes 50s+. This workflow pings /health on a
+# schedule to keep it awake during waking hours, and asserts a 200 so the
+# Actions tab doubles as uptime monitoring (a red run = the service is down).
+#
+# Schedule is UTC. Safe Cities is in Cape Town (SAST = UTC+2), so 04:00-20:59
+# UTC ≈ 06:00-22:59 local. To keep it warm 24/7 instead, change the cron to
+# "*/10 * * * *" (note: always-on uses more of the free-tier instance hours).
+
+on:
+  schedule:
+    - cron: "*/10 4-20 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health (allow up to 90s for a cold start)
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 \
+            https://afc-estate-ai.onrender.com/health)
+          echo "GET /health -> HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::AI service health check failed (HTTP $code)"
+            exit 1
+          fi
