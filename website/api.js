@@ -353,6 +353,18 @@
         body: { message: message, history: history || [], include_tasks: !!includeTasks },
       });
     },
+    // --- Persisted chat history (Express backend, separate from the AI call) ---
+    // Sidebar list: saved chats first, then the 10 most recent.
+    history: function () { return request("api", "/chat", {}); },
+    // Full chat (with messages) by id.
+    get: function (id) { return request("api", "/chat/" + id, {}); },
+    // Create or update a chat. body: { chatId?, messages, title? } -> { chat }.
+    save: function (body) { return request("api", "/chat/save", { method: "POST", body: body }); },
+    // Save/unsave (pin) a chat so it sticks to the top and is never auto-deleted.
+    pin: function (id, isPinned) {
+      return request("api", "/chat/" + id + "/pin", { method: "PUT", body: { isPinned: isPinned } });
+    },
+    remove: function (id) { return request("api", "/chat/" + id, { method: "DELETE" }); },
   };
 
   /* ------------------------------------------------------------- Utilities */
