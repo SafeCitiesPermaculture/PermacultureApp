@@ -26,6 +26,9 @@
         background: var(--cream-deep, #f3eadd);
         border-right: 1px solid var(--line, #e3dac9);
         transition: flex-basis .15s ease, width .15s ease; overflow: hidden;
+        /* Pin the chat list in view so it stays visible as the transcript grows. */
+        position: sticky; top: var(--header-h, 76px); align-self: flex-start;
+        height: calc(100vh - var(--header-h, 76px));
       }
       .chat-sidebar.is-collapsed { flex-basis: 52px; width: 52px; }
 
@@ -155,6 +158,20 @@
       var currentPinned = false;
 
       var GREETING = "Hi! I'm the Safe Cities assistant. Ask me about our documents, your tasks, or permaculture know-how.";
+
+      // ---------------------------------------------- Keep --header-h accurate
+      // The site header wraps to two rows (nav + greeting), so its real height
+      // exceeds the static --header-h. Sync it so the sticky sidebar pins
+      // exactly below the header instead of tucking underneath it.
+      function syncHeaderHeight() {
+        var header = document.querySelector(".site-header");
+        if (header) {
+          document.documentElement.style.setProperty("--header-h", header.offsetHeight + "px");
+        }
+      }
+      syncHeaderHeight();
+      window.addEventListener("resize", syncHeaderHeight);
+      window.addEventListener("load", syncHeaderHeight);
 
       // ---------------------------------------------- Sidebar: collapse/expand
       sidebarToggle.addEventListener("click", function () {
