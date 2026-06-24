@@ -354,6 +354,85 @@
         body: { message: message, history: history || [], include_tasks: !!includeTasks },
       });
     },
+    // Streaming variant of chat(): the reply arrives token-by-token over
+    // Server-Sent Events. `handlers` may provide onSources(arr), onDelta(text),
+    // onError(msg), onDone(). Returns a Promise that resolves once the stream
+    // ends; the Promise rejects only if the connection can't be established
+    // (e.g. auth/network) — mid-stream issues come through onError.
+    chatStream: function (message, history, includeTasks, handlers) {
+      handlers = handlers || {};
+      var payload = JSON.stringify({
+        message: message,
+        history: history || [],
+        include_tasks: !!includeTasks,
+      });
+
+      function open(isRetry) {
+        var tokens = getTokens();
+        var headers = { "Content-Type": "application/json" };
+        if (tokens && tokens.accessToken) {
+          headers.Authorization = "Bearer " + tokens.accessToken;
+        }
+        return fetch(AI_BASE_URL + "/chat/stream", {
+          method: "POST",
+          headers: headers,
+          body: payload,
+        }).then(function (res) {
+          // Refresh once on an expired access token, then retry the stream.
+          if (res.status === 401 && !isRetry) {
+            return tryRefresh().then(function (ok) {
+              if (ok) return open(true);
+              clearTokens();
+              throw new ApiError("Session expired. Please log in again.", 401);
+            });
+          }
+          if (!res.ok || !res.body) {
+            throw new ApiError(
+              "The assistant is unavailable. Please try again.",
+              res.status
+            );
+          }
+          return pump(res.body.getReader());
+        });
+      }
+
+      function pump(reader) {
+        var decoder = new TextDecoder();
+        var buffer = "";
+        var finished = false;
+        function finish() {
+          if (!finished) { finished = true; if (handlers.onDone) handlers.onDone(); }
+        }
+        function read() {
+          return reader.read().then(function (result) {
+            if (result.done) { finish(); return; }
+            buffer += decoder.decode(result.value, { stream: true });
+            var frames = buffer.split("\n\n");
+            buffer = frames.pop(); // keep the trailing partial frame
+            for (var i = 0; i < frames.length; i++) {
+              var line = frames[i].trim();
+              if (line.indexOf("data:") !== 0) continue;
+              var evt;
+              try { evt = JSON.parse(line.slice(5).trim()); } catch (e) { continue; }
+              if (evt.type === "sources") {
+                if (handlers.onSources) handlers.onSources(evt.sources || []);
+              } else if (evt.type === "delta") {
+                if (handlers.onDelta) handlers.onDelta(evt.text || "");
+              } else if (evt.type === "error") {
+                if (handlers.onError) handlers.onError(evt.message || "Something went wrong.");
+              } else if (evt.type === "done") {
+                finish();
+              }
+            }
+            if (finished) return;
+            return read();
+          });
+        }
+        return read();
+      }
+
+      return open(false);
+    },
     // --- Persisted chat history (Express backend, separate from the AI call) ---
     // Sidebar list: saved chats first, then the 10 most recent.
     history: function () { return request("api", "/chat", {}); },

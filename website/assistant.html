@@ -300,6 +300,29 @@
         return html;
       }
 
+      // Build the "Sources: …" footer for a bubble (or null if none).
+      function buildSources(sources) {
+        if (!sources || !sources.length) return null;
+        var src = document.createElement("div");
+        src.className = "bubble__sources";
+        src.innerHTML = "<span>Sources:</span>";
+        sources.forEach(function (s) {
+          var item;
+          if (s.drive_link) {
+            item = document.createElement("a");
+            item.href = s.drive_link;
+            item.target = "_blank";
+            item.rel = "noopener";
+          } else {
+            item = document.createElement("span");
+          }
+          item.className = "bubble__source";
+          item.textContent = s.title || "Document";
+          src.appendChild(item);
+        });
+        return src;
+      }
+
       function addBubble(role, text, sources) {
         var wrap = document.createElement("div");
         wrap.className = "bubble bubble--" + role;
@@ -308,26 +331,9 @@
         body.innerHTML = role === "assistant" ? renderMarkdown(text) : "<p>" + SC.escapeHtml(text) + "</p>";
         wrap.appendChild(body);
 
-        if (sources && sources.length) {
-          var src = document.createElement("div");
-          src.className = "bubble__sources";
-          src.innerHTML = "<span>Sources:</span>";
-          sources.forEach(function (s) {
-            var item;
-            if (s.drive_link) {
-              item = document.createElement("a");
-              item.href = s.drive_link;
-              item.target = "_blank";
-              item.rel = "noopener";
-            } else {
-              item = document.createElement("span");
-            }
-            item.className = "bubble__source";
-            item.textContent = s.title || "Document";
-            src.appendChild(item);
-          });
-          wrap.appendChild(src);
-        }
+        var src = buildSources(sources);
+        if (src) wrap.appendChild(src);
+
         log.appendChild(wrap);
         log.scrollTop = log.scrollHeight;
         return body;
@@ -358,39 +364,66 @@
         sendBtn.disabled = true;
 
         var typing = addBubble("assistant", "…");
-        typing.parentElement.classList.add("is-typing");
+        var wrap = typing.parentElement;
+        wrap.classList.add("is-typing");
 
-        SC.Assistant.chat(text, convo.slice(0, -1), taskToggle.checked)
-          .then(function (data) {
-            typing.parentElement.remove();
-            addBubble("assistant", data.reply || "(no reply)", data.sources);
-            convo.push({ role: "assistant", content: data.reply || "" });
-          })
-          .catch(function (err) {
-            typing.parentElement.remove();
-            // Local dev convenience: the FastAPI AI service usually isn't running
-            // on a dev machine, so on localhost we insert a stub reply (added to
-            // history). It never runs in production.
-            var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-            if (isLocal) {
-              var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
-              addBubble("assistant", stub);
-              convo.push({ role: "assistant", content: stub });
-            } else {
-              var note = err.status === 503
-                ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
-                : (err.message || "Something went wrong.");
-              addBubble("assistant", note);
+        var acc = "";            // accumulated reply text
+        var streamSources = null;
+        var started = false;     // first token received?
+        var errored = false;
+
+        function finalize() {
+          sendBtn.disabled = false;
+          input.focus();
+          // Always save the conversation — independent of whether the AI
+          // replied — so the chat is titled, appears in the sidebar, and the
+          // Save (star) button works even if the AI service is unavailable.
+          persist();
+        }
+
+        SC.Assistant.chatStream(text, convo.slice(0, -1), taskToggle.checked, {
+          onSources: function (s) { streamSources = s; },
+          onDelta: function (t) {
+            if (!started) { started = true; wrap.classList.remove("is-typing"); typing.textContent = ""; }
+            acc += t;
+            // Plain text while streaming (the typewriter effect); markdown is
+            // applied once at the end to avoid mid-stream formatting artifacts.
+            typing.textContent = acc;
+            log.scrollTop = log.scrollHeight;
+          },
+          onError: function (msg) {
+            errored = true;
+            wrap.classList.remove("is-typing");
+            if (!acc) typing.textContent = msg || "Something went wrong.";
+          },
+          onDone: function () {
+            wrap.classList.remove("is-typing");
+            if (acc) {
+              typing.innerHTML = renderMarkdown(acc);
+              var src = buildSources(streamSources);
+              if (src) wrap.appendChild(src);
+              convo.push({ role: "assistant", content: acc });
+            } else if (!errored) {
+              typing.textContent = "(no reply)";
             }
-          })
-          .then(function () {
-            sendBtn.disabled = false;
-            input.focus();
-            // Always save the conversation — independent of whether the AI
-            // replied — so the chat is titled, appears in the sidebar, and the
-            // Save (star) button works even if the AI service is unavailable.
-            persist();
-          });
+            log.scrollTop = log.scrollHeight;
+            finalize();
+          },
+        }).catch(function (err) {
+          // Connection couldn't be established (auth/network/cold-start).
+          wrap.classList.remove("is-typing");
+          var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+          if (isLocal && !acc) {
+            var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
+            typing.textContent = stub;
+            convo.push({ role: "assistant", content: stub });
+          } else if (!acc) {
+            typing.textContent = (err && err.status === 503)
+              ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
+              : ((err && err.message) || "Something went wrong.");
+          }
+          finalize();
+        });
       });
 
       // ---------------------------------------------- Init
