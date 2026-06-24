@@ -43,4 +43,4 @@ services:
       - key: AI_CONVERSATIONS_FOLDER_NAME
         value: AI Conversations
       - key: ALLOWED_ORIGINS
-        value: http://localhost:8081,https://sc-permaculture.vercel.app,https://afc-estate.vercel.app
+        value: http://localhost:8081,http://localhost:3000,https://sc-permaculture.vercel.app,https://afc-estate.vercel.app,https://permacultureapp.onrender.com
