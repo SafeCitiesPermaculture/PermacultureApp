@@ -12,8 +12,18 @@ motor>=3.6.0
 # JWT verification — must match the Express backend's jsonwebtoken (HS256)
 PyJWT>=2.10.0
 
-# Gemini 2.5 Flash + File Search
-google-genai>=0.8.0
+# Azure OpenAI — DeepSeek-V4-Flash (chat) + text-embedding-3-small (embeddings).
+# The Azure "/openai/v1" surface is OpenAI-compatible, so the openai SDK is used
+# with base_url pointed at the Azure resource.
+openai>=1.55.0
+
+# Azure AI Search — vector store for the RAG corpus
+azure-search-documents>=11.5.1
+azure-core>=1.30.0
+
+# Document text extraction for chunking (PDF + DOCX corpus files)
+pypdf>=5.1.0
+python-docx>=1.1.2
 
 # Google Drive (service account, reuses GOOGLE_DRIVE_CREDENTIALS_JSON)
 google-api-python-client>=2.150.0
