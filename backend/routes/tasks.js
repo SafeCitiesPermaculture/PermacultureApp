@@ -14,6 +14,7 @@ router.get("/", taskController.getTasks);
 router.put("/complete/:id", upload.single("photo"), taskController.markCompleted);
 router.get("/completed", taskController.getCompletedTasks);
 router.put("/incomplete/:id", taskController.markIncomplete);
+router.put("/:id", taskController.updateTask);
 router.delete("/:id", taskController.deleteTask)
 
 module.exports = router;
