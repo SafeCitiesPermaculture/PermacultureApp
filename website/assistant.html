@@ -180,10 +180,31 @@
       });
 
       // ---------------------------------------------- Sidebar: list of chats
-      function loadChats() {
+      function loadChats(attempt) {
+        attempt = attempt || 0;
+        // The backend is on Render's free tier and can be cold-starting (~30-60s).
+        // While we have nothing to show, surface a loading state instead of a
+        // misleading empty list, and retry with backoff until it wakes.
+        function isEmpty() {
+          return savedList.childElementCount + recentList.childElementCount === 0;
+        }
+        if (isEmpty()) {
+          chatListEmpty.hidden = false;
+          chatListEmpty.textContent = attempt === 0 ? "Loading chats…" : "Waking server…";
+        }
         return SC.Assistant.history()
           .then(function (data) { renderChatList(data.chats || []); })
-          .catch(function () { /* leave the list as-is on error */ });
+          .catch(function () {
+            if (!isEmpty()) return; // we already have a list; keep it as-is
+            if (attempt < 5) {
+              var delay = 2000 + attempt * 2000; // 2s, 4s, 6s, 8s, 10s
+              return new Promise(function (resolve) {
+                setTimeout(function () { resolve(loadChats(attempt + 1)); }, delay);
+              });
+            }
+            chatListEmpty.hidden = false;
+            chatListEmpty.textContent = "Couldn’t load chats — refresh to retry.";
+          });
       }
 
       // Saved (pinned) chats on top, then the recent (unpinned) chats, which the
@@ -197,6 +218,7 @@
         savedGroup.hidden = saved.length === 0;
         saved.forEach(function (c) { savedList.appendChild(chatRow(c)); });
         recents.forEach(function (c) { recentList.appendChild(chatRow(c)); });
+        chatListEmpty.textContent = "No chats yet";
         chatListEmpty.hidden = saved.length + recents.length > 0;
       }
 
