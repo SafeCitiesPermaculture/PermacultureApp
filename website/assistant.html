@@ -4,8 +4,8 @@
   Replies come from the FastAPI AI service: POST /chat { message, history,
   include_tasks } -> { reply, sources }.
   Chat history is persisted per-user in the Express backend (/api/chat): the
-  sidebar lists saved + recent chats, unpinned chats auto-prune to the 10 most
-  recent, and the Save button pins a chat to the top. Requires login.
+  collapsible sidebar lists saved chats then the 10 most recent, unpinned chats
+  auto-prune to the 10 most recent, and the Save button pins a chat. Requires login.
 -->
 <html lang="en">
   <head>
@@ -18,50 +18,62 @@
     <link rel="icon" href="./assets/images/logo.png" />
     <link rel="stylesheet" href="styles.css" />
     <style>
-      /* ---- Assistant layout: collapsible sidebar + chat area ---- */
-      .assistant-shell { display: flex; align-items: stretch; gap: 0; height: 100%; min-height: 0; }
-      .assistant-shell .container.chat { max-width: none; flex: 1 1 auto; min-width: 0; }
+      /* ---- Assistant: collapsible sidebar + chat pane ---- */
+      .app-main--chat { padding: 0; gap: 0; align-items: stretch; }
 
       .chat-sidebar {
-        flex: 0 0 240px; width: 240px; display: flex; flex-direction: column;
-        background: var(--brown-light, #f3eadd); border-right: 1px solid var(--line, #d9cbb6);
-        transition: flex-basis .15s ease, width .15s ease;
+        flex: 0 0 260px; width: 260px; display: flex; flex-direction: column;
+        background: var(--cream-deep, #f3eadd);
+        border-right: 1px solid var(--line, #e3dac9);
+        transition: flex-basis .15s ease, width .15s ease; overflow: hidden;
       }
-      .chat-sidebar.is-collapsed { flex-basis: 46px; width: 46px; }
-      .chat-sidebar.is-collapsed .chat-sidebar__body,
-      .chat-sidebar.is-collapsed .chat-sidebar__title { display: none; }
+      .chat-sidebar.is-collapsed { flex-basis: 52px; width: 52px; }
 
-      .chat-sidebar__head {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: .5rem .6rem; gap: .4rem;
-      }
-      .chat-sidebar__title { font-weight: 800; }
+      .chat-sidebar__top { display: flex; align-items: center; gap: .5rem; padding: .85rem .7rem; }
       .chat-sidebar__toggle {
-        background: transparent; border: 0; cursor: pointer; font: inherit;
-        font-size: 1.3rem; line-height: 1; padding: .15rem .45rem; color: var(--ink, #2f3a2f);
+        background: transparent; border: 0; cursor: pointer; font-size: 1.25rem;
+        line-height: 1; padding: .3rem .45rem; border-radius: 8px; color: var(--ink, #2f3a2f);
       }
-      .chat-sidebar.is-collapsed .chat-sidebar__head { justify-content: center; padding: .5rem 0; }
+      .chat-sidebar__toggle:hover { background: rgba(0,0,0,.06); }
+      .chat-sidebar__brand { font-weight: 800; font-size: 1.05rem; }
+      .chat-sidebar.is-collapsed .chat-sidebar__brand,
+      .chat-sidebar.is-collapsed .chat-sidebar__body { display: none; }
 
-      .chat-sidebar__body { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-      .chat-sidebar__new { margin: 0 .6rem .5rem; }
-      .chat-sidebar__list { overflow-y: auto; flex: 1; padding: 0 .35rem .5rem; }
-      .chat-sidebar__empty { color: #777; text-align: center; margin-top: 1rem; font-size: .9rem; }
-
-      .chat-row {
-        display: flex; align-items: center; border-radius: 8px; margin-bottom: 2px;
+      .chat-sidebar__body { flex: 1; overflow-y: auto; padding: .25rem .5rem 1rem; }
+      .chat-sidebar__group { margin-bottom: 1rem; }
+      .chat-sidebar__label {
+        font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+        color: var(--muted, #8a8472); margin: .5rem .55rem .35rem;
       }
+      .chat-sidebar__empty { color: var(--muted, #8a8472); font-size: .85rem; margin: .35rem .55rem; }
+
+      .chat-row { display: flex; align-items: center; border-radius: 10px; }
+      .chat-row:hover { background: rgba(0,0,0,.05); }
       .chat-row.is-active { background: var(--leaf-soft, #cbd2a4); }
       .chat-row__open {
-        flex: 1; min-width: 0; background: transparent; border: 0; cursor: pointer;
-        font: inherit; text-align: left; padding: .5rem .5rem; color: var(--ink, #2f3a2f);
+        flex: 1; min-width: 0; background: transparent; border: 0; cursor: pointer; font: inherit;
+        text-align: left; padding: .5rem .55rem; color: var(--ink, #2f3a2f);
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
       .chat-row__del {
-        background: transparent; border: 0; cursor: pointer; color: var(--danger, #db0f0f);
-        font-weight: 700; padding: .35rem .5rem; line-height: 1;
+        background: transparent; border: 0; cursor: pointer; color: var(--muted, #8a8472);
+        font-size: .9rem; padding: .4rem .5rem; opacity: 0; line-height: 1;
       }
-      .page-head__actions { display: flex; align-items: center; gap: .75rem; }
+      .chat-row:hover .chat-row__del { opacity: 1; }
+      .chat-row__del:hover { color: var(--danger, #db0f0f); }
+
+      /* Chat pane (replaces the old .container.chat wrapper) */
+      .chat-pane {
+        flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+        min-height: calc(100vh - var(--header-h, 64px) - 7rem);
+        padding: var(--space-5, 1.5rem) var(--space-5, 1.75rem) var(--space-6, 2rem);
+      }
+      .page-head__actions { display: flex; align-items: center; gap: .9rem; }
       .btn--saved { background: var(--brown-medium, #ac8155); color: #fff; }
+
+      @media (max-width: 640px) {
+        .chat-sidebar { flex-basis: 200px; width: 200px; }
+      }
     </style>
   </head>
 
@@ -69,48 +81,51 @@
     <a class="skip-link" href="#main">Skip to main content</a>
 
     <main id="main" class="app-main app-main--chat">
-      <div class="assistant-shell">
-        <!-- ---------------------------------------------- Chat history sidebar -->
-        <aside class="chat-sidebar" id="sidebar">
-          <div class="chat-sidebar__head">
-            <span class="chat-sidebar__title">Chats</span>
-            <button class="chat-sidebar__toggle" id="sidebarToggle" type="button" aria-label="Collapse chat history">‹</button>
-          </div>
-          <div class="chat-sidebar__body">
-            <button class="btn btn--leaf btn--sm chat-sidebar__new" id="newChatBtn" type="button">＋ New chat</button>
-            <div class="chat-sidebar__list" id="chatList">
-              <p class="chat-sidebar__empty" id="chatListEmpty">No chats yet</p>
-            </div>
-          </div>
-        </aside>
-
-        <!-- ---------------------------------------------- Chat area -->
-        <div class="container chat">
-          <header class="page-head">
-            <div>
-              <p class="eyebrow">Ask anything</p>
-              <h1 class="page-title">Assistant</h1>
-            </div>
-            <div class="page-head__actions">
-              <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>Save</button>
-              <!-- When on, the model is given the user's open tasks as context. -->
-              <label class="switch">
-                <input type="checkbox" id="taskToggle" />
-                <span>Include my tasks</span>
-              </label>
-            </div>
-          </header>
-
-          <!-- Conversation transcript. aria-live so new replies are announced. -->
-          <section class="chat__log" id="log" aria-live="polite" aria-label="Conversation"></section>
-
-          <!-- Composer -->
-          <form class="chat__composer" id="composer">
-            <label class="sr-only" for="message">Your message</label>
-            <textarea id="message" rows="1" placeholder="Ask about documents, tasks, permaculture…" required></textarea>
-            <button class="btn btn--leaf" type="submit" id="sendBtn" aria-label="Send message">Send</button>
-          </form>
+      <!-- ---------------------------------------------- Chat history sidebar -->
+      <aside class="chat-sidebar" id="sidebar">
+        <div class="chat-sidebar__top">
+          <button class="chat-sidebar__toggle" id="sidebarToggle" type="button" aria-label="Collapse sidebar">☰</button>
+          <span class="chat-sidebar__brand">Chats</span>
         </div>
+        <div class="chat-sidebar__body">
+          <div class="chat-sidebar__group" id="savedGroup" hidden>
+            <p class="chat-sidebar__label">Saved</p>
+            <div id="savedList"></div>
+          </div>
+          <div class="chat-sidebar__group">
+            <p class="chat-sidebar__label">Recents</p>
+            <div id="recentList"></div>
+            <p class="chat-sidebar__empty" id="chatListEmpty">No chats yet</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ---------------------------------------------- Chat pane -->
+      <div class="chat-pane">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Ask anything</p>
+            <h1 class="page-title">Assistant</h1>
+          </div>
+          <div class="page-head__actions">
+            <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>Save</button>
+            <!-- When on, the model is given the user's open tasks as context. -->
+            <label class="switch">
+              <input type="checkbox" id="taskToggle" />
+              <span>Include my tasks</span>
+            </label>
+          </div>
+        </header>
+
+        <!-- Conversation transcript. aria-live so new replies are announced. -->
+        <section class="chat__log" id="log" aria-live="polite" aria-label="Conversation"></section>
+
+        <!-- Composer -->
+        <form class="chat__composer" id="composer">
+          <label class="sr-only" for="message">Your message</label>
+          <textarea id="message" rows="1" placeholder="Ask about documents, tasks, permaculture…" required></textarea>
+          <button class="btn btn--leaf" type="submit" id="sendBtn" aria-label="Send message">Send</button>
+        </form>
       </div>
     </main>
 
@@ -124,8 +139,9 @@
       var taskToggle = document.getElementById("taskToggle");
       var sidebar = document.getElementById("sidebar");
       var sidebarToggle = document.getElementById("sidebarToggle");
-      var newChatBtn = document.getElementById("newChatBtn");
-      var chatList = document.getElementById("chatList");
+      var savedGroup = document.getElementById("savedGroup");
+      var savedList = document.getElementById("savedList");
+      var recentList = document.getElementById("recentList");
       var chatListEmpty = document.getElementById("chatListEmpty");
       var saveBtn = document.getElementById("saveBtn");
 
@@ -139,8 +155,7 @@
       // ---------------------------------------------- Sidebar: collapse/expand
       sidebarToggle.addEventListener("click", function () {
         var collapsed = sidebar.classList.toggle("is-collapsed");
-        sidebarToggle.textContent = collapsed ? "☰" : "‹";
-        sidebarToggle.setAttribute("aria-label", collapsed ? "Open chat history" : "Collapse chat history");
+        sidebarToggle.setAttribute("aria-label", collapsed ? "Open sidebar" : "Collapse sidebar");
       });
 
       // ---------------------------------------------- Sidebar: list of chats
@@ -150,41 +165,44 @@
           .catch(function () { /* leave the list as-is on error */ });
       }
 
+      // Saved (pinned) chats on top, then the recent (unpinned) chats, which the
+      // backend already returns newest-first and capped at 10.
       function renderChatList(chats) {
-        chatList.innerHTML = "";
-        if (!chats.length) {
-          chatList.appendChild(chatListEmpty);
-          chatListEmpty.hidden = false;
-          return;
-        }
-        chats.forEach(function (chat) {
-          var row = document.createElement("div");
-          row.className = "chat-row" + (chat._id === currentChatId ? " is-active" : "");
+        var saved = chats.filter(function (c) { return c.isPinned; });
+        var recents = chats.filter(function (c) { return !c.isPinned; });
 
-          var open = document.createElement("button");
-          open.type = "button";
-          open.className = "chat-row__open";
-          open.textContent = (chat.isPinned ? "★ " : "") + (chat.title || "Chat");
-          open.title = chat.title || "Chat";
-          open.addEventListener("click", function () { openChat(chat._id); });
-
-          var del = document.createElement("button");
-          del.type = "button";
-          del.className = "chat-row__del";
-          del.textContent = "✕";
-          del.setAttribute("aria-label", "Delete chat");
-          del.addEventListener("click", function (e) {
-            e.stopPropagation();
-            deleteChat(chat._id);
-          });
-
-          row.appendChild(open);
-          row.appendChild(del);
-          chatList.appendChild(row);
-        });
+        savedList.innerHTML = "";
+        recentList.innerHTML = "";
+        savedGroup.hidden = saved.length === 0;
+        saved.forEach(function (c) { savedList.appendChild(chatRow(c)); });
+        recents.forEach(function (c) { recentList.appendChild(chatRow(c)); });
+        chatListEmpty.hidden = saved.length + recents.length > 0;
       }
 
-      // ---------------------------------------------- Open / new / delete
+      function chatRow(chat) {
+        var row = document.createElement("div");
+        row.className = "chat-row" + (chat._id === currentChatId ? " is-active" : "");
+
+        var open = document.createElement("button");
+        open.type = "button";
+        open.className = "chat-row__open";
+        open.textContent = chat.title || "Chat";
+        open.title = chat.title || "Chat";
+        open.addEventListener("click", function () { openChat(chat._id); });
+
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "chat-row__del";
+        del.textContent = "✕";
+        del.setAttribute("aria-label", "Delete chat");
+        del.addEventListener("click", function (e) { e.stopPropagation(); deleteChat(chat._id); });
+
+        row.appendChild(open);
+        row.appendChild(del);
+        return row;
+      }
+
+      // ---------------------------------------------- Open / reset / delete
       function openChat(id) {
         SC.Assistant.get(id).then(function (data) {
           var chat = data.chat;
@@ -201,21 +219,19 @@
         });
       }
 
-      function startNewChat() {
+      function resetToNewChat() {
         currentChatId = null;
         currentPinned = false;
         history = [];
         log.innerHTML = "";
         addBubble("assistant", GREETING);
         updateSaveBtn();
-        loadChats();
       }
-      newChatBtn.addEventListener("click", startNewChat);
 
       function deleteChat(id) {
         SC.Assistant.remove(id).then(function () {
-          if (id === currentChatId) startNewChat();
-          else loadChats();
+          if (id === currentChatId) resetToNewChat();
+          loadChats();
         });
       }
 
@@ -254,9 +270,7 @@
       // by escaping everything first, then re-introducing a few tags.
       function renderMarkdown(text) {
         var safe = SC.escapeHtml(text);
-        // **bold**
         safe = safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-        // bullet lines starting with "- " or "* "
         var lines = safe.split("\n");
         var html = "";
         var inList = false;
@@ -282,7 +296,6 @@
         body.innerHTML = role === "assistant" ? renderMarkdown(text) : "<p>" + SC.escapeHtml(text) + "</p>";
         wrap.appendChild(body);
 
-        // Render any cited Drive documents as links.
         if (sources && sources.length) {
           var src = document.createElement("div");
           src.className = "bubble__sources";
@@ -313,7 +326,6 @@
         input.style.height = "auto";
         input.style.height = Math.min(input.scrollHeight, 160) + "px";
       });
-      // Enter sends; Shift+Enter makes a newline.
       input.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
@@ -333,7 +345,6 @@
         input.style.height = "auto";
         sendBtn.disabled = true;
 
-        // Typing indicator while we wait for the model.
         var typing = addBubble("assistant", "…");
         typing.parentElement.classList.add("is-typing");
 
@@ -342,15 +353,14 @@
             typing.parentElement.remove();
             addBubble("assistant", data.reply || "(no reply)", data.sources);
             history.push({ role: "assistant", content: data.reply || "" });
-            persist(); // save the conversation after each exchange
+            persist();
           })
           .catch(function (err) {
             typing.parentElement.remove();
             // Local dev convenience: the FastAPI AI service usually isn't running
             // on a dev machine, so on localhost we insert a stub reply and still
             // persist the chat. This lets the history/sidebar/save features be
-            // tested end-to-end locally. It never runs in production, where the
-            // hostname is not localhost and the AI service answers normally.
+            // tested end-to-end locally. It never runs in production.
             var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
             if (isLocal) {
               var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
@@ -371,7 +381,7 @@
       });
 
       // ---------------------------------------------- Init
-      addBubble("assistant", GREETING); // friendly opening message
+      addBubble("assistant", GREETING);
       loadChats();
     </script>
   </body>
