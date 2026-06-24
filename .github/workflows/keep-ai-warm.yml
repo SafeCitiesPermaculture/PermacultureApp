@@ -9,13 +9,21 @@ name: Keep AI service warm
 # The backend serves the assistant's chat-history sidebar, so if it sleeps the
 # chat list shows empty until it cold-starts.
 #
-# Schedule is UTC. Safe Cities is in Cape Town (SAST = UTC+2), so 04:00-20:59
-# UTC ≈ 06:00-22:59 local. To keep it warm 24/7 instead, change the cron to
-# "*/10 * * * *" (note: always-on uses more of the free-tier instance hours).
+# Budget math (Render free tier = 750 instance-hours/month; a service only
+# burns hours while awake). Keeping a service warm N hours/day ≈ 30.4*N hrs/mo.
+# We keep BOTH warm, sized for the worst case where 750 is POOLED across the
+# account: combined must stay <= 750, i.e. <= ~12 h/day each. The window below
+# is 11h (hours 6-16 UTC), so each service ≈ 334 hrs/mo, ≈ 668 combined —
+# leaving headroom for real traffic.
+#
+# Schedule is UTC. Safe Cities is in Cape Town (SAST = UTC+2), so 06:00-16:59
+# UTC = 08:00-18:59 local (working hours). If your Render usage page shows the
+# 750 hrs is PER-SERVICE (not pooled), you can safely widen this — up to
+# "*/10 * * * *" for 24/7 (~730 hrs each, still under 750).
 
 on:
   schedule:
-    - cron: "*/10 4-20 * * *"
+    - cron: "*/10 6-16 * * *"
   workflow_dispatch: {}
 
 jobs:
