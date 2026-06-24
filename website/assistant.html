@@ -148,7 +148,9 @@
       var newChatBtn = document.getElementById("newChatBtn");
 
       // Running history in the shape the API expects: [{role, content}].
-      var history = [];
+      // NB: named `convo`, not `history` — the latter collides with the
+      // read-only global `window.history`, so assignments silently no-op.
+      var convo = [];
       var currentChatId = null;   // null until the chat is first persisted
       var currentPinned = false;
 
@@ -210,12 +212,12 @@
           var chat = data.chat;
           currentChatId = chat._id;
           currentPinned = !!chat.isPinned;
-          history = (chat.messages || []).map(function (m) {
+          convo = (chat.messages || []).map(function (m) {
             return { role: m.role, content: m.content };
           });
           log.innerHTML = "";
-          if (!history.length) addBubble("assistant", GREETING);
-          history.forEach(function (m) { addBubble(m.role, m.content); });
+          if (!convo.length) addBubble("assistant", GREETING);
+          convo.forEach(function (m) { addBubble(m.role, m.content); });
           updateSaveBtn();
           loadChats(); // refresh active highlight
         });
@@ -224,7 +226,7 @@
       function resetToNewChat() {
         currentChatId = null;
         currentPinned = false;
-        history = [];
+        convo = [];
         log.innerHTML = "";
         addBubble("assistant", GREETING);
         updateSaveBtn();
@@ -243,8 +245,8 @@
 
       // Persist the current conversation (create or update), then refresh list.
       function persist() {
-        if (!history.length) return Promise.resolve();
-        return SC.Assistant.save({ chatId: currentChatId, messages: history })
+        if (!convo.length) return Promise.resolve();
+        return SC.Assistant.save({ chatId: currentChatId, messages: convo })
           .then(function (data) {
             currentChatId = data.chat._id;
             currentPinned = !!data.chat.isPinned;
@@ -350,7 +352,7 @@
         if (!text) return;
 
         addBubble("user", text);
-        history.push({ role: "user", content: text });
+        convo.push({ role: "user", content: text });
         input.value = "";
         input.style.height = "auto";
         sendBtn.disabled = true;
@@ -358,11 +360,11 @@
         var typing = addBubble("assistant", "…");
         typing.parentElement.classList.add("is-typing");
 
-        SC.Assistant.chat(text, history.slice(0, -1), taskToggle.checked)
+        SC.Assistant.chat(text, convo.slice(0, -1), taskToggle.checked)
           .then(function (data) {
             typing.parentElement.remove();
             addBubble("assistant", data.reply || "(no reply)", data.sources);
-            history.push({ role: "assistant", content: data.reply || "" });
+            convo.push({ role: "assistant", content: data.reply || "" });
           })
           .catch(function (err) {
             typing.parentElement.remove();
@@ -373,7 +375,7 @@
             if (isLocal) {
               var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
               addBubble("assistant", stub);
-              history.push({ role: "assistant", content: stub });
+              convo.push({ role: "assistant", content: stub });
             } else {
               var note = err.status === 503
                 ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
