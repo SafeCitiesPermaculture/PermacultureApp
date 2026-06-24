@@ -346,6 +346,19 @@
           })
           .catch(function (err) {
             typing.parentElement.remove();
+            // Local dev convenience: the FastAPI AI service usually isn't running
+            // on a dev machine, so on localhost we insert a stub reply and still
+            // persist the chat. This lets the history/sidebar/save features be
+            // tested end-to-end locally. It never runs in production, where the
+            // hostname is not localhost and the AI service answers normally.
+            var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+            if (isLocal) {
+              var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
+              addBubble("assistant", stub);
+              history.push({ role: "assistant", content: stub });
+              persist();
+              return;
+            }
             var note = err.status === 503
               ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
               : (err.message || "Something went wrong.");
