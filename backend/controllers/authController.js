@@ -61,18 +61,27 @@ const handleSignup = async (req, res) => {
         const user = User({ username, email, password });
         await user.save();
 
-        await transporter.sendMail({
-            from: `"AFC Estate App" <${EMAIL_USERNAME}>`,
-            to: EMAIL_USERNAME, // safecitiespermaculture@gmail.com
-            subject: "ALERT: New user sign up",
-            html: `<p>A new user has signed up for the AFC Estate app.</p>
+        // Notify admins of the new signup. A failed email must not fail the
+        // signup itself, since the account has already been created.
+        try {
+            await transporter.sendMail({
+                from: `"AFC Estate App" <${EMAIL_USERNAME}>`,
+                to: EMAIL_USERNAME, // safecitiespermaculture@gmail.com
+                subject: "ALERT: New user sign up",
+                html: `<p>A new user has signed up for the AFC Estate app.</p>
                 <p>Sign in with an admin account to approve or deny their request to join</p>
                 <strong>Account Details</strong>
                 <ul>
                     <li>Username: ${username}</li>
                     <li>Email: ${email}</li>
                 </ul>`,
-        });
+            });
+        } catch (emailErr) {
+            console.error(
+                "Signup succeeded but notification email failed:",
+                emailErr
+            );
+        }
 
         res.status(201).json({ message: "User created" });
     } catch (err) {
