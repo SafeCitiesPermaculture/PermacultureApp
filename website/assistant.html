@@ -384,11 +384,13 @@
         SC.Assistant.chatStream(text, convo.slice(0, -1), taskToggle.checked, {
           onSources: function (s) { streamSources = s; },
           onDelta: function (t) {
-            if (!started) { started = true; wrap.classList.remove("is-typing"); typing.textContent = ""; }
+            if (!started) { started = true; wrap.classList.remove("is-typing"); typing.innerHTML = ""; }
             acc += t;
-            // Plain text while streaming (the typewriter effect); markdown is
-            // applied once at the end to avoid mid-stream formatting artifacts.
-            typing.textContent = acc;
+            // Render the light markdown live as tokens arrive so formatting
+            // (bold, bullets) appears during generation. Incomplete markers
+            // (e.g. an unclosed **) simply show as plain text until their
+            // closing marker streams in, then snap into formatting.
+            typing.innerHTML = renderMarkdown(acc);
             log.scrollTop = log.scrollHeight;
           },
           onError: function (msg) {
