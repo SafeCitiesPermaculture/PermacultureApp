@@ -70,6 +70,27 @@
     return !!(t && t.accessToken);
   }
 
+  /* ------------------------------------------------ Logout on fresh launch
+     Start logged out whenever the site is opened fresh (a newly opened tab or
+     window), but keep the session across page navigations and refreshes within
+     that tab. A sessionStorage marker survives refreshes/navigations but is
+     cleared when the tab/window closes — exactly the line between "refresh" and
+     "fresh launch". Runs immediately (before any page auth check) since this
+     script loads first.
+     Note: sessionStorage is per-tab, so opening the site in a second tab counts
+     as a fresh launch and will clear the shared session. */
+  (function startLoggedOutOnFreshLaunch() {
+    try {
+      var MARKER = "sc_session_active";
+      if (!sessionStorage.getItem(MARKER)) {
+        clearTokens();
+        sessionStorage.setItem(MARKER, "1");
+      }
+    } catch (e) {
+      /* sessionStorage unavailable — leave the session as-is */
+    }
+  })();
+
   // Cache the logged-in user so pages don't re-fetch it constantly.
   function getCachedUser() {
     try {
