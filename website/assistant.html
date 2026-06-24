@@ -109,7 +109,7 @@
           </div>
           <div class="page-head__actions">
             <button class="btn btn--leaf btn--sm" id="newChatBtn" type="button">+ New chat</button>
-            <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>Save</button>
+            <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>☆ Save</button>
             <!-- When on, the model is given the user's open tasks as context. -->
             <label class="switch">
               <input type="checkbox" id="taskToggle" />
@@ -257,7 +257,11 @@
       // ---------------------------------------------- Save (pin) button
       function updateSaveBtn() {
         saveBtn.disabled = !currentChatId;
-        saveBtn.textContent = currentPinned ? "★ Saved" : "Save";
+        // Star metaphor: ☆ Save -> ★ Saved. Saved (starred) chats pin to the top.
+        saveBtn.textContent = currentPinned ? "★ Saved" : "☆ Save";
+        saveBtn.title = currentPinned
+          ? "Saved — pinned to the top of your chats"
+          : "Save this chat (pins it to the top)";
         saveBtn.classList.toggle("btn--saved", currentPinned);
         saveBtn.classList.toggle("btn--ghost", !currentPinned);
       }
@@ -359,30 +363,31 @@
             typing.parentElement.remove();
             addBubble("assistant", data.reply || "(no reply)", data.sources);
             history.push({ role: "assistant", content: data.reply || "" });
-            persist();
           })
           .catch(function (err) {
             typing.parentElement.remove();
             // Local dev convenience: the FastAPI AI service usually isn't running
-            // on a dev machine, so on localhost we insert a stub reply and still
-            // persist the chat. This lets the history/sidebar/save features be
-            // tested end-to-end locally. It never runs in production.
+            // on a dev machine, so on localhost we insert a stub reply (added to
+            // history). It never runs in production.
             var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
             if (isLocal) {
               var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
               addBubble("assistant", stub);
               history.push({ role: "assistant", content: stub });
-              persist();
-              return;
+            } else {
+              var note = err.status === 503
+                ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
+                : (err.message || "Something went wrong.");
+              addBubble("assistant", note);
             }
-            var note = err.status === 503
-              ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
-              : (err.message || "Something went wrong.");
-            addBubble("assistant", note);
           })
           .then(function () {
             sendBtn.disabled = false;
             input.focus();
+            // Always save the conversation — independent of whether the AI
+            // replied — so the chat is titled, appears in the sidebar, and the
+            // Save (star) button works even if the AI service is unavailable.
+            persist();
           });
       });
 
