@@ -70,6 +70,27 @@
     return !!(t && t.accessToken);
   }
 
+  /* ------------------------------------------------ Logout on fresh launch
+     Start logged out whenever the site is opened fresh (a newly opened tab or
+     window), but keep the session across page navigations and refreshes within
+     that tab. A sessionStorage marker survives refreshes/navigations but is
+     cleared when the tab/window closes — exactly the line between "refresh" and
+     "fresh launch". Runs immediately (before any page auth check) since this
+     script loads first.
+     Note: sessionStorage is per-tab, so opening the site in a second tab counts
+     as a fresh launch and will clear the shared session. */
+  (function startLoggedOutOnFreshLaunch() {
+    try {
+      var MARKER = "sc_session_active";
+      if (!sessionStorage.getItem(MARKER)) {
+        clearTokens();
+        sessionStorage.setItem(MARKER, "1");
+      }
+    } catch (e) {
+      /* sessionStorage unavailable — leave the session as-is */
+    }
+  })();
+
   // Cache the logged-in user so pages don't re-fetch it constantly.
   function getCachedUser() {
     try {
@@ -332,6 +353,18 @@
         body: { message: message, history: history || [], include_tasks: !!includeTasks },
       });
     },
+    // --- Persisted chat history (Express backend, separate from the AI call) ---
+    // Sidebar list: saved chats first, then the 10 most recent.
+    history: function () { return request("api", "/chat", {}); },
+    // Full chat (with messages) by id.
+    get: function (id) { return request("api", "/chat/" + id, {}); },
+    // Create or update a chat. body: { chatId?, messages, title? } -> { chat }.
+    save: function (body) { return request("api", "/chat/save", { method: "POST", body: body }); },
+    // Save/unsave (pin) a chat so it sticks to the top and is never auto-deleted.
+    pin: function (id, isPinned) {
+      return request("api", "/chat/" + id + "/pin", { method: "PUT", body: { isPinned: isPinned } });
+    },
+    remove: function (id) { return request("api", "/chat/" + id, { method: "DELETE" }); },
   };
 
   /* ------------------------------------------------------------- Utilities */

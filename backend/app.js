@@ -15,6 +15,7 @@ const Message = require("./models/Message");
 const Conversation = require("./models/Conversation");
 const taskRoutes = require("./routes/tasks");
 const farmRoutes = require("./routes/farms");
+const chatRoutes = require("./routes/chat");
 
 const {
     userAuthMiddleware,
@@ -109,6 +110,7 @@ app.use("/api/files", filesRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/farms", farmRoutes);
+app.use("/api/chat", chatRoutes);
 
 //admin routes
 app.use(adminAuthMiddleware);
