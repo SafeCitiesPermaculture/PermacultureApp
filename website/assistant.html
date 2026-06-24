@@ -108,6 +108,7 @@
             <h1 class="page-title">Assistant</h1>
           </div>
           <div class="page-head__actions">
+            <button class="btn btn--leaf btn--sm" id="newChatBtn" type="button">+ New chat</button>
             <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>Save</button>
             <!-- When on, the model is given the user's open tasks as context. -->
             <label class="switch">
@@ -144,6 +145,7 @@
       var recentList = document.getElementById("recentList");
       var chatListEmpty = document.getElementById("chatListEmpty");
       var saveBtn = document.getElementById("saveBtn");
+      var newChatBtn = document.getElementById("newChatBtn");
 
       // Running history in the shape the API expects: [{role, content}].
       var history = [];
@@ -227,6 +229,10 @@
         addBubble("assistant", GREETING);
         updateSaveBtn();
       }
+      newChatBtn.addEventListener("click", function () {
+        resetToNewChat();
+        loadChats(); // clear the active highlight in the sidebar
+      });
 
       function deleteChat(id) {
         SC.Assistant.remove(id).then(function () {
