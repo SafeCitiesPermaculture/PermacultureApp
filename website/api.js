@@ -257,6 +257,7 @@
     open: function () { return request("api", "/tasks/", {}); },
     completed: function () { return request("api", "/tasks/completed", {}); },
     create: function (body) { return request("api", "/tasks/", { method: "POST", body: body }); },
+    update: function (id, body) { return request("api", "/tasks/" + id, { method: "PUT", body: body }); },
     complete: function (id, form) { return request("api", "/tasks/complete/" + id, { method: "PUT", form: form }); },
     reopen: function (id) { return request("api", "/tasks/incomplete/" + id, { method: "PUT" }); },
     remove: function (id) { return request("api", "/tasks/" + id, { method: "DELETE" }); },

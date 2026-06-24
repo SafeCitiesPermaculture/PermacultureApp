@@ -53,7 +53,7 @@
     <!-- ===================== New-task dialog (native <dialog>) ===================== -->
     <dialog id="taskDialog" class="dialog">
       <form method="dialog" class="dialog__form" id="taskForm">
-        <h2 class="dialog__title">New task</h2>
+        <h2 class="dialog__title" id="taskDialogTitle">New task</h2>
         <div class="field">
           <label for="taskName">Task name</label>
           <input id="taskName" name="name" type="text" required />
@@ -164,7 +164,11 @@
         if (view === "done") {
           actions.appendChild(button("Reopen", "btn--ghost btn--sm", function () { reopen(t); }));
         } else {
-          // Admins may complete/delete any task; the backend enforces this.
+          // Every open task shown here is editable by the viewer: "open" shows
+          // only your own tasks, and the admin-only "all" view shows everyone's.
+          // Admins may edit/complete/delete any task; users only their own —
+          // the backend enforces this.
+          actions.appendChild(button("Edit", "btn--ghost btn--sm", function () { openEdit(t); }));
           actions.appendChild(button("Complete", "btn--leaf btn--sm", function () { openDone(t); }));
           actions.appendChild(button("Delete", "btn--ghost btn--sm", function () { removeTask(t); }));
         }
@@ -225,28 +229,61 @@
       var taskDialog = document.getElementById("taskDialog");
       var taskForm = document.getElementById("taskForm");
       var taskMsg = document.getElementById("taskFormMsg");
+      var taskDialogTitle = document.getElementById("taskDialogTitle");
+      var taskSaveBtn = document.getElementById("taskSave");
+      var editingTask = null; // null = creating a new task
+
+      // The value a <input type="datetime-local"> expects: YYYY-MM-DDTHH:mm
+      // in local time.
+      function toLocalInputValue(value) {
+        var d = new Date(value);
+        if (isNaN(d)) return "";
+        var pad = function (n) { return String(n).padStart(2, "0"); };
+        return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+          "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+      }
+
       document.getElementById("addTaskBtn").addEventListener("click", function () {
+        editingTask = null;
         taskMsg.textContent = "";
         taskForm.reset();
+        taskDialogTitle.textContent = "New task";
+        taskSaveBtn.textContent = "Add task";
         taskDialog.showModal();
       });
+
+      // Open the dialog pre-filled to edit an existing task.
+      function openEdit(t) {
+        editingTask = t;
+        taskMsg.textContent = "";
+        document.getElementById("taskName").value = t.name || "";
+        document.getElementById("taskDue").value = toLocalInputValue(t.dueDateTime);
+        taskDialogTitle.textContent = "Edit task";
+        taskSaveBtn.textContent = "Save changes";
+        taskDialog.showModal();
+      }
+
       document.getElementById("taskCancel").addEventListener("click", function () { taskDialog.close(); });
       taskForm.addEventListener("submit", function (e) {
         e.preventDefault();
         var name = document.getElementById("taskName").value.trim();
         var due = document.getElementById("taskDue").value;
         if (!name || !due) { taskMsg.textContent = "Please fill in both fields."; return; }
-        var saveBtn = document.getElementById("taskSave");
-        saveBtn.disabled = true;
+        taskSaveBtn.disabled = true;
         // datetime-local has no timezone; convert to a proper ISO string.
-        SC.Tasks.create({ name: name, dueDateTime: new Date(due).toISOString() })
+        var body = { name: name, dueDateTime: new Date(due).toISOString() };
+        var wasEditing = !!editingTask;
+        var done = wasEditing
+          ? SC.Tasks.update(editingTask._id, body)
+          : SC.Tasks.create(body);
+        done
           .then(function () {
             taskDialog.close();
-            SC.toast("Task added", "success");
-            if (view !== "open") setView("open"); else load();
+            SC.toast(wasEditing ? "Task updated" : "Task added", "success");
+            if (!wasEditing && view !== "open") setView("open"); else load();
           })
-          .catch(function (err) { taskMsg.textContent = err.message || "Could not add task."; })
-          .then(function () { saveBtn.disabled = false; });
+          .catch(function (err) { taskMsg.textContent = err.message || "Could not save task."; })
+          .then(function () { taskSaveBtn.disabled = false; });
       });
 
       // --------------------------------------------------------- Complete dialog
