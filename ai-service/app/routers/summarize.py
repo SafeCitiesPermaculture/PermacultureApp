@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth import get_current_user
 from app.schemas import SummarizeRequest, SummarizeResponse
-from app.services import gemini
+from app.services import llm
 
 router = APIRouter(tags=["summarize"])
 
@@ -12,8 +12,8 @@ router = APIRouter(tags=["summarize"])
 @router.post("/summarize", response_model=SummarizeResponse)
 async def summarize(body: SummarizeRequest, user: dict = Depends(get_current_user)):
     try:
-        summary = gemini.summarize(body.transcript, title=body.title)
-    except (gemini.GeminiNotConfiguredError, gemini.GeminiUnavailableError) as exc:
+        summary = llm.summarize(body.transcript, title=body.title)
+    except (llm.LLMNotConfiguredError, llm.LLMUnavailableError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )

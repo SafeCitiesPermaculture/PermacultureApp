@@ -9,7 +9,6 @@ const prodSocketUrl = "https://permacultureapp.onrender.com";
 
 // FastAPI AI assistant service (separate backend from Express).
 const devAiUrl = "http://localhost:8000";
-// TODO: set to the deployed Render AI service URL once it's live.
 const prodAiUrl = "https://afc-estate-ai.onrender.com";
 
 const BACKEND_URL = __DEV__ ? devUrl : prodUrl;

@@ -5,7 +5,7 @@ backend uses (fileuploader@safecitiespermaculture.iam.gserviceaccount.com),
 which already owns/has access to the RAG corpus folders.
 
 Responsibilities:
-  - read the corpus (used later when indexing into Gemini File Search)
+  - read the corpus (downloaded + chunked + indexed into Azure AI Search)
   - write conversations/summaries back into an "AI Conversations" subfolder
 """
 
@@ -22,7 +22,7 @@ _SCOPES = ["https://www.googleapis.com/auth/drive"]
 _FOLDER_MIME = "application/vnd.google-apps.folder"
 
 # Google-native docs must be exported, not downloaded directly. Map them to a
-# File Search-friendly format.
+# plain-text format we can extract and chunk.
 _GOOGLE_EXPORT = {
     "application/vnd.google-apps.document": ("text/plain", ".txt"),
     "application/vnd.google-apps.spreadsheet": ("text/csv", ".csv"),

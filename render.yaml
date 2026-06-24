@@ -20,10 +20,26 @@ services:
         sync: false
       - key: GOOGLE_DRIVE_CREDENTIALS_JSON
         sync: false
-      - key: GEMINI_API_KEY
+      - key: AZURE_OPENAI_ENDPOINT
         sync: false
-      - key: GEMINI_MODEL
-        value: gemini-2.5-flash
+      - key: AZURE_OPENAI_KEY
+        sync: false
+      - key: AZURE_OPENAI_CHAT_DEPLOYMENT
+        value: DeepSeek-V4-Flash
+      - key: AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+        value: text-embedding-3-small
+      # Set these only if the embedding model lives on a separate Azure resource
+      # than the chat model; otherwise leave unset to reuse the chat endpoint.
+      - key: AZURE_OPENAI_EMBEDDING_ENDPOINT
+        sync: false
+      - key: AZURE_OPENAI_EMBEDDING_KEY
+        sync: false
+      - key: AZURE_SEARCH_ENDPOINT
+        sync: false
+      - key: AZURE_SEARCH_KEY
+        sync: false
+      - key: AZURE_SEARCH_INDEX
+        value: afc-estate-corpus
       - key: AI_CONVERSATIONS_FOLDER_NAME
         value: AI Conversations
       - key: ALLOWED_ORIGINS

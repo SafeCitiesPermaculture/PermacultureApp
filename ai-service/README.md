@@ -4,7 +4,8 @@ Separate Python/FastAPI service that powers the AI Assistant tab. It runs
 alongside the existing Express backend and React Native app, **reusing** their
 auth, database, and Google Drive service account rather than duplicating them.
 
-- **LLM:** Gemini 2.5 Flash (RAG over Google Drive via File Search)
+- **LLM:** Azure OpenAI — DeepSeek-V4-Flash for chat, text-embedding-3-small
+  for embeddings (RAG over Google Drive via Azure AI Search)
 - **Auth:** verifies the access-token JWTs the Express backend already issues
 - **DB:** reads the same MongoDB Atlas cluster (`users`, `tasks`)
 - **Drive:** same service account as the backend; write-back to an
@@ -27,9 +28,22 @@ Express).
 All Bearer endpoints accept the **same access token** the app stores after
 login (`Authorization: Bearer <accessToken>`).
 
-> **Gemini is not provisioned yet.** Until `GEMINI_API_KEY` is set, `/chat`,
+> Until the `AZURE_OPENAI_*` / `AZURE_SEARCH_*` variables are set, `/chat`,
 > `/summarize`, and `/report` return **503**. `/health` and
-> `/save-to-knowledge-base` work without it.
+> `/save-to-knowledge-base` work without them.
+
+## RAG indexing
+
+On startup (when the Azure variables are set), the service pulls the Drive
+corpus, extracts text (PDF/DOCX/Google-native exports/plain text), chunks it,
+embeds the chunks with **text-embedding-3-small**, and indexes the vectors into
+**Azure AI Search** — in a background task so boot/health aren't blocked. The
+index is created automatically if it doesn't exist, and indexing is idempotent
+(sources already present are skipped).
+
+`/chat` embeds the question, vector-searches Azure AI Search for the most
+relevant chunks, and passes them to **DeepSeek-V4-Flash** to answer with source
+citations. Admins can re-index on demand via `POST /corpus/reindex`.
 
 ## Local development
 
@@ -62,17 +76,15 @@ app/
   schemas.py       request/response models
   services/
     drive.py       Drive read + write-back via the service account
-    gemini.py      Gemini 2.5 Flash; raises until GEMINI_API_KEY is set
+    llm.py         Azure OpenAI chat (DeepSeek-V4-Flash) + embeddings
+    search.py      Azure AI Search vector store + corpus indexing
   routers/
-    chat.py, summarize.py, report.py, knowledge_base.py
+    chat.py, summarize.py, report.py, knowledge_base.py, admin.py
 ```
 
 ## Not yet wired (next steps)
 
-- **Gemini File Search** indexing of the corpus folders (Animals, Composting
-  and Worms, Plants, Permaculture Profile2025.docx) and grounding for `/chat`
-  — marked with `TODO(rag)` in `services/gemini.py`.
 - Re-indexing newly saved knowledge-base files (`TODO(rag)` in
   `routers/knowledge_base.py`).
-- Concrete report templates (`TODO(reports)` in `services/gemini.py`).
+- Concrete report templates (`TODO(reports)` in `services/llm.py`).
 - Frontend AI Assistant tab calling this service.

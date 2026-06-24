@@ -1,8 +1,8 @@
 """POST /save-to-knowledge-base — write a conversation/summary back to Drive.
 
 Saved files land in the "AI Conversations" subfolder so they grow the corpus
-and become retrievable by future RAG queries (once File Search indexing is
-wired up). This endpoint does NOT require Gemini, so it works today.
+and become retrievable by future RAG queries (picked up on the next corpus
+re-index). This endpoint does NOT require Azure OpenAI, so it works today.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
