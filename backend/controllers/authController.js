@@ -62,15 +62,29 @@ const handleSignup = async (req, res) => {
         const user = User({ username, email, password });
         await user.save();
 
-        // Notify admins of the new signup. A failed email must not fail the
-        // signup itself, since the account has already been created.
+        // Notify every admin of the new signup so any of them can approve or
+        // deny it. A failed email must not fail the signup itself, since the
+        // account has already been created.
         try {
+            const admins = await User.find({
+                userRole: "admin",
+                isRemoved: false,
+            }).select("email");
+            const adminEmails = admins
+                .map((a) => a.email)
+                .filter(Boolean);
+            // Fall back to the app's own inbox if no admin emails are found.
+            const recipients = adminEmails.length
+                ? adminEmails
+                : [EMAIL_USERNAME];
+
             await transporter.sendMail({
                 from: `"AFC Estate App" <${EMAIL_USERNAME}>`,
-                to: EMAIL_USERNAME, // safecitiespermaculture@gmail.com
-                subject: "ALERT: New user sign up",
-                html: `<p>A new user has signed up for the AFC Estate app.</p>
-                <p>Sign in with an admin account to approve or deny their request to join</p>
+                to: recipients.join(", "),
+                subject: "ALERT: New user sign up — approval needed",
+                html: `<p>A new user has signed up for the AFC Estate app and is
+                <strong>waiting for admin approval</strong>.</p>
+                <p>Sign in with an admin account to approve or deny their request to join.</p>
                 <strong>Account Details</strong>
                 <ul>
                     <li>Username: ${username}</li>
