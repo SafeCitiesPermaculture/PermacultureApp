@@ -28,6 +28,7 @@ router.post("/post", upload.single('image'), listingController.createListing);
 router.get("/get", listingController.getAllListings);
 router.get("/get-my-listings", listingController.getMyListings);
 router.get("/get/:id", listingController.getListing);
+router.put("/update/:id", upload.single('image'), listingController.updateListing);
 router.delete("/remove/:id", listingController.removeListing);
 
 module.exports = router;

@@ -238,4 +238,70 @@ const removeListing = async(req, res) => {
     }
 };
 
-module.exports = { createListing, getAllListings, getMyListings, removeListing, getListing };
+const updateListing = async (req, res) => {
+    try {
+        if (!req.user.isVerified) {
+            return res.status(401).json({ message: "Unauthorized: User not authenticated." });
+        }
+
+        const { id } = req.params;
+        const listing = await Listing.findById(id);
+        if (!listing) {
+            return res.status(404).json({ message: "Listing not found." });
+        }
+
+        // Only the owner or an admin may edit.
+        if (listing.postedBy.toString() !== req.user._id.toString() && req.user.userRole !== "admin") {
+            return res.status(403).json({ message: "You cannot edit this listing." });
+        }
+
+        const { title, price, location, description } = req.body;
+
+        if (title !== undefined) {
+            if (!title.trim()) {
+                return res.status(400).json({ message: "Title must be a non-empty string." });
+            }
+            listing.title = title.trim();
+        }
+        if (location !== undefined) {
+            if (!location.trim()) {
+                return res.status(400).json({ message: "Location must be a non-empty string." });
+            }
+            listing.location = location.trim();
+        }
+        if (price !== undefined) {
+            if (isNaN(price) || price < 0) {
+                return res.status(400).json({ message: "Price must be a non-negative number." });
+            }
+            listing.price = price;
+        }
+        if (description !== undefined) {
+            listing.description = description ? description.trim() : "";
+        }
+
+        // Optional new image: upload the new one and remove the old from Cloudinary.
+        if (req.file) {
+            try {
+                const result = await uploadBufferToCloudinary(req.file, "marketplace");
+                const oldPublicId = publicIdFromUrl(listing.picture);
+                listing.picture = result.url;
+                if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+            } catch (uploadError) {
+                console.error("Error uploading listing image:", uploadError.message);
+                return res.status(500).json({ message: "Failed to upload image.", error: uploadError.message });
+            }
+        }
+
+        const saved = await listing.save();
+        return res.status(200).json({ message: "Listing updated.", listing: saved });
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            const errors = Object.values(error.errors).map((e) => e.message);
+            return res.status(400).json({ message: "Validation failed", errors });
+        }
+        console.error("Error in updateListing: ", error);
+        return res.status(500).json({ message: "Failed to update listing.", error: error.message });
+    }
+};
+
+module.exports = { createListing, getAllListings, getMyListings, removeListing, getListing, updateListing };

@@ -57,7 +57,7 @@
     <!-- ===================== Post-listing dialog ===================== -->
     <dialog id="postDialog" class="dialog">
       <form method="dialog" class="dialog__form" id="postForm">
-        <h2 class="dialog__title">Post a listing</h2>
+        <h2 class="dialog__title" id="postDialogTitle">Post a listing</h2>
         <div class="field">
           <label for="title">Title</label>
           <input id="title" name="title" type="text" required maxlength="120" />
@@ -238,7 +238,10 @@
           html += '<p class="detail__seller">Posted by <strong>' +
                   SC.escapeHtml((l.postedBy && l.postedBy.username) || "Unknown") + "</strong></p>";
           if (mine) {
+            html += '<div class="detail__actions">';
+            html += '<button class="btn btn--leaf btn--sm" id="editListing">Edit this listing</button>';
             html += '<button class="btn btn--ghost btn--sm" id="deleteListing">Delete this listing</button>';
+            html += '</div>';
           } else if (l.postedBy && l.postedBy.username) {
             html += '<div class="detail__actions">';
             html += '<button class="btn btn--leaf btn--sm" id="messageSeller">Message seller</button>';
@@ -265,6 +268,14 @@
           var reportBtn = document.getElementById("reportSeller");
           if (reportBtn) {
             reportBtn.addEventListener("click", function () { openReport(l.postedBy); });
+          }
+
+          var edit = document.getElementById("editListing");
+          if (edit) {
+            edit.addEventListener("click", function () {
+              detailDialog.close();
+              openEditListing(l);
+            });
           }
 
           var del = document.getElementById("deleteListing");
@@ -317,16 +328,37 @@
       var postDialog = document.getElementById("postDialog");
       var postForm = document.getElementById("postForm");
       var postMsg = document.getElementById("postMsg");
+      var postDialogTitle = document.getElementById("postDialogTitle");
+      var postSaveBtn = document.getElementById("postSave");
+      var editingListingId = null; // null = posting a new listing
+
       document.getElementById("postBtn").addEventListener("click", function () {
+        editingListingId = null;
         postForm.reset();
         postMsg.textContent = "";
+        postDialogTitle.textContent = "Post a listing";
+        postSaveBtn.textContent = "Post listing";
         postDialog.showModal();
       });
+
+      // Open the post dialog pre-filled to edit an existing listing.
+      function openEditListing(l) {
+        editingListingId = l._id;
+        postForm.reset();
+        postMsg.textContent = "";
+        document.getElementById("title").value = l.title || "";
+        document.getElementById("price").value = l.price != null ? l.price : "";
+        document.getElementById("location").value = l.location || "";
+        document.getElementById("description").value = l.description || "";
+        postDialogTitle.textContent = "Edit listing";
+        postSaveBtn.textContent = "Save changes";
+        postDialog.showModal();
+      }
+
       document.getElementById("postCancel").addEventListener("click", function () { postDialog.close(); });
       postForm.addEventListener("submit", function (e) {
         e.preventDefault();
-        var saveBtn = document.getElementById("postSave");
-        saveBtn.disabled = true;
+        postSaveBtn.disabled = true;
         var fd = new FormData();
         fd.append("title", document.getElementById("title").value.trim());
         fd.append("price", document.getElementById("price").value);
@@ -334,14 +366,19 @@
         fd.append("description", document.getElementById("description").value.trim());
         var image = document.getElementById("image").files[0];
         if (image) fd.append("image", image);
-        SC.Listings.create(fd)
+        // Editing keeps the current photo unless a new one is chosen.
+        var wasEditing = !!editingListingId;
+        var done = wasEditing
+          ? SC.Listings.update(editingListingId, fd)
+          : SC.Listings.create(fd);
+        done
           .then(function () {
             postDialog.close();
-            SC.toast("Listing posted", "success");
+            SC.toast(wasEditing ? "Listing updated" : "Listing posted", "success");
             setView("mine");
           })
-          .catch(function (err) { postMsg.textContent = err.message || "Could not post listing."; })
-          .then(function () { saveBtn.disabled = false; });
+          .catch(function (err) { postMsg.textContent = err.message || "Could not save listing."; })
+          .then(function () { postSaveBtn.disabled = false; });
       });
 
       // --------------------------------------------------------- Tabs + search
