@@ -27,6 +27,13 @@ const taskSchema = mongoose.Schema(
             ref: "User",
             default: null
         },
+        // Free-text notes — context for the task, or a reason it wasn't done in
+        // time (e.g. "water pump broke"). The assignee can add this too.
+        notes: {
+            type: String,
+            default: "",
+            trim: true
+        },
         isCompleted: {
             type: Boolean,
             default: false
