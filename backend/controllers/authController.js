@@ -20,7 +20,8 @@ const generateAccessToken = (user) => {
 
 const generateRefreshToken = (user) => {
     return jwt.sign({ userId: user._id }, REFRESH_TOKEN_SECRET, {
-        expiresIn: "7d",
+        // Matches the website's 2-week persistent session.
+        expiresIn: "14d",
     });
 };
 

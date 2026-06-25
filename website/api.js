@@ -64,30 +64,29 @@
   function clearTokens() {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("user");
+    localStorage.removeItem("sessionExpiry");
   }
   function isLoggedIn() {
     var t = getTokens();
     return !!(t && t.accessToken);
   }
 
-  /* ------------------------------------------------ Logout on fresh launch
-     Start logged out whenever the site is opened fresh (a newly opened tab or
-     window), but keep the session across page navigations and refreshes within
-     that tab. A sessionStorage marker survives refreshes/navigations but is
-     cleared when the tab/window closes — exactly the line between "refresh" and
-     "fresh launch". Runs immediately (before any page auth check) since this
-     script loads first.
-     Note: sessionStorage is per-tab, so opening the site in a second tab counts
-     as a fresh launch and will clear the shared session. */
-  (function startLoggedOutOnFreshLaunch() {
+  // How long a login stays valid on a device before re-login is required.
+  var SESSION_MAX_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+
+  /* -------------------------------------------------- Session expiry (2 weeks)
+     The login is kept on this device (localStorage) so users stay logged in
+     across visits. At login we record when the session should expire; if the
+     saved session is past that point, we clear it so the user logs in again.
+     Runs immediately, before any page auth check, since this script loads first. */
+  (function enforceSessionExpiry() {
     try {
-      var MARKER = "sc_session_active";
-      if (!sessionStorage.getItem(MARKER)) {
+      var expiry = Number(localStorage.getItem("sessionExpiry"));
+      if (expiry && Date.now() > expiry) {
         clearTokens();
-        sessionStorage.setItem(MARKER, "1");
       }
     } catch (e) {
-      /* sessionStorage unavailable — leave the session as-is */
+      /* localStorage unavailable — leave the session as-is */
     }
   })();
 
@@ -201,6 +200,8 @@
     }).then(function (data) {
       storeTokens(data.accessToken, data.refreshToken);
       setCachedUser(data.user);
+      // Keep this login valid on this device for two weeks.
+      localStorage.setItem("sessionExpiry", String(Date.now() + SESSION_MAX_MS));
       return data.user;
     });
   }
