@@ -251,6 +251,7 @@
     mine: function () { return request("api", "/listings/get-my-listings", {}); },
     one: function (id) { return request("api", "/listings/get/" + id, {}); },
     create: function (form) { return request("api", "/listings/post", { method: "POST", form: form }); },
+    update: function (id, form) { return request("api", "/listings/update/" + id, { method: "PUT", form: form }); },
     remove: function (id) { return request("api", "/listings/remove/" + id, { method: "DELETE" }); },
   };
 

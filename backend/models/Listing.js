@@ -37,8 +37,10 @@ const listingSchema = new mongoose.Schema(
             required: true,
         },
         picture: {
+            // Optional: the post form labels the photo optional and the
+            // marketplace shows a "No photo" placeholder when it's empty.
             type: String,
-            required: true
+            default: ""
         }
     },
     {

@@ -62,6 +62,11 @@
           <label for="taskDue">Due date &amp; time</label>
           <input id="taskDue" name="due" type="datetime-local" required />
         </div>
+        <!-- Admins only: assign the task to a specific worker. Revealed by JS. -->
+        <div class="field" id="assigneeField" hidden>
+          <label for="taskAssignee">Assign to</label>
+          <select id="taskAssignee"></select>
+        </div>
         <p class="form-msg" id="taskFormMsg" role="alert"></p>
         <div class="dialog__actions">
           <button type="button" class="btn btn--ghost" id="taskCancel">Cancel</button>
@@ -101,6 +106,22 @@
       var tabOpen = document.getElementById("tabOpen");
       var tabDone = document.getElementById("tabDone");
       var view = "open"; // or "done"
+
+      var me = SC.getCachedUser() || {};
+      var isAdmin = me.userRole === "admin";
+
+      // The id of a task's creator (handles populated or raw refs), used to
+      // decide who may edit it. Falls back to the assignee for legacy tasks.
+      function ownerId(t) {
+        var c = t.createdBy && t.createdBy._id ? t.createdBy._id : t.createdBy;
+        var a = t.assignedTo && t.assignedTo._id ? t.assignedTo._id : t.assignedTo;
+        return String(c || a || "");
+      }
+      // Admins may edit any task; everyone else only tasks they created
+      // themselves (not ones an admin assigned to them).
+      function canEditTask(t) {
+        return isAdmin || ownerId(t) === String(me._id);
+      }
 
       // --------------------------------------------------------- Load + render
       function load() {
@@ -164,11 +185,12 @@
         if (view === "done") {
           actions.appendChild(button("Reopen", "btn--ghost btn--sm", function () { reopen(t); }));
         } else {
-          // Every open task shown here is editable by the viewer: "open" shows
-          // only your own tasks, and the admin-only "all" view shows everyone's.
-          // Admins may edit/complete/delete any task; users only their own —
-          // the backend enforces this.
-          actions.appendChild(button("Edit", "btn--ghost btn--sm", function () { openEdit(t); }));
+          // Edit is only offered for tasks the viewer may edit: admins can edit
+          // any task; users only ones they created (not admin-assigned ones).
+          // The backend enforces this regardless.
+          if (canEditTask(t)) {
+            actions.appendChild(button("Edit", "btn--ghost btn--sm", function () { openEdit(t); }));
+          }
           actions.appendChild(button("Complete", "btn--leaf btn--sm", function () { openDone(t); }));
           actions.appendChild(button("Delete", "btn--ghost btn--sm", function () { removeTask(t); }));
         }
@@ -218,9 +240,40 @@
       tabDone.addEventListener("click", function () { setView("done"); });
       tabAll.addEventListener("click", function () { setView("all"); });
 
-      // Reveal the org-wide "All users" tab for admins (cached role, then fresh).
+      // Assignee picker (admins only): populate "Assign to" with every verified
+      // user, so an admin can assign a task to anyone (not just Safe Cities).
+      var assigneeField = document.getElementById("assigneeField");
+      var assigneeSelect = document.getElementById("taskAssignee");
+      var workersLoaded = false;
+      function loadWorkers() {
+        if (!isAdmin || workersLoaded) return;
+        workersLoaded = true;
+        SC.Admin.verified().then(function (data) {
+          var users = data || []; // /admin/verified returns the array directly
+          assigneeSelect.innerHTML = "";
+          var selfOpt = document.createElement("option");
+          selfOpt.value = me._id;
+          selfOpt.textContent = "Myself";
+          assigneeSelect.appendChild(selfOpt);
+          users.forEach(function (u) {
+            if (String(u._id) === String(me._id)) return;
+            var opt = document.createElement("option");
+            opt.value = u._id;
+            opt.textContent = u.username;
+            assigneeSelect.appendChild(opt);
+          });
+          assigneeField.hidden = false;
+        }).catch(function () { /* leave the picker hidden on error */ });
+      }
+
+      // Reveal the org-wide "All users" tab + worker picker for admins
+      // (cached role first, then refreshed once /auth/userdata returns).
       function applyRole(u) {
-        if (u && u.userRole === "admin") tabAll.hidden = false;
+        if (u && u.userRole === "admin") {
+          if (!isAdmin) { isAdmin = true; me = u; load(); } // re-render to show Edit
+          tabAll.hidden = false;
+          loadWorkers();
+        }
       }
       applyRole(SC.getCachedUser());
       document.addEventListener("sc:user", function (e) { applyRole(e.detail); });
@@ -247,6 +300,7 @@
         editingTask = null;
         taskMsg.textContent = "";
         taskForm.reset();
+        if (isAdmin) assigneeSelect.value = me._id; // default: assign to myself
         taskDialogTitle.textContent = "New task";
         taskSaveBtn.textContent = "Add task";
         taskDialog.showModal();
@@ -258,6 +312,10 @@
         taskMsg.textContent = "";
         document.getElementById("taskName").value = t.name || "";
         document.getElementById("taskDue").value = toLocalInputValue(t.dueDateTime);
+        if (isAdmin) {
+          var aid = t.assignedTo && t.assignedTo._id ? t.assignedTo._id : t.assignedTo;
+          assigneeSelect.value = String(aid || me._id);
+        }
         taskDialogTitle.textContent = "Edit task";
         taskSaveBtn.textContent = "Save changes";
         taskDialog.showModal();
@@ -272,6 +330,8 @@
         taskSaveBtn.disabled = true;
         // datetime-local has no timezone; convert to a proper ISO string.
         var body = { name: name, dueDateTime: new Date(due).toISOString() };
+        // Admins choose the assignee; non-admins always get their own task.
+        if (isAdmin && assigneeSelect.value) body.assignedTo = assigneeSelect.value;
         var wasEditing = !!editingTask;
         var done = wasEditing
           ? SC.Tasks.update(editingTask._id, body)
