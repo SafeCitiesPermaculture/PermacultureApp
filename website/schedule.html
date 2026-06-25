@@ -240,25 +240,26 @@
       tabDone.addEventListener("click", function () { setView("done"); });
       tabAll.addEventListener("click", function () { setView("all"); });
 
-      // Worker picker (admins only): populate "Assign to" with Safe Cities workers.
+      // Assignee picker (admins only): populate "Assign to" with every verified
+      // user, so an admin can assign a task to anyone (not just Safe Cities).
       var assigneeField = document.getElementById("assigneeField");
       var assigneeSelect = document.getElementById("taskAssignee");
       var workersLoaded = false;
       function loadWorkers() {
         if (!isAdmin || workersLoaded) return;
         workersLoaded = true;
-        SC.Admin.safecities().then(function (data) {
-          var workers = data.safeCitiesWorkers || [];
+        SC.Admin.verified().then(function (data) {
+          var users = data || []; // /admin/verified returns the array directly
           assigneeSelect.innerHTML = "";
           var selfOpt = document.createElement("option");
           selfOpt.value = me._id;
           selfOpt.textContent = "Myself";
           assigneeSelect.appendChild(selfOpt);
-          workers.forEach(function (w) {
-            if (String(w._id) === String(me._id)) return;
+          users.forEach(function (u) {
+            if (String(u._id) === String(me._id)) return;
             var opt = document.createElement("option");
-            opt.value = w._id;
-            opt.textContent = w.username;
+            opt.value = u._id;
+            opt.textContent = u.username;
             assigneeSelect.appendChild(opt);
           });
           assigneeField.hidden = false;
