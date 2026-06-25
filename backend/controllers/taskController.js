@@ -7,12 +7,15 @@ const createTask = async (req, res) => {
     }
 
     const { dueDateTime, name } = req.body;
+    // Admins may assign to a specific worker; otherwise the task is the
+    // creator's own. createdBy records who made it (for edit permissions).
     const assignedTo = req.body.assignedTo || req.user._id;
 
     const newTask = Task({
         name,
         dueDateTime,
-        assignedTo
+        assignedTo,
+        createdBy: req.user._id
     });
 
     try {
@@ -157,9 +160,11 @@ const updateTask = async (req, res) => {
 
         const isAdmin = req.user.userRole === "admin";
 
-        // Admins may edit any task. Everyone else may only edit tasks assigned
-        // to themselves.
-        if (!isAdmin && task.assignedTo.toString() !== req.user._id.toString()) {
+        // Admins may edit any task. Everyone else may only edit tasks they
+        // created themselves — NOT tasks an admin assigned to them. For older
+        // tasks with no createdBy recorded, fall back to the assignee.
+        const creatorId = (task.createdBy || task.assignedTo).toString();
+        if (!isAdmin && creatorId !== req.user._id.toString()) {
             return res
                 .status(403)
                 .json({ message: "Unauthorized: You cannot edit this task" });

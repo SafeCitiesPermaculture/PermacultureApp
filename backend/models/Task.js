@@ -20,6 +20,13 @@ const taskSchema = mongoose.Schema(
             ref: "User",
             required: true
         },
+        // Who created the task. Used for edit permissions: a non-admin may only
+        // edit tasks they created themselves, not ones an admin assigned to them.
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
         isCompleted: {
             type: Boolean,
             default: false
