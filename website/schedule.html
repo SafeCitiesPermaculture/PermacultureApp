@@ -39,6 +39,23 @@
           <button class="tab" id="tabAll" role="tab" aria-selected="false" hidden>All users</button>
         </div>
 
+        <!-- Admins only: sort/filter controls for the "All users" view. -->
+        <div class="toolbar task-filters" id="taskFilters" hidden>
+          <select id="sortSelect" aria-label="Sort tasks">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+          <select id="statusSelect" aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="overdue">Overdue</option>
+            <option value="incomplete">Incomplete</option>
+            <option value="complete">Complete</option>
+          </select>
+          <select id="userSelect" aria-label="Filter by user">
+            <option value="">All users</option>
+          </select>
+        </div>
+
         <!-- Task list + loading / empty states live here. -->
         <section aria-labelledby="listLabel">
           <h2 class="sr-only" id="listLabel">Task list</h2>
@@ -54,11 +71,11 @@
     <dialog id="taskDialog" class="dialog">
       <form method="dialog" class="dialog__form" id="taskForm">
         <h2 class="dialog__title" id="taskDialogTitle">New task</h2>
-        <div class="field">
+        <div class="field" id="nameField">
           <label for="taskName">Task name</label>
           <input id="taskName" name="name" type="text" required />
         </div>
-        <div class="field">
+        <div class="field" id="dueField">
           <label for="taskDue">Due date &amp; time</label>
           <input id="taskDue" name="due" type="datetime-local" required />
         </div>
@@ -66,6 +83,10 @@
         <div class="field" id="assigneeField" hidden>
           <label for="taskAssignee">Assign to</label>
           <select id="taskAssignee"></select>
+        </div>
+        <div class="field" id="notesField">
+          <label for="taskNotes">Notes (optional)</label>
+          <textarea id="taskNotes" name="notes" rows="2" placeholder="Context, or a reason a task wasn't done in time…"></textarea>
         </div>
         <p class="form-msg" id="taskFormMsg" role="alert"></p>
         <div class="dialog__actions">
@@ -105,7 +126,11 @@
       var errorEl = document.getElementById("errorState");
       var tabOpen = document.getElementById("tabOpen");
       var tabDone = document.getElementById("tabDone");
-      var view = "open"; // or "done"
+      var taskFilters = document.getElementById("taskFilters");
+      var sortSelect = document.getElementById("sortSelect");
+      var statusSelect = document.getElementById("statusSelect");
+      var userSelect = document.getElementById("userSelect");
+      var view = "open"; // "open" | "done" | "all" (admin)
 
       var me = SC.getCachedUser() || {};
       var isAdmin = me.userRole === "admin";
@@ -122,6 +147,15 @@
       function canEditTask(t) {
         return isAdmin || ownerId(t) === String(me._id);
       }
+      function assigneeIdOf(t) {
+        var a = t.assignedTo && t.assignedTo._id ? t.assignedTo._id : t.assignedTo;
+        return String(a || "");
+      }
+      // The assignee can add notes (e.g. a reason it wasn't done) even on a
+      // task they can't fully edit.
+      function canNoteTask(t) {
+        return canEditTask(t) || assigneeIdOf(t) === String(me._id);
+      }
 
       // --------------------------------------------------------- Load + render
       function load() {
@@ -133,11 +167,20 @@
         var fetcher;
         if (view === "open") fetcher = SC.Tasks.open();
         else if (view === "done") fetcher = SC.Tasks.completed();
-        else fetcher = SC.Admin.tasks({ isCompleted: false }); // admin: everyone's open tasks
+        else {
+          // Admin "All users" view: build a query from the filter controls.
+          var query = {};
+          var status = statusSelect.value;
+          if (status === "complete") query.isCompleted = true;
+          else if (status === "incomplete" || status === "overdue") query.isCompleted = false;
+          if (userSelect.value) query.assignedTo = userSelect.value;
+          fetcher = SC.Admin.tasks(query);
+        }
         fetcher
           .then(function (data) {
             var tasks = data.tasks || [];
             loadingEl.hidden = true;
+            if (view === "all") tasks = applyAdminFilters(tasks);
             if (!tasks.length) { emptyEl.hidden = false; return; }
             tasks.forEach(function (t) { listEl.appendChild(taskCard(t)); });
           })
@@ -146,6 +189,21 @@
             errorEl.hidden = false;
             errorEl.textContent = err.message || "Could not load tasks.";
           });
+      }
+
+      // Admin view: keep only overdue tasks when that filter is set, then sort
+      // by creation date (newest or oldest first).
+      function applyAdminFilters(tasks) {
+        if (statusSelect.value === "overdue") {
+          var now = new Date();
+          tasks = tasks.filter(function (t) {
+            return !t.isCompleted && new Date(t.dueDateTime) < now;
+          });
+        }
+        var dir = sortSelect.value === "oldest" ? 1 : -1;
+        return tasks.slice().sort(function (a, b) {
+          return dir * (new Date(a.createdAt) - new Date(b.createdAt));
+        });
       }
 
       // Build one task row. Uses DOM APIs (not innerHTML) for user-supplied text
@@ -161,17 +219,16 @@
         h.textContent = t.name || "Untitled task";
         var meta = document.createElement("p");
         meta.className = "task__meta";
-        if (view === "done") {
-          meta.textContent = "Completed " + SC.formatDate(t.completedAt);
+        // In the admin "All users" view, prefix with the assignee's name.
+        var prefix = "";
+        if (view === "all") {
+          var who = t.assignedTo && t.assignedTo.username ? t.assignedTo.username : "Unassigned";
+          prefix = who + " · ";
+        }
+        if (t.isCompleted) {
+          meta.textContent = prefix + "Completed " + SC.formatDate(t.completedAt);
           if (t.completionNote) meta.textContent += " · " + t.completionNote;
         } else {
-          // "open" (my tasks) and "all" (admin: everyone's). In the admin view
-          // prefix the assignee's name so it's clear whose task it is.
-          var prefix = "";
-          if (view === "all") {
-            var who = t.assignedTo && t.assignedTo.username ? t.assignedTo.username : "Unassigned";
-            prefix = who + " · ";
-          }
           var due = new Date(t.dueDateTime);
           var overdue = !isNaN(due) && due < new Date();
           meta.textContent = prefix + "Due " + SC.formatDate(t.dueDateTime);
@@ -179,20 +236,32 @@
         }
         main.appendChild(h);
         main.appendChild(meta);
+        if (t.notes) {
+          var notesEl = document.createElement("p");
+          notesEl.className = "task__meta task__notes";
+          notesEl.textContent = "📝 " + t.notes;
+          main.appendChild(notesEl);
+        }
 
         var actions = document.createElement("div");
         actions.className = "task__actions";
-        if (view === "done") {
+        if (t.isCompleted) {
           actions.appendChild(button("Reopen", "btn--ghost btn--sm", function () { reopen(t); }));
         } else {
-          // Edit is only offered for tasks the viewer may edit: admins can edit
-          // any task; users only ones they created (not admin-assigned ones).
-          // The backend enforces this regardless.
+          // Admins can reschedule (new date + reassign). Editing core details is
+          // for the creator/admin; the assignee can still add a note.
+          if (isAdmin) {
+            actions.appendChild(button("Reschedule", "btn--ghost btn--sm", function () { openEdit(t, "reschedule"); }));
+          }
           if (canEditTask(t)) {
-            actions.appendChild(button("Edit", "btn--ghost btn--sm", function () { openEdit(t); }));
+            actions.appendChild(button("Edit", "btn--ghost btn--sm", function () { openEdit(t, "edit"); }));
+          } else if (canNoteTask(t)) {
+            actions.appendChild(button("Note", "btn--ghost btn--sm", function () { openEdit(t, "note"); }));
           }
           actions.appendChild(button("Complete", "btn--leaf btn--sm", function () { openDone(t); }));
-          actions.appendChild(button("Delete", "btn--ghost btn--sm", function () { removeTask(t); }));
+          if (canEditTask(t)) {
+            actions.appendChild(button("Delete", "btn--ghost btn--sm", function () { removeTask(t); }));
+          }
         }
 
         card.appendChild(main);
@@ -234,11 +303,18 @@
           tabMap[key].classList.toggle("is-active", on);
           tabMap[key].setAttribute("aria-selected", String(on));
         });
+        // The sort/filter controls only apply to the admin "All users" view.
+        taskFilters.hidden = v !== "all";
         load();
       }
       tabOpen.addEventListener("click", function () { setView("open"); });
       tabDone.addEventListener("click", function () { setView("done"); });
       tabAll.addEventListener("click", function () { setView("all"); });
+
+      // Re-load the admin view whenever a sort/filter control changes.
+      [sortSelect, statusSelect, userSelect].forEach(function (sel) {
+        sel.addEventListener("change", function () { if (view === "all") load(); });
+      });
 
       // Assignee picker (admins only): populate "Assign to" with every verified
       // user, so an admin can assign a task to anyone (not just Safe Cities).
@@ -256,14 +332,21 @@
           selfOpt.textContent = "Myself";
           assigneeSelect.appendChild(selfOpt);
           users.forEach(function (u) {
-            if (String(u._id) === String(me._id)) return;
-            var opt = document.createElement("option");
-            opt.value = u._id;
-            opt.textContent = u.username;
-            assigneeSelect.appendChild(opt);
+            // Assignee picker: everyone except me (I'm already "Myself").
+            if (String(u._id) !== String(me._id)) {
+              var aOpt = document.createElement("option");
+              aOpt.value = u._id;
+              aOpt.textContent = u.username;
+              assigneeSelect.appendChild(aOpt);
+            }
+            // User filter (admin all-tasks view): everyone.
+            var fOpt = document.createElement("option");
+            fOpt.value = u._id;
+            fOpt.textContent = u.username;
+            userSelect.appendChild(fOpt);
           });
-          assigneeField.hidden = false;
-        }).catch(function () { /* leave the picker hidden on error */ });
+          // Visibility of the picker is controlled per dialog mode below.
+        }).catch(function () { /* leave the picker empty on error */ });
       }
 
       // Reveal the org-wide "All users" tab + worker picker for admins
@@ -284,7 +367,14 @@
       var taskMsg = document.getElementById("taskFormMsg");
       var taskDialogTitle = document.getElementById("taskDialogTitle");
       var taskSaveBtn = document.getElementById("taskSave");
+      var nameField = document.getElementById("nameField");
+      var dueField = document.getElementById("dueField");
+      var notesField = document.getElementById("notesField");
+      var taskNameInput = document.getElementById("taskName");
+      var taskDueInput = document.getElementById("taskDue");
+      var taskNotes = document.getElementById("taskNotes");
       var editingTask = null; // null = creating a new task
+      var editMode = "create"; // create | edit | reschedule | note
 
       // The value a <input type="datetime-local"> expects: YYYY-MM-DDTHH:mm
       // in local time.
@@ -296,42 +386,73 @@
           "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
       }
 
+      // Show/hide dialog fields and set the title/button for a given mode.
+      function configureDialog(mode) {
+        editMode = mode;
+        var showName = mode === "create" || mode === "edit";
+        var showDue = mode !== "note";
+        var showAssignee = isAdmin && mode !== "note";
+        nameField.hidden = !showName;
+        taskNameInput.required = showName;
+        dueField.hidden = !showDue;
+        taskDueInput.required = showDue;
+        assigneeField.hidden = !showAssignee;
+        var titles = { create: "New task", edit: "Edit task", reschedule: "Reschedule task", note: "Add a note" };
+        var btns = { create: "Add task", edit: "Save changes", reschedule: "Reschedule", note: "Save note" };
+        taskDialogTitle.textContent = titles[mode];
+        taskSaveBtn.textContent = btns[mode];
+      }
+
       document.getElementById("addTaskBtn").addEventListener("click", function () {
         editingTask = null;
         taskMsg.textContent = "";
         taskForm.reset();
         if (isAdmin) assigneeSelect.value = me._id; // default: assign to myself
-        taskDialogTitle.textContent = "New task";
-        taskSaveBtn.textContent = "Add task";
+        configureDialog("create");
         taskDialog.showModal();
       });
 
-      // Open the dialog pre-filled to edit an existing task.
-      function openEdit(t) {
+      // Open the dialog pre-filled, in "edit", "reschedule" or "note" mode.
+      function openEdit(t, mode) {
         editingTask = t;
         taskMsg.textContent = "";
-        document.getElementById("taskName").value = t.name || "";
-        document.getElementById("taskDue").value = toLocalInputValue(t.dueDateTime);
+        taskNameInput.value = t.name || "";
+        taskDueInput.value = toLocalInputValue(t.dueDateTime);
+        taskNotes.value = t.notes || "";
         if (isAdmin) {
           var aid = t.assignedTo && t.assignedTo._id ? t.assignedTo._id : t.assignedTo;
           assigneeSelect.value = String(aid || me._id);
         }
-        taskDialogTitle.textContent = "Edit task";
-        taskSaveBtn.textContent = "Save changes";
+        configureDialog(mode || "edit");
         taskDialog.showModal();
       }
 
       document.getElementById("taskCancel").addEventListener("click", function () { taskDialog.close(); });
       taskForm.addEventListener("submit", function (e) {
         e.preventDefault();
-        var name = document.getElementById("taskName").value.trim();
-        var due = document.getElementById("taskDue").value;
-        if (!name || !due) { taskMsg.textContent = "Please fill in both fields."; return; }
+        var name = taskNameInput.value.trim();
+        var due = taskDueInput.value;
+        var notes = taskNotes.value.trim();
+        if ((editMode === "create" || editMode === "edit") && (!name || !due)) {
+          taskMsg.textContent = "Please fill in the task name and due date."; return;
+        }
+        if (editMode === "reschedule" && !due) {
+          taskMsg.textContent = "Please pick a new due date."; return;
+        }
         taskSaveBtn.disabled = true;
-        // datetime-local has no timezone; convert to a proper ISO string.
-        var body = { name: name, dueDateTime: new Date(due).toISOString() };
-        // Admins choose the assignee; non-admins always get their own task.
-        if (isAdmin && assigneeSelect.value) body.assignedTo = assigneeSelect.value;
+
+        // Build the request body from the fields relevant to this mode.
+        var body = {};
+        if (editMode !== "note") {
+          body.dueDateTime = new Date(due).toISOString();
+          body.notes = notes;
+          if (editMode === "create" || editMode === "edit") body.name = name;
+          // Admins choose the assignee; non-admins always get their own task.
+          if (isAdmin && assigneeSelect.value) body.assignedTo = assigneeSelect.value;
+        } else {
+          body.notes = notes;
+        }
+
         var wasEditing = !!editingTask;
         var done = wasEditing
           ? SC.Tasks.update(editingTask._id, body)

@@ -6,7 +6,7 @@ const createTask = async (req, res) => {
             return res.status(401).json({ message: "User not verified or removed" });
     }
 
-    const { dueDateTime, name } = req.body;
+    const { dueDateTime, name, notes } = req.body;
     // Admins may assign to a specific worker; otherwise the task is the
     // creator's own. createdBy records who made it (for edit permissions).
     const assignedTo = req.body.assignedTo || req.user._id;
@@ -15,7 +15,8 @@ const createTask = async (req, res) => {
         name,
         dueDateTime,
         assignedTo,
-        createdBy: req.user._id
+        createdBy: req.user._id,
+        notes: notes || ""
     });
 
     try {
@@ -149,7 +150,7 @@ const updateTask = async (req, res) => {
     }
 
     const taskId = req.params.id;
-    const { name, dueDateTime, assignedTo } = req.body;
+    const { name, dueDateTime, assignedTo, notes } = req.body;
 
     try {
         const task = await Task.findById(taskId);
@@ -159,21 +160,41 @@ const updateTask = async (req, res) => {
         }
 
         const isAdmin = req.user.userRole === "admin";
-
-        // Admins may edit any task. Everyone else may only edit tasks they
-        // created themselves — NOT tasks an admin assigned to them. For older
-        // tasks with no createdBy recorded, fall back to the assignee.
+        const meId = req.user._id.toString();
+        // For older tasks with no createdBy recorded, fall back to the assignee.
         const creatorId = (task.createdBy || task.assignedTo).toString();
-        if (!isAdmin && creatorId !== req.user._id.toString()) {
+        const assigneeId = task.assignedTo.toString();
+
+        // Core details (name, due) and reschedule: admins, or the creator.
+        const canEditCore = isAdmin || creatorId === meId;
+        // Notes (e.g. the reason a task wasn't done): also the assignee, so the
+        // person doing the work can record what happened.
+        const canEditNotes = canEditCore || assigneeId === meId;
+
+        const wantsCore = name !== undefined || dueDateTime !== undefined;
+        if (wantsCore && !canEditCore) {
+            return res
+                .status(403)
+                .json({ message: "Unauthorized: You cannot edit this task" });
+        }
+        // Only admins may reassign a task to another user.
+        if (assignedTo !== undefined && !isAdmin) {
+            return res
+                .status(403)
+                .json({ message: "Unauthorized: only admins can reassign tasks" });
+        }
+        if (notes !== undefined && !canEditNotes) {
             return res
                 .status(403)
                 .json({ message: "Unauthorized: You cannot edit this task" });
         }
 
-        if (name !== undefined) task.name = name;
-        if (dueDateTime !== undefined) task.dueDateTime = dueDateTime;
-        // Only admins may reassign a task to another user.
+        if (canEditCore) {
+            if (name !== undefined) task.name = name;
+            if (dueDateTime !== undefined) task.dueDateTime = dueDateTime;
+        }
         if (isAdmin && assignedTo !== undefined) task.assignedTo = assignedTo;
+        if (notes !== undefined && canEditNotes) task.notes = notes;
 
         const updatedTask = await task.save();
         return res
