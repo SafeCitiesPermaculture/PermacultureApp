@@ -383,6 +383,19 @@ h3 {
   transform: translateY(-6px);
   box-shadow: var(--shadow-md);
 }
+/* Program cards that link out to the Safe Cities site. Keep the card's look;
+   just make the whole card a clickable area. */
+.card-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-lg);
+}
+.card-link:focus-visible {
+  outline: 3px solid var(--leaf-bright);
+  outline-offset: 3px;
+}
 .card__icon {
   display: inline-flex;
   align-items: center;
