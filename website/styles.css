@@ -524,45 +524,62 @@ h3 {
 
 /* --- Vision & mission (quote band) ---------------------------------------- */
 .vision {
+  position: relative;
+  overflow: hidden;
   background: var(--leaf-dark);
   color: var(--cream);
-  /* Slightly richer paper texture on the dark band. */
 }
-/* Text on the left, community photo on the right (stacks on narrow screens). */
+/* Community photo fills the band (centered); a dark scrim keeps text readable. */
+.vision__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+}
+.vision::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 35, 20, 0.58);
+  z-index: 1;
+}
+/* Text sits centered on top of the photo. */
 .vision__inner {
+  position: relative;
+  z-index: 2;
+  min-height: 440px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-5);
+  justify-content: center;
+  text-align: center;
 }
 .vision__copy {
-  flex: 1 1 300px;
-}
-.vision__photo {
-  flex: 1 1 360px;
-  width: 100%;
-  max-width: 560px;
-  height: auto;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  max-width: 52ch;
 }
 .vision__quote {
-  margin: 0;
-  max-width: 24ch;
+  margin: 0 auto;
+  max-width: 48ch;
 }
 .vision__text {
   font-size: var(--fs-700);
   font-weight: 800;
-  max-width: 22ch;
+  max-width: 30ch;
+  margin: 0 auto;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 .vision__text .hl {
   color: var(--marigold);
 }
 .vision__sub {
-  margin-top: var(--space-3);
-  max-width: 60ch;
-  color: rgba(250, 246, 234, 0.85);
+  margin: var(--space-3) auto 0;
+  max-width: 56ch;
+  color: rgba(250, 246, 234, 0.92);
   font-size: var(--fs-500);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
 }
 
 /* --- Explore (feature links) ---------------------------------------------- */
