@@ -527,41 +527,41 @@ h3 {
   background: var(--leaf-dark);
   color: var(--cream);
 }
-/* Text on the left, community photo on the right (stacks on narrow screens). */
+/* Vision text centered on top, then the community photo centered beneath it. */
 .vision__inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-5);
+  text-align: center;
 }
 .vision__copy {
-  flex: 1 1 300px;
+  max-width: 60ch;
+  margin: 0 auto;
 }
 .vision__quote {
-  margin: 0;
-  max-width: 24ch;
+  margin: 0 auto;
+  max-width: 52ch;
 }
 .vision__text {
   font-size: var(--fs-700);
   font-weight: 800;
-  max-width: 22ch;
+  max-width: 32ch;
+  margin: 0 auto;
 }
 .vision__text .hl {
   color: var(--marigold);
 }
 .vision__sub {
-  margin-top: var(--space-3);
+  margin: var(--space-3) auto 0;
   max-width: 60ch;
-  color: rgba(250, 246, 234, 0.85);
+  color: rgba(250, 246, 234, 0.88);
   font-size: var(--fs-500);
 }
 .vision__photo {
-  flex: 1 1 360px;
+  display: block;
   width: 100%;
-  max-width: 560px;
+  max-width: 760px;
   height: auto;
+  margin: var(--space-5) auto 0;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg, 0 14px 34px rgba(0, 0, 0, 0.4));
 }
 
 /* --- Explore (feature links) ---------------------------------------------- */
