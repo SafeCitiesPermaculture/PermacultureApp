@@ -74,6 +74,20 @@
       .page-head__actions { display: flex; align-items: center; gap: .9rem; }
       .btn--saved { background: var(--brown-medium, #ac8155); color: #fff; }
 
+      /* Elsie mascot as a branded avatar beside the title. The source art has a
+         dark vignette baked in, so a circular frame turns those edges into a
+         clean medallion. object-position keeps her face/upper body in view. */
+      .assistant-hero { display: flex; align-items: center; gap: 1rem; }
+      .assistant-hero__avatar {
+        flex: 0 0 auto; width: 84px; height: 84px; border-radius: 50%;
+        object-fit: cover; object-position: center 20%; background: #2b2b2b;
+        border: 3px solid var(--leaf-soft, #cbd2a4);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+      }
+      @media (max-width: 640px) {
+        .assistant-hero__avatar { width: 60px; height: 60px; }
+      }
+
       @media (max-width: 640px) {
         .chat-sidebar { flex-basis: 200px; width: 200px; }
       }
@@ -106,9 +120,16 @@
       <!-- ---------------------------------------------- Chat pane -->
       <div class="chat-pane">
         <header class="page-head">
-          <div>
-            <p class="eyebrow">Ask anything</p>
-            <h1 class="page-title">Elsie</h1>
+          <div class="assistant-hero">
+            <img
+              class="assistant-hero__avatar"
+              src="./assets/images/elsie.png"
+              alt="Elsie, the Safe Cities farm assistant"
+            />
+            <div>
+              <p class="eyebrow">Ask anything</p>
+              <h1 class="page-title">Elsie</h1>
+            </div>
           </div>
           <div class="page-head__actions">
             <button class="btn btn--leaf btn--sm" id="newChatBtn" type="button">+ New chat</button>
