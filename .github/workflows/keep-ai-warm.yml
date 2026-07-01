@@ -21,9 +21,13 @@ name: Keep AI service warm
 # 750 hrs is PER-SERVICE (not pooled), you can safely widen this — up to
 # "*/10 * * * *" for 24/7 (~730 hrs each, still under 750).
 
+# SUPERSEDED by cron-job.org (2026-07-01): the keep-warm + reindex pings now run
+# there, which fires reliably (GitHub Actions drops/delays scheduled runs). The
+# schedule below is disabled; kept only for manual runs (workflow_dispatch) as a
+# backup uptime check. Re-enable the `schedule:` block if cron-job.org ever lapses.
 on:
-  schedule:
-    - cron: "*/10 6-16 * * *"
+  # schedule:
+  #   - cron: "*/10 6-16 * * *"
   workflow_dispatch: {}
 
 jobs:
