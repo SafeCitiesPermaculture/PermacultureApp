@@ -135,18 +135,27 @@
         loadingEl.hidden = false;
         emptyEl.hidden = true;
         errorEl.hidden = true;
-        var fetcher = view === "all" ? SC.Listings.all() : SC.Listings.mine();
-        fetcher
-          .then(function (data) {
+        // Instant from cache on revisit, then revalidate + re-render if changed.
+        SC.swr(
+          "listings:" + view,
+          function () { return view === "all" ? SC.Listings.all() : SC.Listings.mine(); },
+          function (data) {
             allListings = data.listings || [];
             loadingEl.hidden = true;
+            errorEl.hidden = true;
             render();
-          })
-          .catch(function (err) {
-            loadingEl.hidden = true;
-            errorEl.hidden = false;
-            errorEl.textContent = err.message || "Could not load listings.";
-          });
+          }
+        ).catch(function (err) {
+          loadingEl.hidden = true;
+          errorEl.hidden = false;
+          errorEl.textContent = err.message || "Could not load listings.";
+        });
+      }
+
+      // A listing change affects both the "all" and "mine" lists — drop both.
+      function dropListingsCache() {
+        SC.swrDrop("listings:all");
+        SC.swrDrop("listings:mine");
       }
 
       // --------------------------------------------------------- Render grid
@@ -285,6 +294,7 @@
               SC.Listings.remove(l._id).then(function () {
                 detailDialog.close();
                 SC.toast("Listing deleted", "success");
+                dropListingsCache();
                 load();
               }).catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
             });
@@ -375,6 +385,7 @@
           .then(function () {
             postDialog.close();
             SC.toast(wasEditing ? "Listing updated" : "Listing posted", "success");
+            dropListingsCache();
             setView("mine");
           })
           .catch(function (err) { postMsg.textContent = err.message || "Could not save listing."; })

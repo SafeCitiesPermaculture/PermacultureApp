@@ -158,37 +158,52 @@
       }
 
       // --------------------------------------------------------- Load + render
+      // Idempotent paint from a tasks response (may run twice under swr).
+      function renderTasks(data) {
+        var tasks = data.tasks || [];
+        loadingEl.hidden = true;
+        errorEl.hidden = true;
+        listEl.innerHTML = "";
+        if (view === "all") tasks = applyAdminFilters(tasks);
+        if (!tasks.length) { emptyEl.hidden = false; return; }
+        emptyEl.hidden = true;
+        tasks.forEach(function (t) { listEl.appendChild(taskCard(t)); });
+      }
+
       function load() {
         listEl.innerHTML = "";
         loadingEl.hidden = false;
         emptyEl.hidden = true;
         errorEl.hidden = true;
 
-        var fetcher;
-        if (view === "open") fetcher = SC.Tasks.open();
-        else if (view === "done") fetcher = SC.Tasks.completed();
-        else {
-          // Admin "All users" view: build a query from the filter controls.
+        function fail(err) {
+          loadingEl.hidden = true;
+          errorEl.hidden = false;
+          errorEl.textContent = err.message || "Could not load tasks.";
+        }
+
+        if (view === "open" || view === "done") {
+          // Instant from cache on revisit, then revalidate + update if changed.
+          SC.swr(
+            "tasks:" + view,
+            function () { return view === "open" ? SC.Tasks.open() : SC.Tasks.completed(); },
+            renderTasks
+          ).catch(fail);
+        } else {
+          // Admin "All users" view depends on live filter controls — fetch fresh.
           var query = {};
           var status = statusSelect.value;
           if (status === "complete") query.isCompleted = true;
           else if (status === "incomplete" || status === "overdue") query.isCompleted = false;
           if (userSelect.value) query.assignedTo = userSelect.value;
-          fetcher = SC.Admin.tasks(query);
+          SC.Admin.tasks(query).then(renderTasks).catch(fail);
         }
-        fetcher
-          .then(function (data) {
-            var tasks = data.tasks || [];
-            loadingEl.hidden = true;
-            if (view === "all") tasks = applyAdminFilters(tasks);
-            if (!tasks.length) { emptyEl.hidden = false; return; }
-            tasks.forEach(function (t) { listEl.appendChild(taskCard(t)); });
-          })
-          .catch(function (err) {
-            loadingEl.hidden = true;
-            errorEl.hidden = false;
-            errorEl.textContent = err.message || "Could not load tasks.";
-          });
+      }
+
+      // A task change can affect either list — drop both cached views.
+      function dropTasksCache() {
+        SC.swrDrop("tasks:open");
+        SC.swrDrop("tasks:done");
       }
 
       // Admin view: keep only overdue tasks when that filter is set, then sort
@@ -282,6 +297,7 @@
         if (!confirm('Delete "' + t.name + '"?')) return;
         SC.Tasks.remove(t._id).then(function () {
           SC.toast("Task deleted", "success");
+          dropTasksCache();
           load();
         }).catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
       }
@@ -289,6 +305,7 @@
       function reopen(t) {
         SC.Tasks.reopen(t._id).then(function () {
           SC.toast("Task reopened", "success");
+          dropTasksCache();
           load();
         }).catch(function (e) { SC.toast(e.message || "Could not reopen", "error"); });
       }
@@ -461,6 +478,7 @@
           .then(function () {
             taskDialog.close();
             SC.toast(wasEditing ? "Task updated" : "Task added", "success");
+            dropTasksCache();
             if (!wasEditing && view !== "open") setView("open"); else load();
           })
           .catch(function (err) { taskMsg.textContent = err.message || "Could not save task."; })
@@ -494,6 +512,7 @@
           .then(function () {
             doneDialog.close();
             SC.toast("Task completed 🎉", "success");
+            dropTasksCache();
             load();
           })
           .catch(function (err) { doneMsg.textContent = err.message || "Could not complete task."; })

@@ -65,6 +65,7 @@
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("user");
     localStorage.removeItem("sessionExpiry");
+    clearSwrCache();
   }
   function isLoggedIn() {
     var t = getTokens();
@@ -101,6 +102,54 @@
   }
   function setCachedUser(user) {
     if (user) localStorage.setItem("user", JSON.stringify(user));
+  }
+
+  /* ---------------------------------------------- Stale-while-revalidate cache
+     Render a data page instantly from a cached copy (per browser tab, via
+     sessionStorage), then revalidate in the background and re-render ONLY if the
+     data changed — i.e. "instant on revisit unless something new was added".
+     The cache is per-tab and cleared on login/logout so users never see each
+     other's data. */
+  var SWR_PREFIX = "swr:";
+  function clearSwrCache() {
+    try {
+      var keys = [];
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var k = sessionStorage.key(i);
+        if (k && k.indexOf(SWR_PREFIX) === 0) keys.push(k);
+      }
+      keys.forEach(function (k) { sessionStorage.removeItem(k); });
+    } catch (e) { /* sessionStorage unavailable */ }
+  }
+  // key    : unique per page + params (e.g. "files:<folderId>").
+  // fetchFn: () => Promise<data>.
+  // render : (data, fromCache) => void — MUST be idempotent (may run twice).
+  // Returns the fresh-data promise (rejects only when there was no cache to show).
+  function swr(key, fetchFn, render) {
+    var ck = SWR_PREFIX + key;
+    var cached = null;
+    try {
+      var raw = sessionStorage.getItem(ck);
+      if (raw) cached = JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    var hadCache = cached !== null;
+    if (hadCache) { try { render(cached, true); } catch (e) {} }
+
+    return fetchFn().then(function (fresh) {
+      var freshStr = JSON.stringify(fresh);
+      if (!hadCache || freshStr !== JSON.stringify(cached)) {
+        try { sessionStorage.setItem(ck, freshStr); } catch (e) {}
+        render(fresh, false);
+      }
+      return fresh;
+    }).catch(function (err) {
+      // With a cached copy already on screen, keep it; otherwise surface the error.
+      if (!hadCache) throw err;
+    });
+  }
+  // Drop a cached entry so the next swr() call re-fetches (call after a mutation).
+  function swrDrop(key) {
+    try { sessionStorage.removeItem(SWR_PREFIX + key); } catch (e) {}
   }
 
   /* ----------------------------------------------------- Token refresh flow */
@@ -198,6 +247,7 @@
       method: "POST",
       body: { username: username, password: password },
     }).then(function (data) {
+      clearSwrCache(); // don't let a previous user's cached data carry over
       storeTokens(data.accessToken, data.refreshToken);
       setCachedUser(data.user);
       // Keep this login valid on this device for two weeks.
@@ -515,6 +565,8 @@
     clearTokens: clearTokens,
     isLoggedIn: isLoggedIn,
     getCachedUser: getCachedUser,
+    swr: swr,
+    swrDrop: swrDrop,
     login: login,
     signup: signup,
     logout: logout,

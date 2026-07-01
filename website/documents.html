@@ -92,7 +92,7 @@
         var label = uploadBtn.textContent;
         uploadBtn.textContent = "Uploading…";
         SC.Files.upload(current().id, file)
-          .then(function () { SC.toast("Uploaded “" + file.name + "”", "success"); load(); })
+          .then(function () { SC.toast("Uploaded “" + file.name + "”", "success"); SC.swrDrop(cacheKey()); load(); })
           .catch(function (e) { SC.toast(e.message || "Upload failed", "error"); })
           .then(function () { uploadInput.value = ""; uploadBtn.textContent = label; syncAdminBar(); });
       });
@@ -103,7 +103,7 @@
         name = name.trim();
         newFolderBtn.disabled = true;
         SC.Files.createFolder(name, current().id)
-          .then(function () { SC.toast("Folder “" + name + "” created", "success"); load(); })
+          .then(function () { SC.toast("Folder “" + name + "” created", "success"); SC.swrDrop(cacheKey()); load(); })
           .catch(function (e) { SC.toast(e.message || "Could not create folder", "error"); })
           .then(function () { newFolderBtn.disabled = false; });
       });
@@ -114,25 +114,35 @@
         if (e.detail && e.detail.userRole === "admin" && !isAdmin) { isAdmin = true; load(); }
       });
 
+      function cacheKey() { return "files:" + (current().id || "root"); }
+
+      // Idempotent paint from a files-list response (may run twice under swr:
+      // once from cache, once from the fresh copy).
+      function renderFiles(data) {
+        var files = (data && data.files) || [];
+        loadingEl.hidden = true;
+        errorEl.hidden = true;
+        listEl.innerHTML = "";
+        // Folders first, then files; alphabetical within each group.
+        files.sort(function (a, b) {
+          if (!!a.isFolder !== !!b.isFolder) return a.isFolder ? -1 : 1;
+          return (a.name || "").localeCompare(b.name || "");
+        });
+        if (!files.length) { emptyEl.hidden = false; return; }
+        emptyEl.hidden = true;
+        files.forEach(function (f) { listEl.appendChild(row(f)); });
+      }
+
       function load() {
+        renderCrumbs();
+        syncAdminBar();
+        // Loading state shows only until the first paint (cache OR network).
         listEl.innerHTML = "";
         loadingEl.hidden = false;
         emptyEl.hidden = true;
         errorEl.hidden = true;
-        renderCrumbs();
-        syncAdminBar();
-        SC.Files.list(current().id)
-          .then(function (data) {
-            var files = (data && data.files) || [];
-            loadingEl.hidden = true;
-            // Folders first, then files; alphabetical within each group.
-            files.sort(function (a, b) {
-              if (!!a.isFolder !== !!b.isFolder) return a.isFolder ? -1 : 1;
-              return (a.name || "").localeCompare(b.name || "");
-            });
-            if (!files.length) { emptyEl.hidden = false; return; }
-            files.forEach(function (f) { listEl.appendChild(row(f)); });
-          })
+        // Instant from cache on revisit, then revalidate + update if changed.
+        SC.swr(cacheKey(), function () { return SC.Files.list(current().id); }, renderFiles)
           .catch(function (err) {
             loadingEl.hidden = true;
             errorEl.hidden = false;
@@ -254,6 +264,7 @@
           SC.Files.setFlags(f._id, isDocs ? { showInDocs: next } : { inCorpus: next })
             .then(function () {
               if (isDocs) { f.showInDocs = next; } else { f.inCorpus = next; }
+              SC.swrDrop(cacheKey()); // keep the cached folder listing in sync
               apply();
               if (isDocs) {
                 var li = btn.closest(".file");
@@ -276,7 +287,7 @@
           : "“" + f.name + "”";
         if (!window.confirm("Delete " + what + " from Google Drive? This cannot be undone.")) return;
         SC.Files.remove(f._id)
-          .then(function () { SC.toast("Deleted", "success"); load(); })
+          .then(function () { SC.toast("Deleted", "success"); SC.swrDrop(cacheKey()); load(); })
           .catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
       }
 
