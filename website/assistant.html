@@ -222,8 +222,17 @@
         chatListEmpty.hidden = saved.length + recents.length > 0;
       }
 
+      // Flip the active highlight in the DOM directly — no network refetch.
+      function setActiveRow(id) {
+        var rows = document.querySelectorAll(".chat-row");
+        for (var i = 0; i < rows.length; i++) {
+          rows[i].classList.toggle("is-active", rows[i].dataset.chatId === id);
+        }
+      }
+
       function chatRow(chat) {
         var row = document.createElement("div");
+        row.dataset.chatId = chat._id;
         row.className = "chat-row" + (chat._id === currentChatId ? " is-active" : "");
 
         var open = document.createElement("button");
@@ -247,6 +256,9 @@
 
       // ---------------------------------------------- Open / reset / delete
       function openChat(id) {
+        // Highlight the clicked row immediately — no waiting on the network.
+        currentChatId = id;
+        setActiveRow(id);
         SC.Assistant.get(id).then(function (data) {
           var chat = data.chat;
           currentChatId = chat._id;
@@ -258,7 +270,6 @@
           if (!convo.length) addBubble("assistant", GREETING);
           convo.forEach(function (m) { addBubble(m.role, m.content); });
           updateSaveBtn();
-          loadChats(); // refresh active highlight
         });
       }
 
@@ -272,7 +283,7 @@
       }
       newChatBtn.addEventListener("click", function () {
         resetToNewChat();
-        loadChats(); // clear the active highlight in the sidebar
+        setActiveRow(null); // clear the active highlight locally, no refetch
       });
 
       function deleteChat(id) {
