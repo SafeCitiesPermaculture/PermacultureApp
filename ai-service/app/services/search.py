@@ -336,15 +336,22 @@ def has_documents() -> bool:
         return False
 
 
-def search(query: str, k: int = 5) -> list[dict]:
-    """Embed the question and return the top-k corpus chunks by vector
-    similarity. Each result is {source, content, chunk_index}."""
+def search(query: str, k: int = 8) -> list[dict]:
+    """Return the top-k corpus chunks for a question via HYBRID retrieval.
+
+    Passing both `search_text` (BM25 keyword) and a `vector_queries` leg makes
+    Azure AI Search run both and fuse the rankings with Reciprocal Rank Fusion.
+    Hybrid markedly out-recalls pure vector search on keyword-heavy questions
+    (e.g. "worm practices"): a purely semantic match can rank the right document
+    just outside the top-k while a literal keyword hit does not, so the assistant
+    would wrongly answer "no information". Each result is {source, content,
+    chunk_index}."""
     from azure.search.documents.models import VectorizedQuery
 
     vector = llm.embed_one(query)
     client = _search_client()
     results = client.search(
-        search_text=None,
+        search_text=query,  # keyword (BM25) leg, fused with the vector leg via RRF
         vector_queries=[
             VectorizedQuery(vector=vector, k_nearest_neighbors=k, fields="embedding")
         ],
