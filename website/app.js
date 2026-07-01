@@ -155,4 +155,42 @@
       })
       .catch(function () { /* stay with cached copy */ });
   }
+
+  /* ---------------------------- 8. Instant navigation (prerender on hover) */
+  // Make tab switches feel instant: supporting browsers (Chrome/Edge) prerender
+  // the hovered nav page in the background — HTML, JS, AND its data fetches — so
+  // clicking swaps in an already-populated page (Documents list, past AI
+  // conversations, Marketplace listings all ready). Every nav page only does GET
+  // reads on load, so speculating is side-effect-free. Unsupported browsers fall
+  // back to a hover prefetch of the document, or just navigate normally.
+  (function instantNav() {
+    // Exclude the current page; the CTA/Profile link still matches .primary-nav__link.
+    var NAV_SELECTOR = ".primary-nav__link:not(.is-current)";
+
+    if (window.HTMLScriptElement &&
+        HTMLScriptElement.supports &&
+        HTMLScriptElement.supports("speculationrules")) {
+      var rules = {
+        prerender: [{ where: { selector_matches: NAV_SELECTOR }, eagerness: "moderate" }],
+        prefetch: [{ where: { selector_matches: NAV_SELECTOR }, eagerness: "moderate" }],
+      };
+      var script = document.createElement("script");
+      script.type = "speculationrules";
+      script.textContent = JSON.stringify(rules);
+      document.head.appendChild(script);
+      return;
+    }
+
+    // Fallback: prefetch the document on first hover (Firefox; Safari best-effort).
+    var seen = {};
+    document.addEventListener("pointerover", function (e) {
+      var a = e.target.closest && e.target.closest(NAV_SELECTOR);
+      if (!a || !a.href || seen[a.href]) return;
+      seen[a.href] = true;
+      var link = document.createElement("link");
+      link.rel = "prefetch";
+      link.href = a.href;
+      document.head.appendChild(link);
+    }, { passive: true });
+  })();
 })();
