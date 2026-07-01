@@ -16,6 +16,7 @@ router.post(
 );
 router.get("/storage", filesController.getStorageUsage);
 router.get("/list", filesController.listFiles);
+router.patch("/:id/flags", adminAuthMiddleware, filesController.setFileFlags);
 router.post("/:id", filesController.getFileById);
 router.delete("/delete/:id", adminAuthMiddleware, filesController.deleteFile);
 router.post(

@@ -1,6 +1,5 @@
 const { google } = require("googleapis");
 const { Readable } = require("stream");
-const File = require("../models/File");
 
 require("dotenv").config();
 const googleDriveCredentials = JSON.parse(
@@ -21,6 +20,25 @@ const auth = new google.auth.JWT({
 });
 const drive = google.drive({ version: "v3", auth });
 
+// Google Drive is the single source of truth for the Documents tab. The root of
+// the file browser is this folder; drilling into a subfolder passes that
+// subfolder's Drive ID as `parent`. The AI corpus indexes the same folder tree,
+// so the Documents tab and the assistant stay in sync.
+const DOCUMENTS_ROOT_FOLDER_ID = process.env.DOCUMENTS_ROOT_FOLDER_ID;
+
+const FOLDER_MIME = "application/vnd.google-apps.folder";
+
+// Google-native docs can't be downloaded with alt=media; they must be exported.
+// We export to the most broadly-useful format for a human download.
+const GOOGLE_EXPORT = {
+    "application/vnd.google-apps.document": ["application/pdf", ".pdf"],
+    "application/vnd.google-apps.spreadsheet": [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xlsx",
+    ],
+    "application/vnd.google-apps.presentation": ["application/pdf", ".pdf"],
+};
+
 // OAuth client acting as the real Gmail account (15GB quota) — used for CREATING
 // files/folders and deleting app-created ones. Files it creates are owned by the
 // Gmail account, so uploads actually succeed.
@@ -33,6 +51,11 @@ oauthClient.setCredentials({
     refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
 });
 const driveOwner = google.drive({ version: "v3", auth: oauthClient });
+
+// The human Gmail account that owns the Drive storage quota. Folders created by
+// the service account are shared with it as a writer so uploads can land inside.
+const OWNER_EMAIL =
+    process.env.DRIVE_OWNER_EMAIL || "safecitiespermaculture@gmail.com";
 
 // Share a newly-created Drive file with the service account (reader) so the
 // service-account reader/indexer can access it.
@@ -52,20 +75,37 @@ const shareWithServiceAccount = async (fileId) => {
     }
 };
 
-//Upload a file to google drive
+// Share a service-account-created folder with the Gmail owner as a writer, so
+// the owner (which holds the storage quota) can upload files into it.
+const shareWithOwner = async (fileId) => {
+    try {
+        await drive.permissions.create({
+            fileId,
+            requestBody: {
+                type: "user",
+                role: "writer",
+                emailAddress: OWNER_EMAIL,
+            },
+            sendNotificationEmail: false,
+        });
+    } catch (err) {
+        console.error("Failed to share with owner:", err.message);
+    }
+};
+
+//Upload a file to google drive. `parent` is a Drive folder id (or "null"/empty
+//for the documents root). Drive is the source of truth, so nothing is written
+//to Mongo. Files are created by the Gmail account (it has storage quota) and
+//shared with the service account so the reader/indexer can access them.
 const handleUpload = async (req, res) => {
     try {
-        //get parent folder
         const { parent } = req.body;
-        const parentFolder =
-            parent !== "null" ? await File.findById(parent) : null;
+        const parentId =
+            parent && parent !== "null" ? parent : DOCUMENTS_ROOT_FOLDER_ID;
 
-        //construct metadata
         const fileMetadata = {
             name: req.file.originalname,
-            parents: parentFolder?.driveFileId
-                ? [parentFolder.driveFileId]
-                : [],
+            parents: parentId ? [parentId] : [],
         };
 
         const bufferStream = new Readable();
@@ -77,71 +117,175 @@ const handleUpload = async (req, res) => {
             body: bufferStream,
         };
 
-        //upload to google as the Gmail account (owner has storage quota)
         const driveRes = await driveOwner.files.create({
             resource: fileMetadata,
             media: media,
-            fields: "id, webViewLink",
+            fields: "id, name, mimeType, webViewLink",
         });
 
-        //share with the service account so the reader/indexer can access it
         await shareWithServiceAccount(driveRes.data.id);
 
-        //save metadata to mongo
-        const savedFile = await File.create({
-            name: req.file.originalname,
-            driveFileId: driveRes.data.id,
-            driveLink: driveRes.data.webViewLink,
-            parent: parentFolder?._id || null,
+        res.json({
+            success: true,
+            file: {
+                _id: driveRes.data.id,
+                driveFileId: driveRes.data.id,
+                name: driveRes.data.name,
+                isFolder: false,
+                mimeType: driveRes.data.mimeType,
+                driveLink: driveRes.data.webViewLink,
+                showInDocs: true,
+                inCorpus: true,
+            },
         });
-
-        res.json({ success: true, file: savedFile });
     } catch (err) {
-        console.error(err);
+        console.error("Upload failed:", err.message);
         res.status(500).send("Upload failed");
     }
 };
 
-//list all of the file metadatas in mongodb
+//list a Drive folder's children live (Drive is the source of truth). `parent`
+//is a Drive folder ID; absent/null means the configured documents root. The
+//Drive ID is returned as `_id` so existing clients keep navigating/downloading
+//by `f._id` with no changes.
 const listFiles = async (req, res) => {
     try {
         const { parent } = req.query;
-        const parentFolder = await File.findById(parent);
+        const folderId =
+            parent && parent !== "null" ? parent : DOCUMENTS_ROOT_FOLDER_ID;
 
-        const files = await File.find({
-            parent: parentFolder?._id || null,
-        }).sort({
-            createdAt: -1,
-        });
+        if (!folderId) {
+            return res
+                .status(500)
+                .json({ error: "DOCUMENTS_ROOT_FOLDER_ID is not configured" });
+        }
+
+        // Admins see everything (including docs hidden from the Documents tab)
+        // so they can toggle visibility; regular users never see hidden docs.
+        const isAdmin = req.user?.userRole === "admin";
+
+        const files = [];
+        let pageToken = null;
+        do {
+            const resp = await drive.files.list({
+                q: `'${folderId}' in parents and trashed = false`,
+                fields:
+                    "nextPageToken, files(id, name, mimeType, modifiedTime, webViewLink, properties)",
+                pageSize: 1000,
+                pageToken,
+                orderBy: "folder,name",
+            });
+
+            for (const f of resp.data.files) {
+                const { showInDocs, inCorpus } = readFlags(f.properties);
+                if (!isAdmin && !showInDocs) continue;
+                files.push({
+                    _id: f.id, // Drive ID — clients navigate/download by this
+                    driveFileId: f.id,
+                    name: f.name,
+                    isFolder: f.mimeType === FOLDER_MIME,
+                    mimeType: f.mimeType,
+                    driveLink: f.webViewLink,
+                    uploadedAt: f.modifiedTime,
+                    showInDocs,
+                    inCorpus,
+                });
+            }
+            pageToken = resp.data.nextPageToken;
+        } while (pageToken);
+
         res.json({ success: true, files });
     } catch (err) {
-        console.error(err);
+        console.error("listFiles (Drive) error:", err.message);
         res.status(500).json({ error: "Failed to list files" });
     }
 };
 
-//retrieve a file from google drive
-const getFileById = async (req, res) => {
+// Per-document admin visibility flags, stored as custom `properties` on the
+// Drive file so Drive stays the single source of truth (no separate DB). Absent
+// property = included by default.
+//   scShowInDocs = "false"  -> hidden from the website Documents tab
+//   scInCorpus   = "false"  -> excluded from the AI knowledge corpus
+const readFlags = (properties) => {
+    const p = properties || {};
+    return {
+        showInDocs: p.scShowInDocs !== "false",
+        inCorpus: p.scInCorpus !== "false",
+    };
+};
+
+// Admin: set/clear the two visibility flags on a Drive file. Body may include
+// `showInDocs` and/or `inCorpus` booleans. Writes via the client that can edit
+// the file (Gmail owner for new uploads, service account for legacy files).
+const setFileFlags = async (req, res) => {
     try {
-        //get from mongo
-        const fileRecord = await File.findById(req.params.id);
-        if (!fileRecord) {
-            return res.status(404).json({ error: "File not found in MongoDB" });
+        const { id } = req.params;
+        const { showInDocs, inCorpus } = req.body;
+
+        const properties = {};
+        if (typeof showInDocs === "boolean") {
+            properties.scShowInDocs = showInDocs ? "true" : "false";
+        }
+        if (typeof inCorpus === "boolean") {
+            properties.scInCorpus = inCorpus ? "true" : "false";
+        }
+        if (!Object.keys(properties).length) {
+            return res
+                .status(400)
+                .json({ error: "Provide showInDocs and/or inCorpus (boolean)" });
         }
 
-        //get the file from google
-        const driveRes = await drive.files.get(
-            {
-                fileId: fileRecord.driveFileId,
-                alt: "media",
-            },
-            { responseType: "stream" }
-        );
+        const requestBody = { properties };
+        try {
+            await driveOwner.files.update({ fileId: id, requestBody });
+        } catch (ownerErr) {
+            await drive.files.update({ fileId: id, requestBody });
+        }
+
+        res.json({ success: true, flags: { showInDocs, inCorpus } });
+    } catch (err) {
+        console.error("setFileFlags error:", err.message);
+        res.status(500).json({ error: "Failed to update visibility flags" });
+    }
+};
+
+//retrieve a file from google drive by its Drive file ID (the `_id` returned by
+//listFiles). Google-native docs are exported; everything else is downloaded
+//as-is.
+const getFileById = async (req, res) => {
+    try {
+        const fileId = req.params.id;
+
+        //look up the name + type so we can name the download and decide whether
+        //to export (Google-native) or stream the raw bytes.
+        const meta = await drive.files.get({
+            fileId,
+            fields: "name, mimeType",
+        });
+        const { name, mimeType } = meta.data;
+
+        let downloadName = name || "download";
+        let driveRes;
+        if (GOOGLE_EXPORT[mimeType]) {
+            const [exportMime, ext] = GOOGLE_EXPORT[mimeType];
+            if (!downloadName.toLowerCase().endsWith(ext)) {
+                downloadName += ext;
+            }
+            driveRes = await drive.files.export(
+                { fileId, mimeType: exportMime },
+                { responseType: "stream" }
+            );
+        } else {
+            driveRes = await drive.files.get(
+                { fileId, alt: "media" },
+                { responseType: "stream" }
+            );
+        }
 
         //set headers
         res.setHeader(
             "Content-Disposition",
-            `attachment; filename="${fileRecord.name}"`
+            `attachment; filename="${downloadName}"`
         );
 
         res.setHeader("Content-Type", "application/octet-stream");
@@ -154,95 +298,62 @@ const getFileById = async (req, res) => {
     }
 };
 
+//Delete a file or folder from Drive by its Drive id. Drive cascades folder
+//deletes to their children, so no manual recursion is needed. New files are
+//owned by the Gmail account (OAuth), legacy files by the service account; try
+//the owner, fall back to the other.
 const deleteFile = async (req, res) => {
     try {
         const { id } = req.params;
-
-        //find file in mongo
-        const file = await File.findById(id);
-        if (!file) {
-            return res.status(404).json({ error: "File not found in MongoDB" });
+        try {
+            await driveOwner.files.delete({ fileId: id });
+        } catch (ownerErr) {
+            await drive.files.delete({ fileId: id });
         }
-
-        deleteFileHelper(file);
-
-        res.status(200).json({
-            message: "File deleted from Google Drive and MongoDB",
-        });
+        res.status(200).json({ message: "File deleted from Google Drive" });
     } catch (err) {
         console.error("Delete error:", err.message);
         res.status(500).json({ error: "Failed to delete file" });
     }
 };
 
-const deleteFileHelper = async (fileObject) => {
-    if (fileObject.isFolder) {
-        //get children
-        const childrenFiles = await File.find({
-            parent: fileObject._id || null,
-        });
-
-        //delete children
-        for (const child of childrenFiles) {
-            deleteFileHelper(child);
-        }
-    }
-
-    //delete from google drive — new files are owned by the Gmail account (OAuth),
-    //legacy files by the service account; try the owner, fall back to the other.
-    try {
-        await driveOwner.files.delete({ fileId: fileObject.driveFileId });
-    } catch (ownerErr) {
-        try {
-            await drive.files.delete({ fileId: fileObject.driveFileId });
-        } catch (saErr) {
-            console.error(`Drive delete failed for ${fileObject.name}:`, saErr.message);
-        }
-    }
-
-    //delete from mongo
-    await File.findByIdAndDelete(fileObject._id);
-
-    console.log(`Deleted file ${fileObject.name}`);
-};
-
+//Create a folder in Drive under `parent` (a Drive folder id, or root). Folders
+//are created by the service account (zero-byte, so no storage quota needed —
+//and it can write at the top level of its own Drive), then shared with the
+//Gmail owner as a writer so files can be uploaded into the folder afterwards.
 const createFolder = async (req, res) => {
     try {
-        //get arguments
         const { name, parent } = req.body;
-        const parentFolder =
-            parent && parent !== "null" ? await File.findById(parent) : null;
+        const parentId =
+            parent && parent !== "null" ? parent : DOCUMENTS_ROOT_FOLDER_ID;
 
-        //construct metadata
         const folderMetadata = {
             name,
-            mimeType: "application/vnd.google-apps.folder",
-            parents: parentFolder?.driveFileId
-                ? [parentFolder.driveFileId]
-                : [],
+            mimeType: FOLDER_MIME,
+            parents: parentId ? [parentId] : [],
         };
 
-        //create folder in drive as the Gmail account
-        const folder = await driveOwner.files.create({
+        const folder = await drive.files.create({
             resource: folderMetadata,
-            fields: "id, webViewLink",
+            fields: "id, name, webViewLink",
         });
 
-        //share with the service account so the reader/indexer can access it
-        await shareWithServiceAccount(folder.data.id);
+        await shareWithOwner(folder.data.id);
 
-        //save to mongo
-        const savedFolder = await File.create({
-            name,
-            driveFileId: folder.data.id,
-            driveLink: folder.data.webViewLink,
-            isFolder: true,
-            parent: parentFolder?._id || null,
+        res.json({
+            success: true,
+            folder: {
+                _id: folder.data.id,
+                driveFileId: folder.data.id,
+                name: folder.data.name,
+                isFolder: true,
+                driveLink: folder.data.webViewLink,
+                showInDocs: true,
+                inCorpus: true,
+            },
         });
-
-        res.json({ success: true, folder: savedFolder });
     } catch (err) {
-        console.error("Folder creation error:", err);
+        console.error("Folder creation error:", err.message);
         res.status(500).json({ error: "Failed to create folder" });
     }
 };
@@ -367,6 +478,7 @@ module.exports = {
     handleUpload,
     listFiles,
     getFileById,
+    setFileFlags,
     deleteFile,
     createFolder,
     proxyGetFile,
