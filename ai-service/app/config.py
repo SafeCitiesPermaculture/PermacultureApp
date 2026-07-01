@@ -38,7 +38,14 @@ class Settings(BaseSettings):
 
     # Google Drive — same service account JSON the backend uses.
     google_drive_credentials_json: str = ""
-    ai_conversations_folder_name: str = "AI Conversations"
+    # Root of the shared document tree. The corpus indexes this folder
+    # recursively — the SAME set the website Documents tab shows — so the two
+    # stay in sync. Same value as the backend's DOCUMENTS_ROOT_FOLDER_ID.
+    documents_root_folder_id: str = ""
+    # Folder the opt-in "save to knowledge base" writes into. It lives under the
+    # documents root, so curated saves ARE indexed (renamed from the old
+    # "AI Conversations").
+    ai_conversations_folder_name: str = "Saved Answers"
 
     # Azure OpenAI — DeepSeek-V4-Flash for chat, text-embedding-3-small for
     # embeddings. The endpoint is the OpenAI-compatible "/openai/v1" surface.
@@ -57,6 +64,10 @@ class Settings(BaseSettings):
     azure_search_endpoint: str = ""
     azure_search_key: str = ""
     azure_search_index: str = "afc-estate-corpus"
+
+    # Shared secret for the no-JWT reindex trigger (POST /corpus/reindex-trigger)
+    # that a scheduler (cron-job.org) calls. Empty = trigger disabled.
+    reindex_token: str = ""
 
     # CORS — comma-separated list of allowed frontend origins. Includes the
     # backend origin(s) because the rebuilt static site is served from there

@@ -41,6 +41,14 @@ services:
       - key: AZURE_SEARCH_INDEX
         value: afc-estate-corpus
       - key: AI_CONVERSATIONS_FOLDER_NAME
-        value: AI Conversations
+        value: Saved Answers
+      # Root of the shared document tree — the corpus indexes this folder
+      # recursively so it matches the website Documents tab. Same value as the
+      # backend service. sync:false so the id isn't committed to this public repo.
+      - key: DOCUMENTS_ROOT_FOLDER_ID
+        sync: false
+      # Shared secret for the no-JWT reindex trigger (cron-job.org calls it).
+      - key: REINDEX_TOKEN
+        sync: false
       - key: ALLOWED_ORIGINS
         value: http://localhost:8081,http://localhost:3000,https://sc-permaculture.vercel.app,https://afc-estate.vercel.app,https://permacultureapp.onrender.com

@@ -106,36 +106,53 @@ def save_text_file(
     return created
 
 
-def list_corpus_files(exclude_folder_id: str | None = None) -> list[dict]:
-    """List all non-folder, non-trashed files the service account can see — the
-    RAG corpus. Optionally excludes files inside `exclude_folder_id` (the
-    write-back "AI Conversations" folder), so the initial corpus build doesn't
-    pull in saved conversations.
+def list_corpus_files(root_folder_id: str | None = None) -> list[dict]:
+    """Recursively list every non-folder, non-trashed file under the documents
+    root folder — the RAG corpus. This walks the SAME folder tree the website
+    Documents tab shows (DOCUMENTS_ROOT_FOLDER_ID), so the corpus and the
+    Documents tab stay in sync. The "Saved Answers" write-back folder lives
+    under the root too, so curated saves are included.
 
-    Returns dicts of {id, name, mimeType, parents}.
+    Returns dicts of {id, name, mimeType, parents, properties}. Files carry any
+    custom `properties` (e.g. scInCorpus) so callers can honour admin flags.
     """
+    settings = get_settings()
+    root = (root_folder_id or settings.documents_root_folder_id or "").strip()
+    if not root:
+        raise DriveNotConfiguredError("DOCUMENTS_ROOT_FOLDER_ID is not set")
+
     svc = _service()
     files: list[dict] = []
-    page_token = None
-    query = f"mimeType != '{_FOLDER_MIME}' and trashed = false"
-    while True:
-        resp = (
-            svc.files()
-            .list(
-                q=query,
-                fields="nextPageToken, files(id, name, mimeType, parents)",
-                pageSize=100,
-                pageToken=page_token,
+    stack = [root]
+    seen: set[str] = set()
+    while stack:
+        folder_id = stack.pop()
+        if folder_id in seen:
+            continue
+        seen.add(folder_id)
+        page_token = None
+        while True:
+            resp = (
+                svc.files()
+                .list(
+                    q=f"'{folder_id}' in parents and trashed = false",
+                    fields=(
+                        "nextPageToken, "
+                        "files(id, name, mimeType, parents, properties)"
+                    ),
+                    pageSize=100,
+                    pageToken=page_token,
+                )
+                .execute()
             )
-            .execute()
-        )
-        for f in resp.get("files", []):
-            if exclude_folder_id and exclude_folder_id in (f.get("parents") or []):
-                continue
-            files.append(f)
-        page_token = resp.get("nextPageToken")
-        if not page_token:
-            break
+            for f in resp.get("files", []):
+                if f.get("mimeType") == _FOLDER_MIME:
+                    stack.append(f["id"])
+                else:
+                    files.append(f)
+            page_token = resp.get("nextPageToken")
+            if not page_token:
+                break
     return files
 
 

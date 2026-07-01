@@ -2,11 +2,15 @@
 
 Flow:
   1. ensure_index() — create the vector index once (idempotent).
-  2. index_corpus() — list corpus files from Drive (excluding the write-back
-     "AI Conversations" folder by default), download each, extract plain text,
+  2. index_corpus() — recursively list corpus files under the documents root
+     (the same set the website Documents tab shows), skip any an admin flagged
+     out of the corpus (scInCorpus="false"), download each, extract plain text,
      chunk it, embed the chunks with Azure OpenAI text-embedding-3-small, and
      upload the chunk vectors into Azure AI Search. Idempotent: sources already
      present in the index are skipped (pass force=True to re-embed everything).
+     It also PRUNES: chunks for any indexed source no longer in the corpus
+     (deleted from Drive or flagged out) are removed, so the assistant stops
+     citing them.
   3. /chat retrieves the top chunks for a question via vector search (see
      services/llm.py for generation).
 
@@ -218,25 +222,56 @@ def indexed_sources() -> set[str]:
         return set()
 
 
-def index_corpus(force: bool = False, include_conversations: bool = False) -> dict:
-    """Index the Drive corpus into Azure AI Search. Idempotent.
+def _in_corpus(f: dict) -> bool:
+    """Honour the admin per-doc flag stored on the Drive file: scInCorpus="false"
+    excludes a file from the AI corpus. Absent flag = included."""
+    return (f.get("properties") or {}).get("scInCorpus") != "false"
 
-    Returns {"index": name, "indexed": [...], "skipped": [...], "failed": [...]}.
+
+def _escape_odata(value: str) -> str:
+    """Escape single quotes for an OData filter string literal."""
+    return value.replace("'", "''")
+
+
+def _delete_source(client, source: str) -> int:
+    """Delete every indexed chunk belonging to a source filename. Returns the
+    number of chunks removed."""
+    results = client.search(
+        search_text="*",
+        filter=f"source eq '{_escape_odata(source)}'",
+        select=["id"],
+        top=1000,
+    )
+    ids = [{"id": r["id"]} for r in results]
+    if ids:
+        client.delete_documents(documents=ids)
+    return len(ids)
+
+
+def index_corpus(force: bool = False) -> dict:
+    """Index the Drive corpus into Azure AI Search and prune deletions.
+
+    - Scans the documents root recursively (same set as the Documents tab).
+    - Skips files an admin flagged out of the corpus (scInCorpus="false").
+    - Adds new files (idempotent; already-indexed sources skipped unless force).
+    - Prunes chunks for any indexed source no longer in the corpus (deleted from
+      Drive or flagged out).
+
+    Returns {"index", "indexed", "skipped", "failed", "pruned"}.
     """
     ensure_index()
     client = _search_client()
 
-    exclude = None
-    if not include_conversations:
-        try:
-            exclude = drive.ensure_conversations_folder()
-        except Exception:
-            exclude = None
+    source_files = [f for f in drive.list_corpus_files() if _in_corpus(f)]
+    # Filenames that SHOULD be in the index. Pruning is keyed on the source name
+    # (the index stores `source`), so two distinct files sharing a name can't be
+    # pruned independently — acceptable given filenames are effectively unique.
+    current_names = {f["name"] for f in source_files}
 
     already = set() if force else indexed_sources()
     indexed, skipped, failed = [], [], []
 
-    for f in drive.list_corpus_files(exclude_folder_id=exclude):
+    for f in source_files:
         name, mime = f["name"], f.get("mimeType", "")
         if not _is_supported(mime):
             skipped.append({"name": name, "reason": f"unsupported type {mime}"})
@@ -268,11 +303,25 @@ def index_corpus(force: bool = False, include_conversations: bool = False) -> di
         except Exception as exc:
             failed.append({"name": name, "error": str(exc)[:300]})
 
+    # Prune: any indexed source no longer in the corpus is stale — remove it so
+    # the assistant stops retrieving deleted/excluded documents.
+    pruned = []
+    for stale in indexed_sources() - current_names:
+        try:
+            pruned.append(
+                {"name": stale, "chunks": _delete_source(client, stale)}
+            )
+        except Exception as exc:
+            failed.append(
+                {"name": stale, "error": f"prune failed: {str(exc)[:200]}"}
+            )
+
     return {
         "index": get_settings().azure_search_index,
         "indexed": indexed,
         "skipped": skipped,
         "failed": failed,
+        "pruned": pruned,
     }
 
 
