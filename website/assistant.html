@@ -74,13 +74,14 @@
       .page-head__actions { display: flex; align-items: center; gap: .9rem; }
       .btn--saved { background: var(--brown-medium, #ac8155); color: #fff; }
 
-      /* Elsie mascot as a branded avatar beside the title. The source art has a
-         dark vignette baked in, so a circular frame turns those edges into a
-         clean medallion. object-position keeps her face/upper body in view. */
+      /* Elsie mascot as a branded avatar beside the title. The art is cut out on
+         a transparent background, so the circle fills with the page cream and
+         only the green ring makes it stand out. object-position frames her
+         upper body. */
       .assistant-hero { display: flex; align-items: center; gap: 1rem; }
       .assistant-hero__avatar {
         flex: 0 0 auto; width: 84px; height: 84px; border-radius: 50%;
-        object-fit: cover; object-position: center 20%; background: #2b2b2b;
+        object-fit: cover; object-position: center 20%; background: var(--cream, #faf6ea);
         border: 3px solid var(--leaf-soft, #cbd2a4);
         box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
       }
