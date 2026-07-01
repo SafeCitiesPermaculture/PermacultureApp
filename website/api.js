@@ -272,6 +272,24 @@
     // Download returns the raw Response so callers can read a Blob.
     download: function (id) { return request("api", "/files/" + id, { method: "POST" }); },
     storage: function () { return request("api", "/files/storage", {}); },
+    // Admin-only writes to Drive (backend enforces the admin role; 403 if not).
+    upload: function (parent, file) {
+      var form = new FormData();
+      form.append("file", file);
+      form.append("parent", parent || "null");
+      return request("api", "/files/upload", { method: "POST", form: form });
+    },
+    createFolder: function (name, parent) {
+      return request("api", "/files/folder/create", {
+        method: "POST",
+        body: { name: name, parent: parent || "null" },
+      });
+    },
+    // flags: { showInDocs?: bool, inCorpus?: bool }
+    setFlags: function (id, flags) {
+      return request("api", "/files/" + id + "/flags", { method: "PATCH", body: flags });
+    },
+    remove: function (id) { return request("api", "/files/delete/" + id, { method: "DELETE" }); },
   };
 
   var Users = {

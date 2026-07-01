@@ -29,6 +29,15 @@
           </div>
         </header>
 
+        <!-- Admin-only controls. Hidden for non-admins (the backend also enforces
+             the admin role on every write, so this is UX only). -->
+        <div class="doc-admin" id="adminBar" hidden>
+          <input type="file" id="uploadInput" hidden />
+          <button class="btn btn--leaf btn--sm" id="uploadBtn" type="button">Upload file</button>
+          <button class="btn btn--ghost btn--sm" id="newFolderBtn" type="button">New folder</button>
+          <span class="doc-admin__hint" id="uploadHint" hidden>Open a folder to upload files into it.</span>
+        </div>
+
         <!-- Breadcrumb trail; the first crumb is the root folder. -->
         <nav class="crumbs" id="crumbs" aria-label="Folder path"></nav>
 
@@ -56,12 +65,62 @@
 
       function current() { return stack[stack.length - 1]; }
 
+      // ---- Admin controls ---------------------------------------------------
+      // The backend enforces the admin role on every write; this is UX gating.
+      var isAdmin = (SC.getCachedUser() || {}).userRole === "admin";
+      var adminBar = document.getElementById("adminBar");
+      var uploadBtn = document.getElementById("uploadBtn");
+      var uploadInput = document.getElementById("uploadInput");
+      var newFolderBtn = document.getElementById("newFolderBtn");
+      var uploadHint = document.getElementById("uploadHint");
+
+      function syncAdminBar() {
+        adminBar.hidden = !isAdmin;
+        if (!isAdmin) return;
+        // Uploaded files are owned by the Gmail account, which can only write
+        // INTO a folder, not the very top level. At root, steer to a folder.
+        var atRoot = current().id == null;
+        uploadBtn.disabled = atRoot;
+        uploadHint.hidden = !atRoot;
+      }
+
+      uploadBtn.addEventListener("click", function () { uploadInput.click(); });
+      uploadInput.addEventListener("change", function () {
+        var file = uploadInput.files && uploadInput.files[0];
+        if (!file) return;
+        uploadBtn.disabled = true;
+        var label = uploadBtn.textContent;
+        uploadBtn.textContent = "Uploading…";
+        SC.Files.upload(current().id, file)
+          .then(function () { SC.toast("Uploaded “" + file.name + "”", "success"); load(); })
+          .catch(function (e) { SC.toast(e.message || "Upload failed", "error"); })
+          .then(function () { uploadInput.value = ""; uploadBtn.textContent = label; syncAdminBar(); });
+      });
+
+      newFolderBtn.addEventListener("click", function () {
+        var name = window.prompt("New folder name:");
+        if (!name || !name.trim()) return;
+        name = name.trim();
+        newFolderBtn.disabled = true;
+        SC.Files.createFolder(name, current().id)
+          .then(function () { SC.toast("Folder “" + name + "” created", "success"); load(); })
+          .catch(function (e) { SC.toast(e.message || "Could not create folder", "error"); })
+          .then(function () { newFolderBtn.disabled = false; });
+      });
+
+      // The cached user may not carry the role yet; upgrade when the fresh copy
+      // arrives (app.js dispatches sc:user) and re-render to show the controls.
+      document.addEventListener("sc:user", function (e) {
+        if (e.detail && e.detail.userRole === "admin" && !isAdmin) { isAdmin = true; load(); }
+      });
+
       function load() {
         listEl.innerHTML = "";
         loadingEl.hidden = false;
         emptyEl.hidden = true;
         errorEl.hidden = true;
         renderCrumbs();
+        syncAdminBar();
         SC.Files.list(current().id)
           .then(function (data) {
             var files = (data && data.files) || [];
@@ -114,6 +173,8 @@
       function row(f) {
         var li = document.createElement("li");
         li.className = "file" + (f.isFolder ? " file--folder" : "");
+        // Dim items an admin has hidden from the tab (only admins see these).
+        if (isAdmin && f.showInDocs === false) li.className += " is-hidden";
 
         var icon = document.createElement("span");
         icon.className = "file__icon";
@@ -129,8 +190,34 @@
         li.appendChild(icon);
         li.appendChild(name);
 
+        // Right-hand actions: download (files) + admin controls.
+        var actions = document.createElement("div");
+        actions.className = "file__actions";
+
+        if (!f.isFolder) {
+          var dl = document.createElement("button");
+          dl.className = "btn btn--ghost btn--sm file__dl";
+          dl.textContent = "Download";
+          dl.addEventListener("click", function (ev) { ev.stopPropagation(); download(f, dl); });
+          actions.appendChild(dl);
+        }
+
+        if (isAdmin) {
+          actions.appendChild(flagBtn(f, "docs"));
+          actions.appendChild(flagBtn(f, "ai"));
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "btn btn--ghost btn--sm file__del";
+          del.textContent = "Delete";
+          del.setAttribute("aria-label", "Delete " + (f.name || ""));
+          del.addEventListener("click", function (ev) { ev.stopPropagation(); removeItem(f); });
+          actions.appendChild(del);
+        }
+
+        li.appendChild(actions);
+
         if (f.isFolder) {
-          // Whole row opens the folder.
+          // Whole row opens the folder (buttons inside stopPropagation).
           li.tabIndex = 0;
           li.setAttribute("role", "button");
           li.setAttribute("aria-label", "Open folder " + (f.name || ""));
@@ -139,14 +226,58 @@
           li.addEventListener("keydown", function (e) {
             if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
           });
-        } else {
-          var dl = document.createElement("button");
-          dl.className = "btn btn--ghost btn--sm file__dl";
-          dl.textContent = "Download";
-          dl.addEventListener("click", function () { download(f, dl); });
-          li.appendChild(dl);
         }
         return li;
+      }
+
+      // A per-file toggle for one visibility flag. kind: "docs" | "ai".
+      function flagBtn(f, kind) {
+        var isDocs = kind === "docs";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "doc-flag";
+        function on() { return isDocs ? f.showInDocs !== false : f.inCorpus !== false; }
+        function apply() {
+          btn.textContent = isDocs ? "Docs" : "AI";
+          btn.classList.toggle("is-on", on());
+          btn.classList.toggle("is-off", !on());
+          btn.setAttribute("aria-pressed", on() ? "true" : "false");
+          btn.title = isDocs
+            ? (on() ? "Shown in the Documents tab — click to hide" : "Hidden from the Documents tab — click to show")
+            : (on() ? "Used by the AI assistant — click to exclude" : "Excluded from the AI assistant — click to include");
+        }
+        apply();
+        btn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          var next = !on();
+          btn.disabled = true;
+          SC.Files.setFlags(f._id, isDocs ? { showInDocs: next } : { inCorpus: next })
+            .then(function () {
+              if (isDocs) { f.showInDocs = next; } else { f.inCorpus = next; }
+              apply();
+              if (isDocs) {
+                var li = btn.closest(".file");
+                if (li) li.classList.toggle("is-hidden", !next);
+              }
+              SC.toast(isDocs
+                ? (next ? "Now shown in Documents" : "Hidden from Documents")
+                : (next ? "Included in the AI assistant" : "Excluded from the AI assistant"),
+                "success");
+            })
+            .catch(function (e) { SC.toast(e.message || "Could not update", "error"); })
+            .then(function () { btn.disabled = false; });
+        });
+        return btn;
+      }
+
+      function removeItem(f) {
+        var what = f.isFolder
+          ? "the folder “" + f.name + "” and everything inside it"
+          : "“" + f.name + "”";
+        if (!window.confirm("Delete " + what + " from Google Drive? This cannot be undone.")) return;
+        SC.Files.remove(f._id)
+          .then(function () { SC.toast("Deleted", "success"); load(); })
+          .catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
       }
 
       // The backend streams the file back from Google Drive. We read it as a

@@ -1285,6 +1285,63 @@ textarea {
   margin-left: auto;
 }
 
+/* --- Documents admin controls ---------------------------------------------- */
+.doc-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+.doc-admin__hint {
+  color: var(--muted);
+  font-size: var(--fs-300);
+}
+/* Right-hand action cluster on each row (download + admin toggles). */
+.file__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+}
+.file__actions .file__dl {
+  margin-left: 0; /* alignment handled by .file__actions */
+}
+.file.is-hidden {
+  opacity: 0.55;
+}
+/* Pill toggles: on = filled green, off = struck through. */
+.doc-flag {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 34px;
+  padding: 0.3rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+}
+.doc-flag.is-on {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+.doc-flag.is-off {
+  opacity: 0.65;
+  text-decoration: line-through;
+}
+.doc-flag:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.file__del {
+  color: #b23b2e;
+}
+
 /* --- Assistant (chat) ------------------------------------------------------ */
 .app-main--chat {
   display: flex;
