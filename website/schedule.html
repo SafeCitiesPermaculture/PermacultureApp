@@ -35,25 +35,8 @@
         <div class="tabs" role="tablist" aria-label="Task lists">
           <button class="tab is-active" id="tabOpen" role="tab" aria-selected="true">Open</button>
           <button class="tab" id="tabDone" role="tab" aria-selected="false">Completed</button>
-          <!-- Admins only: every open task across all members. Revealed by JS. -->
-          <button class="tab" id="tabAll" role="tab" aria-selected="false" hidden>All users</button>
-        </div>
-
-        <!-- Admins only: sort/filter controls for the "All users" view. -->
-        <div class="toolbar task-filters" id="taskFilters" hidden>
-          <select id="sortSelect" aria-label="Sort tasks">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-          <select id="statusSelect" aria-label="Filter by status">
-            <option value="all">All statuses</option>
-            <option value="overdue">Overdue</option>
-            <option value="incomplete">Incomplete</option>
-            <option value="complete">Complete</option>
-          </select>
-          <select id="userSelect" aria-label="Filter by user">
-            <option value="">All users</option>
-          </select>
+          <!-- Admins only: every overdue task across all members. Revealed by JS. -->
+          <button class="tab" id="tabAll" role="tab" aria-selected="false" hidden>Overdue</button>
         </div>
 
         <!-- Task list + loading / empty states live here. -->
@@ -126,11 +109,7 @@
       var errorEl = document.getElementById("errorState");
       var tabOpen = document.getElementById("tabOpen");
       var tabDone = document.getElementById("tabDone");
-      var taskFilters = document.getElementById("taskFilters");
-      var sortSelect = document.getElementById("sortSelect");
-      var statusSelect = document.getElementById("statusSelect");
-      var userSelect = document.getElementById("userSelect");
-      var view = "open"; // "open" | "done" | "all" (admin)
+      var view = "open"; // "open" | "done" | "overdue" (admin)
 
       var me = SC.getCachedUser() || {};
       var isAdmin = me.userRole === "admin";
@@ -164,7 +143,7 @@
         loadingEl.hidden = true;
         errorEl.hidden = true;
         listEl.innerHTML = "";
-        if (view === "all") tasks = applyAdminFilters(tasks);
+        if (view === "overdue") tasks = tasks.filter(isOverdue);
         if (!tasks.length) { emptyEl.hidden = false; return; }
         emptyEl.hidden = true;
         tasks.forEach(function (t) { listEl.appendChild(taskCard(t)); });
@@ -182,21 +161,21 @@
           errorEl.textContent = err.message || "Could not load tasks.";
         }
 
-        if (view === "open" || view === "done") {
-          // Instant from cache on revisit, then revalidate + update if changed.
+        if (view === "overdue") {
+          // Admins only: every member's incomplete tasks; renderTasks keeps the
+          // overdue ones.
+          SC.Admin.tasks({ isCompleted: false }).then(renderTasks).catch(fail);
+        } else if (isAdmin) {
+          // Admins see all members' tasks (including their own) on Open/Completed.
+          SC.Admin.tasks({ isCompleted: view === "done" }).then(renderTasks).catch(fail);
+        } else {
+          // Regular users: just their own tasks. Instant from cache on revisit,
+          // then revalidate + update if changed.
           SC.swr(
             "tasks:" + view,
             function () { return view === "open" ? SC.Tasks.open() : SC.Tasks.completed(); },
             renderTasks
           ).catch(fail);
-        } else {
-          // Admin "All users" view depends on live filter controls — fetch fresh.
-          var query = {};
-          var status = statusSelect.value;
-          if (status === "complete") query.isCompleted = true;
-          else if (status === "incomplete" || status === "overdue") query.isCompleted = false;
-          if (userSelect.value) query.assignedTo = userSelect.value;
-          SC.Admin.tasks(query).then(renderTasks).catch(fail);
         }
       }
 
@@ -206,19 +185,9 @@
         SC.swrDrop("tasks:done");
       }
 
-      // Admin view: keep only overdue tasks when that filter is set, then sort
-      // by creation date (newest or oldest first).
-      function applyAdminFilters(tasks) {
-        if (statusSelect.value === "overdue") {
-          var now = new Date();
-          tasks = tasks.filter(function (t) {
-            return !t.isCompleted && new Date(t.dueDateTime) < now;
-          });
-        }
-        var dir = sortSelect.value === "oldest" ? 1 : -1;
-        return tasks.slice().sort(function (a, b) {
-          return dir * (new Date(a.createdAt) - new Date(b.createdAt));
-        });
+      // A task is overdue when it's incomplete and past its due date.
+      function isOverdue(t) {
+        return !t.isCompleted && new Date(t.dueDateTime) < new Date();
       }
 
       // Build one task row. Uses DOM APIs (not innerHTML) for user-supplied text
@@ -234,9 +203,9 @@
         h.textContent = t.name || "Untitled task";
         var meta = document.createElement("p");
         meta.className = "task__meta";
-        // In the admin "All users" view, prefix with the assignee's name.
+        // Admins see everyone's tasks, so prefix each with the assignee's name.
         var prefix = "";
-        if (view === "all") {
+        if (isAdmin) {
           var who = t.assignedTo && t.assignedTo.username ? t.assignedTo.username : "Unassigned";
           prefix = who + " · ";
         }
@@ -312,7 +281,7 @@
 
       // --------------------------------------------------------- Tabs
       var tabAll = document.getElementById("tabAll");
-      var tabMap = { open: tabOpen, done: tabDone, all: tabAll };
+      var tabMap = { open: tabOpen, done: tabDone, overdue: tabAll };
       function setView(v) {
         view = v;
         Object.keys(tabMap).forEach(function (key) {
@@ -320,18 +289,11 @@
           tabMap[key].classList.toggle("is-active", on);
           tabMap[key].setAttribute("aria-selected", String(on));
         });
-        // The sort/filter controls only apply to the admin "All users" view.
-        taskFilters.hidden = v !== "all";
         load();
       }
       tabOpen.addEventListener("click", function () { setView("open"); });
       tabDone.addEventListener("click", function () { setView("done"); });
-      tabAll.addEventListener("click", function () { setView("all"); });
-
-      // Re-load the admin view whenever a sort/filter control changes.
-      [sortSelect, statusSelect, userSelect].forEach(function (sel) {
-        sel.addEventListener("change", function () { if (view === "all") load(); });
-      });
+      tabAll.addEventListener("click", function () { setView("overdue"); });
 
       // Assignee picker (admins only): populate "Assign to" with every verified
       // user, so an admin can assign a task to anyone (not just Safe Cities).
@@ -356,11 +318,6 @@
               aOpt.textContent = u.username;
               assigneeSelect.appendChild(aOpt);
             }
-            // User filter (admin all-tasks view): everyone.
-            var fOpt = document.createElement("option");
-            fOpt.value = u._id;
-            fOpt.textContent = u.username;
-            userSelect.appendChild(fOpt);
           });
           // Visibility of the picker is controlled per dialog mode below.
         }).catch(function () { /* leave the picker empty on error */ });
