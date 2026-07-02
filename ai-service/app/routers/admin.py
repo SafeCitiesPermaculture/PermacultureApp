@@ -51,4 +51,15 @@ def reindex_trigger(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing reindex token",
         )
-    return _run_reindex()
+    result = _run_reindex()
+    # Return only COUNTS, not the per-file lists. Schedulers like cron-job.org
+    # cap the response body they'll store and mark the run "output too large"
+    # otherwise — and in steady state `skipped` holds one entry per corpus file,
+    # so the full payload grows unbounded with the document count.
+    return {
+        "index": result.get("index"),
+        "indexed": len(result.get("indexed", [])),
+        "skipped": len(result.get("skipped", [])),
+        "failed": len(result.get("failed", [])),
+        "pruned": len(result.get("pruned", [])),
+    }
