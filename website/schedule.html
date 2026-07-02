@@ -31,12 +31,18 @@
           <button class="btn btn--marigold" id="addTaskBtn">+ New task</button>
         </header>
 
-        <!-- Tabs to switch between open and completed tasks. -->
-        <div class="tabs" role="tablist" aria-label="Task lists">
-          <button class="tab is-active" id="tabOpen" role="tab" aria-selected="true">Open</button>
-          <button class="tab" id="tabDone" role="tab" aria-selected="false">Completed</button>
-          <!-- Admins only: every overdue task across all members. Revealed by JS. -->
-          <button class="tab" id="tabAll" role="tab" aria-selected="false" hidden>Overdue</button>
+        <!-- Tabs to switch between open, completed and overdue tasks (all users
+             see their own; admins see everyone's). The user filter to the right
+             is admin-only and revealed by JS. -->
+        <div class="tabs-row">
+          <div class="tabs" role="tablist" aria-label="Task lists">
+            <button class="tab is-active" id="tabOpen" role="tab" aria-selected="true">Open</button>
+            <button class="tab" id="tabDone" role="tab" aria-selected="false">Completed</button>
+            <button class="tab" id="tabAll" role="tab" aria-selected="false">Overdue</button>
+          </div>
+          <select id="userFilter" class="task-user-filter" aria-label="Filter by user" hidden>
+            <option value="">All users</option>
+          </select>
         </div>
 
         <!-- Task list + loading / empty states live here. -->
@@ -109,7 +115,8 @@
       var errorEl = document.getElementById("errorState");
       var tabOpen = document.getElementById("tabOpen");
       var tabDone = document.getElementById("tabDone");
-      var view = "open"; // "open" | "done" | "overdue" (admin)
+      var userFilter = document.getElementById("userFilter"); // admin-only
+      var view = "open"; // "open" | "done" | "overdue"
 
       var me = SC.getCachedUser() || {};
       var isAdmin = me.userRole === "admin";
@@ -161,19 +168,19 @@
           errorEl.textContent = err.message || "Could not load tasks.";
         }
 
-        if (view === "overdue") {
-          // Admins only: every member's incomplete tasks; renderTasks keeps the
-          // overdue ones.
-          SC.Admin.tasks({ isCompleted: false }).then(renderTasks).catch(fail);
-        } else if (isAdmin) {
-          // Admins see all members' tasks (including their own) on Open/Completed.
-          SC.Admin.tasks({ isCompleted: view === "done" }).then(renderTasks).catch(fail);
+        if (isAdmin) {
+          // Admins see everyone's tasks and can filter by a specific user.
+          // Overdue = incomplete tasks; renderTasks trims to the overdue ones.
+          var query = { isCompleted: view === "done" };
+          if (userFilter.value) query.assignedTo = userFilter.value;
+          SC.Admin.tasks(query).then(renderTasks).catch(fail);
         } else {
-          // Regular users: just their own tasks. Instant from cache on revisit,
-          // then revalidate + update if changed.
+          // Regular users: only their own tasks. Open + Overdue both come from
+          // the open list (renderTasks trims Overdue); Completed from completed.
+          var key = view === "done" ? "done" : "open";
           SC.swr(
-            "tasks:" + view,
-            function () { return view === "open" ? SC.Tasks.open() : SC.Tasks.completed(); },
+            "tasks:" + key,
+            function () { return key === "done" ? SC.Tasks.completed() : SC.Tasks.open(); },
             renderTasks
           ).catch(fail);
         }
@@ -295,8 +302,12 @@
       tabDone.addEventListener("click", function () { setView("done"); });
       tabAll.addEventListener("click", function () { setView("overdue"); });
 
-      // Assignee picker (admins only): populate "Assign to" with every verified
-      // user, so an admin can assign a task to anyone (not just Safe Cities).
+      // Admin user filter: reload the current tab whenever the selection changes.
+      userFilter.addEventListener("change", function () { load(); });
+
+      // Admins only: populate the "Assign to" picker (new-task dialog) and the
+      // "Filter by user" dropdown with every verified user, so an admin can
+      // assign to / filter by anyone. Fetched live, so users added later appear.
       var assigneeField = document.getElementById("assigneeField");
       var assigneeSelect = document.getElementById("taskAssignee");
       var workersLoaded = false;
@@ -310,25 +321,37 @@
           selfOpt.value = me._id;
           selfOpt.textContent = "Myself";
           assigneeSelect.appendChild(selfOpt);
-          users.forEach(function (u) {
-            // Assignee picker: everyone except me (I'm already "Myself").
-            if (String(u._id) !== String(me._id)) {
-              var aOpt = document.createElement("option");
-              aOpt.value = u._id;
-              aOpt.textContent = u.username;
-              assigneeSelect.appendChild(aOpt);
-            }
-          });
-          // Visibility of the picker is controlled per dialog mode below.
-        }).catch(function () { /* leave the picker empty on error */ });
+          // Keep any current filter selection while rebuilding its options.
+          var currentFilter = userFilter.value;
+          userFilter.innerHTML = '<option value="">All users</option>';
+          users
+            .slice()
+            .sort(function (a, b) { return (a.username || "").localeCompare(b.username || ""); })
+            .forEach(function (u) {
+              // Assignee picker: everyone except me (I'm already "Myself").
+              if (String(u._id) !== String(me._id)) {
+                var aOpt = document.createElement("option");
+                aOpt.value = u._id;
+                aOpt.textContent = u.username;
+                assigneeSelect.appendChild(aOpt);
+              }
+              // User filter: every user (including me).
+              var fOpt = document.createElement("option");
+              fOpt.value = u._id;
+              fOpt.textContent = u.username;
+              userFilter.appendChild(fOpt);
+            });
+          userFilter.value = currentFilter; // restore selection if still present
+        }).catch(function () { /* leave the pickers with defaults on error */ });
       }
 
-      // Reveal the org-wide "All users" tab + worker picker for admins
-      // (cached role first, then refreshed once /auth/userdata returns).
+      // Reveal the admin-only "Filter by user" dropdown + worker picker for
+      // admins (cached role first, then refreshed once /auth/userdata returns).
+      // The Open/Completed/Overdue tabs themselves are visible to everyone.
       function applyRole(u) {
         if (u && u.userRole === "admin") {
-          if (!isAdmin) { isAdmin = true; me = u; load(); } // re-render to show Edit
-          tabAll.hidden = false;
+          if (!isAdmin) { isAdmin = true; me = u; load(); } // re-render as admin
+          userFilter.hidden = false;
           loadWorkers();
         }
       }
