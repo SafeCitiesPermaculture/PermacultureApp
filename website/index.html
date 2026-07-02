@@ -71,16 +71,33 @@
         <!-- Primary navigation — same link set as the app's tabs. -->
         <nav class="primary-nav" id="primaryNav" aria-label="Primary">
           <ul class="primary-nav__list">
+            <!-- Log in button, left of Home. Only shown when signed out; the
+                 script below removes it if a session token is present. -->
+            <li id="navLoginItem"><a class="primary-nav__link primary-nav__link--cta" href="login.html">Log in</a></li>
             <li><a class="primary-nav__link is-current" href="index.html" aria-current="page">Home</a></li>
             <li><a class="primary-nav__link" href="marketplace.html">Marketplace</a></li>
             <li><a class="primary-nav__link" href="documents.html">Documents</a></li>
             <li><a class="primary-nav__link" href="schedule.html">Schedule</a></li>
             <li><a class="primary-nav__link" href="assistant.html">Assistant</a></li>
-            <li><a class="primary-nav__link primary-nav__link--cta" href="profile.html">Profile</a></li>
+            <li><a class="primary-nav__link" href="profile.html">Profile</a></li>
           </ul>
         </nav>
       </div>
     </header>
+
+    <!-- Hide the header "Log in" button when a session already exists. Reads the
+         same localStorage token the rest of the site uses (no api.js needed). -->
+    <script>
+      (function () {
+        try {
+          var t = JSON.parse(localStorage.getItem("tokens") || "null");
+          if (t && t.accessToken) {
+            var el = document.getElementById("navLoginItem");
+            if (el) el.remove();
+          }
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
 
     <main id="main">
       <!-- ================================ HERO ================================ -->

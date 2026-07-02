@@ -38,7 +38,7 @@
 
   /* ------------------------------------------------------- 2. Build header */
   function navLinks() {
-    return NAV.map(function (item) {
+    var items = NAV.map(function (item) {
       var cls = "primary-nav__link" + (item.key === active ? " is-current" : "");
       var current = item.key === active ? ' aria-current="page"' : "";
       return (
@@ -46,11 +46,19 @@
         SC.escapeHtml(item.label) +
         "</a></li>"
       );
-    }).join("");
+    });
+    // Signed out: a Log in button sits to the LEFT of Home, styled like the
+    // Profile CTA pill. (Signed in, the account area on the right takes over.)
+    if (!SC.isLoggedIn()) {
+      items.unshift(
+        '<li><a class="primary-nav__link primary-nav__link--cta" href="login.html">Log in</a></li>'
+      );
+    }
+    return items.join("");
   }
 
-  // The account area: a Login button when signed out, or the username + Logout
-  // when signed in.
+  // The account area (right side): the username + Logout when signed in. When
+  // signed out it's empty — the Log in button lives in the nav (left of Home).
   function accountArea() {
     var user = SC.getCachedUser();
     if (SC.isLoggedIn() && user) {
@@ -61,7 +69,7 @@
         "</div>"
       );
     }
-    return '<a class="btn btn--sm btn--leaf" href="login.html">Log in</a>';
+    return "";
   }
 
   var header = document.createElement("header");
