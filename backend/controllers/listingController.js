@@ -51,15 +51,18 @@ const createListing = async (req, res) => {
                 .json({ message: "Price must be a non-negative number." });
         }
 
+        // A photo is required for every new listing.
+        if (!req.file) {
+            return res.status(400).json({ message: "A photo is required." });
+        }
+
         let imageUrl = "";
-        if (req.file) {
-            try {
-                const result = await uploadBufferToCloudinary(req.file, "marketplace");
-                imageUrl = result.url;
-            } catch (uploadError) {
-                console.error("Error uploading listing image:", uploadError.message);
-                return res.status(500).json({ message: "Failed to upload image.", error: uploadError.message });
-            }
+        try {
+            const result = await uploadBufferToCloudinary(req.file, "marketplace");
+            imageUrl = result.url;
+        } catch (uploadError) {
+            console.error("Error uploading listing image:", uploadError.message);
+            return res.status(500).json({ message: "Failed to upload image.", error: uploadError.message });
         }
 
         const newListing = Listing({

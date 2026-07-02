@@ -77,8 +77,8 @@
           <textarea id="description" name="description" rows="3" maxlength="500"></textarea>
         </div>
         <div class="field">
-          <label for="image">Photo (optional)</label>
-          <input id="image" name="image" type="file" accept="image/*" />
+          <label for="image" id="imageLabel">Photo (required)</label>
+          <input id="image" name="image" type="file" accept="image/*" required />
         </div>
         <p class="form-msg" id="postMsg" role="alert"></p>
         <div class="dialog__actions">
@@ -341,6 +341,8 @@
       var postDialogTitle = document.getElementById("postDialogTitle");
       var postSaveBtn = document.getElementById("postSave");
       var editingListingId = null; // null = posting a new listing
+      var imageInput = document.getElementById("image");
+      var imageLabel = document.getElementById("imageLabel");
 
       document.getElementById("postBtn").addEventListener("click", function () {
         editingListingId = null;
@@ -348,6 +350,9 @@
         postMsg.textContent = "";
         postDialogTitle.textContent = "Post a listing";
         postSaveBtn.textContent = "Post listing";
+        // New listings require a photo.
+        imageInput.required = true;
+        imageLabel.textContent = "Photo (required)";
         postDialog.showModal();
       });
 
@@ -362,22 +367,29 @@
         document.getElementById("description").value = l.description || "";
         postDialogTitle.textContent = "Edit listing";
         postSaveBtn.textContent = "Save changes";
+        // Editing keeps the existing photo unless a new one is chosen.
+        imageInput.required = false;
+        imageLabel.textContent = "Photo (keep current, or choose a new one)";
         postDialog.showModal();
       }
 
       document.getElementById("postCancel").addEventListener("click", function () { postDialog.close(); });
       postForm.addEventListener("submit", function (e) {
         e.preventDefault();
+        var image = imageInput.files[0];
+        var wasEditing = !!editingListingId;
+        // A photo is required for new listings (edits keep the current one).
+        if (!wasEditing && !image) {
+          postMsg.textContent = "A photo is required.";
+          return;
+        }
         postSaveBtn.disabled = true;
         var fd = new FormData();
         fd.append("title", document.getElementById("title").value.trim());
         fd.append("price", document.getElementById("price").value);
         fd.append("location", document.getElementById("location").value.trim());
         fd.append("description", document.getElementById("description").value.trim());
-        var image = document.getElementById("image").files[0];
         if (image) fd.append("image", image);
-        // Editing keeps the current photo unless a new one is chosen.
-        var wasEditing = !!editingListingId;
         var done = wasEditing
           ? SC.Listings.update(editingListingId, fd)
           : SC.Listings.create(fd);
