@@ -35,6 +35,7 @@
           <input type="file" id="uploadInput" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
           <button class="btn btn--leaf btn--sm" id="uploadBtn" type="button">Upload file</button>
           <button class="btn btn--ghost btn--sm" id="newFolderBtn" type="button">New folder</button>
+          <button class="btn btn--ghost btn--sm" id="reindexBtn" type="button" title="Scan Drive for new or removed documents and update the AI assistant's knowledge">Refresh AI</button>
           <span class="doc-admin__hint" id="uploadHint" hidden>Open a folder to upload files into it. PDF and Word (.docx) only.</span>
         </div>
 
@@ -141,6 +142,29 @@
           .then(function () { SC.toast("Folder “" + name + "” created", "success"); SC.swrDrop(cacheKey()); load(); })
           .catch(function (e) { SC.toast(e.message || "Could not create folder", "error"); })
           .then(function () { newFolderBtn.disabled = false; });
+      });
+
+      // Admin: ask the AI service to rescan Drive and update its knowledge
+      // index (same incremental job the 15-minute cron runs). Handy right
+      // after uploading or deleting documents.
+      var reindexBtn = document.getElementById("reindexBtn");
+      reindexBtn.addEventListener("click", function () {
+        reindexBtn.disabled = true;
+        var label = reindexBtn.textContent;
+        reindexBtn.textContent = "Refreshing…";
+        SC.Files.reindex()
+          .then(function (r) {
+            var added = (r.indexed || []).length;
+            var pruned = (r.pruned || []).length;
+            SC.toast(
+              added || pruned
+                ? "AI knowledge updated: " + added + " added, " + pruned + " removed"
+                : "AI knowledge already up to date",
+              "success"
+            );
+          })
+          .catch(function (e) { SC.toast(e.message || "Could not refresh the AI knowledge", "error"); })
+          .then(function () { reindexBtn.disabled = false; reindexBtn.textContent = label; });
       });
 
       // The cached user may not carry the role yet; upgrade when the fresh copy

@@ -345,6 +345,9 @@
       return request("api", "/files/" + id + "/flags", { method: "PATCH", body: flags });
     },
     remove: function (id) { return request("api", "/files/delete/" + id, { method: "DELETE" }); },
+    // Admin: run the AI-service corpus reindex (admin JWT checked over there).
+    // Incremental: already-indexed files are skipped, deleted ones pruned.
+    reindex: function () { return request("ai", "/corpus/reindex", { method: "POST" }); },
   };
 
   var Users = {

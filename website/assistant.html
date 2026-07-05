@@ -556,12 +556,52 @@
         // Animated three-dot "thinking" indicator until the first token lands.
         typing.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
 
-        var acc = "";            // accumulated reply text
+        var acc = "";            // full reply text received so far
+        var shown = 0;           // characters currently revealed on screen
+        var revealRaf = null;    // typewriter animation frame
+        var afterDrain = null;   // runs once the reveal catches up with acc
         var streamSources = null;
         var started = false;     // first token received?
         var errored = false;
+        var instantText = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         var controller = new AbortController();
         stopBtn.onclick = function () { controller.abort(); };
+
+        // Typewriter reveal. Tokens arrive from the network in bursts (the
+        // model, the proxy and the socket all batch), so painting them raw
+        // reads line-by-line. Instead we buffer and reveal a few characters
+        // per frame, like the big chat UIs. The step grows with the backlog
+        // so the reveal never falls more than a beat behind the live stream.
+        function drainStep() {
+          revealRaf = null;
+          var backlog = acc.length - shown;
+          if (backlog <= 0) {
+            if (afterDrain) { var f = afterDrain; afterDrain = null; f(); }
+            return;
+          }
+          var step = Math.max(3, Math.ceil(backlog / 12));
+          if (afterDrain) step = Math.max(step, Math.ceil(backlog / 4)); // stream over: catch up fast
+          shown = Math.min(acc.length, shown + step);
+          typing.innerHTML = renderMarkdown(acc.slice(0, shown));
+          log.scrollTop = log.scrollHeight;
+          revealRaf = requestAnimationFrame(drainStep);
+        }
+        function queueReveal() {
+          if (instantText) { // respect prefers-reduced-motion: no animation
+            shown = acc.length;
+            typing.innerHTML = renderMarkdown(acc);
+            log.scrollTop = log.scrollHeight;
+            if (afterDrain) { var f = afterDrain; afterDrain = null; f(); }
+            return;
+          }
+          if (!revealRaf) revealRaf = requestAnimationFrame(drainStep);
+        }
+        function flushReveal() {
+          if (revealRaf) { cancelAnimationFrame(revealRaf); revealRaf = null; }
+          afterDrain = null;
+          shown = acc.length;
+          if (acc) typing.innerHTML = renderMarkdown(acc);
+        }
 
         function finalize() {
           sendBtn.disabled = false;
@@ -581,12 +621,11 @@
           onDelta: function (t) {
             if (!started) { started = true; wrap.classList.remove("is-typing"); typing.innerHTML = ""; }
             acc += t;
-            // Render the light markdown live as tokens arrive so formatting
+            // Markdown renders live as the reveal advances, so formatting
             // (bold, bullets) appears during generation. Incomplete markers
-            // (e.g. an unclosed **) simply show as plain text until their
-            // closing marker streams in, then snap into formatting.
-            typing.innerHTML = renderMarkdown(acc);
-            log.scrollTop = log.scrollHeight;
+            // (e.g. an unclosed **) show as plain text until their closing
+            // marker streams in, then snap into formatting.
+            queueReveal();
           },
           onError: function (msg) {
             errored = true;
@@ -595,23 +634,27 @@
           },
           onDone: function () {
             wrap.classList.remove("is-typing");
-            if (acc) {
-              typing.innerHTML = renderMarkdown(acc);
-              var src = buildSources(streamSources);
-              if (src) wrap.appendChild(src);
-              convo.push({ role: "assistant", content: acc });
-            } else if (!errored) {
-              typing.textContent = "(no reply)";
-            }
-            log.scrollTop = log.scrollHeight;
-            finalize();
+            // Let the typewriter catch up (at speed), then close out the turn.
+            afterDrain = function () {
+              if (acc) {
+                typing.innerHTML = renderMarkdown(acc);
+                var src = buildSources(streamSources);
+                if (src) wrap.appendChild(src);
+                convo.push({ role: "assistant", content: acc });
+              } else if (!errored) {
+                typing.textContent = "(no reply)";
+              }
+              log.scrollTop = log.scrollHeight;
+              finalize();
+            };
+            queueReveal();
           },
         }).catch(function (err) {
           wrap.classList.remove("is-typing");
+          flushReveal(); // stop the typewriter and show everything received
           // The user pressed Stop: keep whatever streamed as the reply.
           if (err && err.name === "AbortError") {
             if (acc) {
-              typing.innerHTML = renderMarkdown(acc);
               convo.push({ role: "assistant", content: acc });
             } else {
               typing.textContent = "(stopped)";
