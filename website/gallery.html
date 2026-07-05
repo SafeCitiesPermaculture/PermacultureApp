@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture - Gallery page
+  ---------------------------------------
+  Static public page in the same shell as index.html. The grid mixes photos
+  (figure + figcaption) with coloured "story tiles" so it reads as complete
+  while the photo library is still small - drop new images into
+  assets/images/ and copy any <li class="gallery-item"> block to add them.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gallery · Safe Cities Permaculture</title>
+    <meta
+      name="description"
+      content="Photos from the Safe Cities permaculture farm and programmes in Elsies River, Cape Town: gardens, people and the work in between."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="main.js" defer></script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <!-- ============================ SITE HEADER ============================ -->
+    <header class="site-header" id="top">
+      <div class="container site-header__inner">
+        <a class="brand" href="index.html" aria-label="Safe Cities Permaculture home">
+          <img
+            class="brand__logo"
+            src="./assets/images/logo.png"
+            alt="Safe Cities Permaculture logo"
+            width="56"
+            height="56"
+          />
+          <span class="brand__text">
+            <span class="brand__name">Safe Cities</span>
+            <span class="brand__tag">Igniting Community Transformation</span>
+          </span>
+        </a>
+
+        <button
+          class="nav-toggle"
+          id="navToggle"
+          aria-expanded="false"
+          aria-controls="primaryNav"
+          aria-label="Open menu"
+        >
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+        </button>
+
+        <nav class="primary-nav" id="primaryNav" aria-label="Primary">
+          <ul class="primary-nav__list">
+            <li><a class="primary-nav__link" href="index.html">Home</a></li>
+            <li><a class="primary-nav__link is-current" href="gallery.html" aria-current="page">Gallery</a></li>
+            <li><a class="primary-nav__link" href="donate.html">Donate</a></li>
+            <li><a class="primary-nav__link" href="marketplace.html">Marketplace</a></li>
+            <li><a class="primary-nav__link" href="documents.html">Documents</a></li>
+            <li><a class="primary-nav__link" href="schedule.html">Schedule</a></li>
+            <li><a class="primary-nav__link" href="assistant.html">Assistant</a></li>
+            <li><a class="primary-nav__link primary-nav__link--cta" href="profile.html">Profile</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============================ PAGE INTRO ============================ -->
+      <section class="section" aria-labelledby="gallery-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow reveal"><span class="dot" aria-hidden="true"></span> Gallery</p>
+            <h1 class="section-title reveal" id="gallery-title">
+              The farm, in pictures
+            </h1>
+            <p class="section-intro reveal">
+              Permaculture is slow, patient work: beds built by hand, seedlings
+              raised from saved seed, and neighbours learning side by side.
+              Here's what that looks like in Elsies River.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= SLIDESHOW ============================ -->
+      <!-- Auto-advancing carousel over every gallery photo. Slides are built by
+           the script below from the grid figures, so the grid stays the single
+           source of truth. Arrows, swipe and keyboard all work; autoplay pauses
+           on hover and respects prefers-reduced-motion. -->
+      <section class="section gallery-show" aria-label="Photo slideshow">
+        <div class="container">
+          <div class="slideshow" id="slideshow" aria-roledescription="carousel" aria-label="Farm photos">
+            <figure class="slideshow__stage">
+              <img class="slideshow__img" id="ssImg" src="" alt="" />
+              <figcaption class="slideshow__caption">
+                <span class="slideshow__cat" id="ssCat"></span>
+                <span id="ssText"></span>
+              </figcaption>
+            </figure>
+            <button class="slideshow__nav slideshow__nav--prev" id="ssPrev" type="button" aria-label="Previous photo">&#8249;</button>
+            <button class="slideshow__nav slideshow__nav--next" id="ssNext" type="button" aria-label="Next photo">&#8250;</button>
+            <div class="slideshow__meta">
+              <span class="slideshow__count" id="ssCount" aria-live="polite"></span>
+              <button class="slideshow__play" id="ssPlay" type="button" aria-label="Pause slideshow">&#10074;&#10074;</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================== GALLERY ============================= -->
+      <section class="section gallery" aria-label="Photo gallery">
+        <div class="container">
+          <h2 class="gallery-cat" id="cat-garden">The Garden</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264359/gallery/w9pthsstllxaf7phkhlc.jpg" alt="Rows of lettuce coming on strong in the main beds." loading="lazy" />
+                <figcaption>Rows of lettuce coming on strong in the main beds.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264361/gallery/ahxdcaflaowalm4cmisk.jpg" alt="Tomatoes climbing their stakes under the shade netting." loading="lazy" />
+                <figcaption>Tomatoes climbing their stakes under the shade netting.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264358/gallery/bf0lmz9edzuyjlyoeca9.jpg" alt="Flowers between the beds keep the pollinators fed." loading="lazy" />
+                <figcaption>Flowers between the beds keep the pollinators fed.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <h2 class="gallery-cat" id="cat-work">Farm Work</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264355/gallery/vrazmeirjwluxi0rm3h5.jpg" alt="Harvesting spring onions, row by row, into the wheelbarrow." loading="lazy" />
+                <figcaption>Harvesting spring onions, row by row, into the wheelbarrow.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264357/gallery/cqjavwmzu0aduredwzaw.jpg" alt="Cabbage harvest day." loading="lazy" />
+                <figcaption>Cabbage harvest day.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264356/gallery/doclt7gdca3b1nsrknrv.jpg" alt="A head of lettuce, grown from seed on the farm." loading="lazy" />
+                <figcaption>A head of lettuce, grown from seed on the farm.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <h2 class="gallery-cat" id="cat-produce">Fresh Produce</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264364/gallery/jtblhoggzedba2evgyrc.jpg" alt="A wheelbarrow of squash fresh from the beds." loading="lazy" />
+                <figcaption>A wheelbarrow of squash fresh from the beds.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264363/gallery/vuk3z6mr1d30ichzf1iu.jpg" alt="Green peppers picked the same morning." loading="lazy" />
+                <figcaption>Green peppers picked the same morning.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264362/gallery/dcl4nymxsd16k8ip6pds.jpg" alt="Lettuce packed and ready for the community." loading="lazy" />
+                <figcaption>Lettuce packed and ready for the community.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <h2 class="gallery-cat" id="cat-animals">The Animals</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264340/gallery/lmoogdwchylvoe4ctnbg.jpg" alt="One of the farm's roosters on patrol." loading="lazy" />
+                <figcaption>One of the farm's roosters on patrol.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264344/gallery/h5wamdiaitt3raqfgtoq.jpg" alt="The flock at feeding time." loading="lazy" />
+                <figcaption>The flock at feeding time.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264342/gallery/kfirylf2iolhr48cy8fl.jpg" alt="The resident pig, taking it easy." loading="lazy" />
+                <figcaption>The resident pig, taking it easy.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <h2 class="gallery-cat" id="cat-bees">Beekeeping</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264345/gallery/thqffw1iiqd0xqoy2ugu.jpg" alt="Beekeeping training: inspecting a frame straight from the hive." loading="lazy" />
+                <figcaption>Beekeeping training: inspecting a frame straight from the hive.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264346/gallery/dogls2qbvkq5u620sfs1.jpg" alt="A handmade hive box, built on the farm." loading="lazy" />
+                <figcaption>A handmade hive box, built on the farm.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <h2 class="gallery-cat" id="cat-clay">The Clay Building</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264347/gallery/ajumbxsmzxp51s4ipp8h.jpg" alt="Our clay building at golden hour, built from bricks pressed on site." loading="lazy" />
+                <figcaption>Our clay building at golden hour, built from bricks pressed on site.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264349/gallery/wuyxqieumqhxuwsnjjud.jpg" alt="Thousands of clay bricks drying in the sun." loading="lazy" />
+                <figcaption>Thousands of clay bricks drying in the sun.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264350/gallery/lewhaxevnbxrkbevvu5r.jpg" alt="Inside: plastered clay walls and a finished bathroom." loading="lazy" />
+                <figcaption>Inside: plastered clay walls and a finished bathroom.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <h2 class="gallery-cat" id="cat-tours">Farm Tours</h2>
+          <ul class="gallery-grid">
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264351/gallery/jbfvkn9lrof0h8ieprdx.jpg" alt="Visitors walking in for a farm tour." loading="lazy" />
+                <figcaption>Visitors walking in for a farm tour.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264352/gallery/lelpp84ie62foqrku1up.jpg" alt="Touring the shade tunnels where the seedlings grow." loading="lazy" />
+                <figcaption>Touring the shade tunnels where the seedlings grow.</figcaption>
+              </figure>
+            </li>
+            <li class="gallery-item">
+              <figure>
+                <img src="https://res.cloudinary.com/dexwupxhq/image/upload/f_auto,q_auto,w_900/v1783264353/gallery/pxeeleroyylk4cycn6g4.jpg" alt="A tour group in the maize, midsummer." loading="lazy" />
+                <figcaption>A tour group in the maize, midsummer.</figcaption>
+              </figure>
+            </li>
+          </ul>
+
+          <p class="gallery-more">
+            Been on the farm? Send your photos to
+            <a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>
+            and help us grow this page.
+          </p>
+        </div>
+      </section>
+
+      <!-- =============================== CTA ================================ -->
+      <section class="section cta-band" aria-labelledby="cta-title">
+        <div class="container cta-band__inner">
+          <h2 class="cta-band__title" id="cta-title">Come see it in person</h2>
+          <p class="cta-band__text">
+            The best view of the farm is from inside it: visit, volunteer or
+            join a training programme.
+          </p>
+          <a class="btn btn--leaf" href="mailto:safecitiespermaculture@gmail.com">Email us</a>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================== SITE FOOTER ============================ -->
+    <footer class="site-footer">
+      <div class="container site-footer__grid">
+        <div class="site-footer__brand">
+          <span class="site-footer__logobox">
+            <img
+              class="site-footer__logo"
+              src="./assets/images/logo.png"
+              alt="Safe Cities Permaculture logo"
+              width="96"
+              height="96"
+            />
+          </span>
+          <p class="site-footer__tag">Igniting Community Transformation</p>
+          <p class="site-footer__muted">A non-profit organisation based in Elsies River, Cape Town.</p>
+        </div>
+
+        <nav class="site-footer__nav" aria-label="Footer">
+          <h2 class="site-footer__heading">Explore</h2>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="donate.html">Donate</a></li>
+            <li><a href="marketplace.html">Marketplace</a></li>
+            <li><a href="documents.html">Documents</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li><a href="assistant.html">Assistant</a></li>
+            <li><a href="profile.html">Profile</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-footer__contact">
+          <h2 class="site-footer__heading">Contact</h2>
+          <p>
+            <a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>
+          </p>
+          <p><a href="tel:+27845194878">084 519 4878</a></p>
+          <p class="site-footer__muted">Elsies River · Cape Town · South Africa</p>
+        </div>
+      </div>
+
+      <div class="container site-footer__bottom">
+        <p>&copy; <span id="year">2026</span> Safe Cities Permaculture. All rights reserved.</p>
+        <a class="site-footer__totop" href="#top">Back to top ↑</a>
+      </div>
+    </footer>
+    <!-- Click-to-enlarge lightbox. <dialog> gives us Escape + focus handling. -->
+    <dialog class="lightbox" id="lightbox" aria-label="Enlarged photo">
+      <button class="lightbox__close" id="lbClose" type="button" aria-label="Close">&#10005;</button>
+      <button class="slideshow__nav slideshow__nav--prev" id="lbPrev" type="button" aria-label="Previous photo">&#8249;</button>
+      <figure class="lightbox__fig">
+        <img class="lightbox__img" id="lbImg" src="" alt="" />
+        <figcaption class="lightbox__caption" id="lbText"></figcaption>
+      </figure>
+      <button class="slideshow__nav slideshow__nav--next" id="lbNext" type="button" aria-label="Next photo">&#8250;</button>
+    </dialog>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // ---- Collect every photo from the grid (single source of truth). ----
+        var photos = [];
+        var cat = "";
+        document.querySelectorAll(".gallery .container > *").forEach(function (el) {
+          if (el.classList.contains("gallery-cat")) { cat = el.textContent.trim(); return; }
+          if (!el.classList.contains("gallery-grid")) return;
+          el.querySelectorAll(".gallery-item figure").forEach(function (fig) {
+            var img = fig.querySelector("img");
+            var cap = fig.querySelector("figcaption");
+            photos.push({
+              small: img.src,
+              // Bigger renditions for the stage + lightbox; Cloudinary resizes.
+              large: img.src.replace("w_900", "w_1600"),
+              text: cap ? cap.textContent.trim() : "",
+              cat: cat,
+              fig: fig,
+            });
+          });
+        });
+        if (!photos.length) return;
+
+        // ---- Slideshow -----------------------------------------------------
+        var ssImg = document.getElementById("ssImg");
+        var ssCat = document.getElementById("ssCat");
+        var ssText = document.getElementById("ssText");
+        var ssCount = document.getElementById("ssCount");
+        var playBtn = document.getElementById("ssPlay");
+        var stage = document.querySelector(".slideshow__stage");
+        var current = 0;
+        var timer = null;
+        var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var playing = !reduceMotion;
+
+        // The slideshow plays in a fresh random order each visit (the grid
+        // below keeps its category order).
+        var order = photos.map(function (_, i) { return i; });
+        for (var s = order.length - 1; s > 0; s--) {
+          var r = Math.floor(Math.random() * (s + 1));
+          var tmp = order[s]; order[s] = order[r]; order[r] = tmp;
+        }
+
+        function show(i) {
+          current = (i + order.length) % order.length;
+          var p = photos[order[current]];
+          ssImg.classList.remove("is-loaded");
+          ssImg.src = p.large;
+          ssImg.alt = p.text;
+          ssCat.textContent = p.cat;
+          ssText.textContent = p.text;
+          ssCount.textContent = (current + 1) + " / " + photos.length;
+          // Warm the next slide so the crossfade never waits on the network.
+          var next = new Image();
+          next.src = photos[order[(current + 1) % order.length]].large;
+        }
+        ssImg.addEventListener("load", function () { ssImg.classList.add("is-loaded"); });
+
+        function schedule() {
+          clearInterval(timer);
+          timer = null;
+          if (playing) timer = setInterval(function () { show(current + 1); }, 5000);
+        }
+        function setPlaying(on) {
+          playing = on;
+          playBtn.innerHTML = on ? "&#10074;&#10074;" : "&#9654;";
+          playBtn.setAttribute("aria-label", on ? "Pause slideshow" : "Play slideshow");
+          schedule();
+        }
+        playBtn.addEventListener("click", function () { setPlaying(!playing); });
+
+        function step(delta) { show(current + delta); schedule(); }
+        document.getElementById("ssPrev").addEventListener("click", function () { step(-1); });
+        document.getElementById("ssNext").addEventListener("click", function () { step(1); });
+
+        // Pause while hovered so captions can be read.
+        var box = document.getElementById("slideshow");
+        box.addEventListener("pointerenter", function () { clearInterval(timer); timer = null; });
+        box.addEventListener("pointerleave", schedule);
+        // Don't burn data cycling images in a hidden tab.
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) { clearInterval(timer); timer = null; } else schedule();
+        });
+
+        // Swipe on touch screens.
+        var touchX = null;
+        stage.addEventListener("touchstart", function (e) { touchX = e.touches[0].clientX; }, { passive: true });
+        stage.addEventListener("touchend", function (e) {
+          if (touchX === null) return;
+          var dx = e.changedTouches[0].clientX - touchX;
+          touchX = null;
+          if (Math.abs(dx) > 40) step(dx > 0 ? -1 : 1);
+        }, { passive: true });
+
+        // ---- Lightbox (click any photo, incl. the slideshow, to enlarge) ----
+        var lightbox = document.getElementById("lightbox");
+        var lbImg = document.getElementById("lbImg");
+        var lbText = document.getElementById("lbText");
+        var lbIndex = 0;
+
+        function lbShow(i) {
+          lbIndex = (i + photos.length) % photos.length;
+          var p = photos[lbIndex];
+          lbImg.src = p.large;
+          lbImg.alt = p.text;
+          lbText.textContent = p.cat + " · " + p.text;
+        }
+        function openLightbox(i) {
+          lbShow(i);
+          lightbox.showModal();
+          clearInterval(timer); // pause the slideshow underneath
+          timer = null;
+        }
+        lightbox.addEventListener("close", schedule);
+        document.getElementById("lbClose").addEventListener("click", function () { lightbox.close(); });
+        document.getElementById("lbPrev").addEventListener("click", function () { lbShow(lbIndex - 1); });
+        document.getElementById("lbNext").addEventListener("click", function () { lbShow(lbIndex + 1); });
+        // Arrow keys while open; click on the dark backdrop closes.
+        lightbox.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowLeft") lbShow(lbIndex - 1);
+          if (e.key === "ArrowRight") lbShow(lbIndex + 1);
+        });
+        lightbox.addEventListener("click", function (e) {
+          if (e.target === lightbox) lightbox.close();
+        });
+        var lbTouchX = null;
+        lightbox.addEventListener("touchstart", function (e) { lbTouchX = e.touches[0].clientX; }, { passive: true });
+        lightbox.addEventListener("touchend", function (e) {
+          if (lbTouchX === null) return;
+          var dx = e.changedTouches[0].clientX - lbTouchX;
+          lbTouchX = null;
+          if (Math.abs(dx) > 40) lbShow(lbIndex + (dx > 0 ? -1 : 1));
+        }, { passive: true });
+
+        // Wire the grid photos and the slideshow stage to the lightbox.
+        photos.forEach(function (p, i) {
+          p.fig.classList.add("is-zoomable");
+          p.fig.setAttribute("role", "button");
+          p.fig.tabIndex = 0;
+          p.fig.setAttribute("aria-label", "View larger: " + p.text);
+          p.fig.addEventListener("click", function () { openLightbox(i); });
+          p.fig.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLightbox(i); }
+          });
+        });
+        stage.addEventListener("click", function () { openLightbox(order[current]); });
+
+        // ---- Go --------------------------------------------------------------
+        show(0);
+        setPlaying(playing);
+      })();
+    </script>
+  </body>
+</html>

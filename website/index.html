@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Home page
+  Safe Cities Permaculture - Home page
   -------------------------------------
   Plain, framework-free HTML5. Structure only lives here; all styling is in
   styles.css and the small amount of behaviour (mobile menu + scroll reveal)
@@ -11,10 +11,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Safe Cities Permaculture — Igniting Community Transformation</title>
+    <title>Safe Cities Permaculture · Igniting Community Transformation</title>
     <meta
       name="description"
-      content="Safe Cities is a South African non-profit in Elsies River, Cape Town, delivering social development and skills training — from permaculture to leadership — that empowers youth, women, men and children."
+      content="Safe Cities is a South African non-profit in Elsies River, Cape Town, delivering social development and skills training, from permaculture to leadership, that empowers youth, women, men and children."
     />
 
     <!-- Montserrat from Google Fonts. Loaded via <link> (not @import) so the
@@ -40,7 +40,7 @@
     <header class="site-header" id="top">
       <div class="container site-header__inner">
         <!-- Brand: the existing blue "SafeCities" logo, kept as-is. -->
-        <a class="brand" href="index.html" aria-label="Safe Cities Permaculture — home">
+        <a class="brand" href="index.html" aria-label="Safe Cities Permaculture home">
           <img
             class="brand__logo"
             src="./assets/images/logo.png"
@@ -68,13 +68,15 @@
           <span class="nav-toggle__bar"></span>
         </button>
 
-        <!-- Primary navigation — same link set as the app's tabs. -->
+        <!-- Primary navigation - same link set as the app's tabs. -->
         <nav class="primary-nav" id="primaryNav" aria-label="Primary">
           <ul class="primary-nav__list">
             <!-- Log in button, left of Home. Only shown when signed out; the
                  script below removes it if a session token is present. -->
             <li id="navLoginItem"><a class="primary-nav__link primary-nav__link--cta" href="login.html">Log in</a></li>
             <li><a class="primary-nav__link is-current" href="index.html" aria-current="page">Home</a></li>
+            <li><a class="primary-nav__link" href="gallery.html">Gallery</a></li>
+            <li><a class="primary-nav__link" href="donate.html">Donate</a></li>
             <li><a class="primary-nav__link" href="marketplace.html">Marketplace</a></li>
             <li><a class="primary-nav__link" href="documents.html">Documents</a></li>
             <li><a class="primary-nav__link" href="schedule.html">Schedule</a></li>
@@ -113,11 +115,12 @@
             <span class="dot" aria-hidden="true"></span> Elsies River · Cape Town · South Africa
           </p>
           <h1 class="hero__title reveal" id="hero-title">
-            Igniting <em>community</em> transformation
+            Permaculture <em>Program</em>
           </h1>
           <p class="hero__lead reveal">
-            Safe Cities is a non-profit growing skills, gardens and leaders —
-            equipping our community to build a self-sustaining future.
+            Safe Cities is a non-profit organization equipping people with
+            practical skills, sustainable agriculture, and leadership
+            opportunities to build resilient, self-sustaining communities.
           </p>
           <div class="hero__actions reveal">
             <a class="btn btn--marigold" href="#programs">Explore our programmes</a>
@@ -139,7 +142,7 @@
             <p>
               Safe Cities is a Non-Profit Organization based in Elsies River. We
               focus on <strong>Social Development</strong> and
-              <strong>Skills Training</strong> — Capacity Building &amp; Theatre
+              <strong>Skills Training</strong>: Capacity Building &amp; Theatre
               Training, Construction Skills Training, Permaculture Skills
               Training, the Young Leaders Initiative, and the Wellness &amp;
               Women Empowerment Program.
@@ -174,7 +177,7 @@
               <h2 id="vision-title" class="vision__text">
                 Our vision is to ensure that individuals are
                 <span class="hl">trained and equipped</span> through our
-                programmes — better preparing them for an evolving society.
+                programmes, better preparing them for an evolving society.
               </h2>
               <p class="vision__sub">
                 We focus on leadership training, self-sustainability and community
@@ -248,7 +251,7 @@
                 </span>
                 <h3 class="card__title">Permaculture Skills Training</h3>
                 <p class="card__text">
-                  Growing food and self-sustainability — permaculture gardens
+                  Growing food and self-sustainability: permaculture gardens
                   that feed families and restore the land.
                 </p>
               </article>
@@ -278,13 +281,14 @@
                 </span>
                 <h3 class="card__title">Wellness &amp; Women Empowerment</h3>
                 <p class="card__text">
-                  Health, dignity and opportunity — supporting women to thrive
+                  Health, dignity and opportunity: supporting women to thrive
                   and lead within their families and beyond.
                 </p>
               </article>
               </a>
             </li>
             <li>
+              <a class="card-link" href="https://www.instagram.com/perma_culture_skills_training" target="_blank" rel="noopener noreferrer">
               <article class="card card--terracotta">
                 <span class="card__icon" aria-hidden="true">
                   <!-- microphone / media & podcast -->
@@ -294,9 +298,10 @@
                 <p class="card__text">
                   Sharing our story through an active social media presence and a
                   weekly podcast. Follow us on Instagram
-                  <a href="https://www.instagram.com/safecities" target="_blank" rel="noopener">@safecities</a>.
+                  @perma_culture_skills_training.
                 </p>
               </article>
+              </a>
             </li>
           </ul>
         </div>
@@ -367,7 +372,10 @@
           <p class="cta-band__text">
             Volunteer, partner or learn more about our work in Elsies River.
           </p>
-          <a class="btn btn--leaf" href="mailto:safecitiespermaculture@gmail.com">Email us</a>
+          <div class="hero__actions">
+            <a class="btn btn--leaf" href="mailto:safecitiespermaculture@gmail.com">Email us</a>
+            <a class="btn btn--ghost-light" href="tel:+27845194878">Call us: 084 519 4878</a>
+          </div>
         </div>
       </section>
     </main>
@@ -393,6 +401,8 @@
           <h2 class="site-footer__heading">Explore</h2>
           <ul>
             <li><a href="index.html">Home</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="donate.html">Donate</a></li>
             <li><a href="marketplace.html">Marketplace</a></li>
             <li><a href="documents.html">Documents</a></li>
             <li><a href="schedule.html">Schedule</a></li>
@@ -406,6 +416,7 @@
           <p>
             <a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>
           </p>
+          <p><a href="tel:+27845194878">084 519 4878</a></p>
           <p class="site-footer__muted">Elsies River · Cape Town · South Africa</p>
         </div>
       </div>

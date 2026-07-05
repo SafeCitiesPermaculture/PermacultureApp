@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<!--
+  Safe Cities Permaculture - Donate page
+  --------------------------------------
+  Static public page in the same shell as index.html: hardcoded header/footer,
+  styling from styles.css, behaviour (mobile menu + reveal) from main.js.
+  NOTE: the banking details below are PLACEHOLDERS - swap in the real account
+  details before publishing (search for "TODO").
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Donate · Safe Cities Permaculture</title>
+    <meta
+      name="description"
+      content="Support Safe Cities Permaculture: your donation grows food gardens, funds skills training and uplifts the Elsies River community."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="icon" href="./assets/images/logo.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="main.js" defer></script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <!-- ============================ SITE HEADER ============================ -->
+    <header class="site-header" id="top">
+      <div class="container site-header__inner">
+        <a class="brand" href="index.html" aria-label="Safe Cities Permaculture home">
+          <img
+            class="brand__logo"
+            src="./assets/images/logo.png"
+            alt="Safe Cities Permaculture logo"
+            width="56"
+            height="56"
+          />
+          <span class="brand__text">
+            <span class="brand__name">Safe Cities</span>
+            <span class="brand__tag">Igniting Community Transformation</span>
+          </span>
+        </a>
+
+        <button
+          class="nav-toggle"
+          id="navToggle"
+          aria-expanded="false"
+          aria-controls="primaryNav"
+          aria-label="Open menu"
+        >
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+        </button>
+
+        <nav class="primary-nav" id="primaryNav" aria-label="Primary">
+          <ul class="primary-nav__list">
+            <li><a class="primary-nav__link" href="index.html">Home</a></li>
+            <li><a class="primary-nav__link" href="gallery.html">Gallery</a></li>
+            <li><a class="primary-nav__link is-current" href="donate.html" aria-current="page">Donate</a></li>
+            <li><a class="primary-nav__link" href="marketplace.html">Marketplace</a></li>
+            <li><a class="primary-nav__link" href="documents.html">Documents</a></li>
+            <li><a class="primary-nav__link" href="schedule.html">Schedule</a></li>
+            <li><a class="primary-nav__link" href="assistant.html">Assistant</a></li>
+            <li><a class="primary-nav__link primary-nav__link--cta" href="profile.html">Profile</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============================ PAGE INTRO ============================ -->
+      <section class="section" aria-labelledby="donate-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow reveal"><span class="dot" aria-hidden="true"></span> Donate</p>
+            <h1 class="section-title reveal" id="donate-title">
+              Every rand plants something that lasts
+            </h1>
+            <p class="section-intro reveal">
+              Safe Cities is a registered non-profit in Elsies River, Cape Town.
+              Donations go directly into the farm and our training programmes.
+              There are no shareholders, only neighbours.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= WHAT YOUR DONATION DOES ==================== -->
+      <section class="section donate-work" aria-labelledby="work-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">On the farm</p>
+            <h2 class="section-title" id="work-title">What your donation grows</h2>
+          </div>
+
+          <ul class="card-grid">
+            <li>
+              <article class="card card--green">
+                <span class="card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-9 0 12-4 16-9 16Z"/><path d="M4 20c4-4 8-6 12-7"/></svg>
+                </span>
+                <h3 class="card__title">Food gardens</h3>
+                <p class="card__text">
+                  Seedlings, compost and irrigation for permaculture beds that
+                  put fresh vegetables on family tables every week.
+                </p>
+              </article>
+            </li>
+            <li>
+              <article class="card card--marigold">
+                <span class="card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7a4 4 0 0 0-5 5L4 17l3 3 5-5a4 4 0 0 0 5-5"/><path d="m15 8 3-3 1 1-3 3"/></svg>
+                </span>
+                <h3 class="card__title">Tools &amp; training</h3>
+                <p class="card__text">
+                  Hand tools, building materials and course costs for
+                  construction and permaculture skills training.
+                </p>
+              </article>
+            </li>
+            <li>
+              <article class="card card--leaf">
+                <span class="card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.5 5 5.5.8-4 3.9 1 5.5-5-2.6L7.5 21l1-5.5-4-3.9 5.5-.8L12 3Z"/></svg>
+                </span>
+                <h3 class="card__title">Young leaders</h3>
+                <p class="card__text">
+                  Mentorship, workshops and theatre training that give young
+                  people confidence and a voice in their community.
+                </p>
+              </article>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- =========================== BANKING DETAILS ======================== -->
+      <section class="section donate-bank" aria-labelledby="bank-title">
+        <div class="container donate-bank__inner">
+          <div class="donate-bank__copy">
+            <p class="eyebrow eyebrow--light">Bank transfer (EFT)</p>
+            <h2 class="section-title donate-bank__title" id="bank-title">
+              Banking details
+            </h2>
+            <p class="donate-bank__note">
+              Please use "Donation" as the payment reference, and email your
+              proof of payment to
+              <a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>
+              so we can thank you and send a receipt.
+            </p>
+            <p class="donate-bank__note donate-bank__thanks">
+              Thank you for your support!
+            </p>
+          </div>
+
+          <dl class="donate-bank__details">
+            <div class="donate-bank__row">
+              <dt>Account name</dt>
+              <dd>Safe Cities</dd>
+            </div>
+            <div class="donate-bank__row">
+              <dt>Bank</dt>
+              <dd>ABSA</dd>
+            </div>
+            <div class="donate-bank__row">
+              <dt>Account type</dt>
+              <dd>Savings</dd>
+            </div>
+            <div class="donate-bank__row">
+              <dt>Account number</dt>
+              <dd>9174785816</dd>
+            </div>
+            <div class="donate-bank__row">
+              <dt>Reference</dt>
+              <dd>Donation</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- ============================ OTHER WAYS ============================ -->
+      <section class="section cta-band" aria-labelledby="other-title">
+        <div class="container cta-band__inner">
+          <h2 class="cta-band__title" id="other-title">Prefer to give time or goods?</h2>
+          <p class="cta-band__text">
+            Volunteer hands, seeds, tools and building materials are as welcome
+            as money. Get in touch and we'll find the right way for you to help.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--leaf" href="mailto:safecitiespermaculture@gmail.com">Email us</a>
+            <a class="btn btn--ghost-light" href="tel:+27845194878">Call us: 084 519 4878</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================== SITE FOOTER ============================ -->
+    <footer class="site-footer">
+      <div class="container site-footer__grid">
+        <div class="site-footer__brand">
+          <span class="site-footer__logobox">
+            <img
+              class="site-footer__logo"
+              src="./assets/images/logo.png"
+              alt="Safe Cities Permaculture logo"
+              width="96"
+              height="96"
+            />
+          </span>
+          <p class="site-footer__tag">Igniting Community Transformation</p>
+          <p class="site-footer__muted">A non-profit organisation based in Elsies River, Cape Town.</p>
+        </div>
+
+        <nav class="site-footer__nav" aria-label="Footer">
+          <h2 class="site-footer__heading">Explore</h2>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="donate.html">Donate</a></li>
+            <li><a href="marketplace.html">Marketplace</a></li>
+            <li><a href="documents.html">Documents</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li><a href="assistant.html">Assistant</a></li>
+            <li><a href="profile.html">Profile</a></li>
+          </ul>
+        </nav>
+
+        <div class="site-footer__contact">
+          <h2 class="site-footer__heading">Contact</h2>
+          <p>
+            <a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>
+          </p>
+          <p><a href="tel:+27845194878">084 519 4878</a></p>
+          <p class="site-footer__muted">Elsies River · Cape Town · South Africa</p>
+        </div>
+      </div>
+
+      <div class="container site-footer__bottom">
+        <p>&copy; <span id="year">2026</span> Safe Cities Permaculture. All rights reserved.</p>
+        <a class="site-footer__totop" href="#top">Back to top ↑</a>
+      </div>
+    </footer>
+  </body>
+</html>

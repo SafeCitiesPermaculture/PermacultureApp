@@ -1,5 +1,5 @@
 /* =============================================================================
-   Safe Cities Permaculture — main.js
+   Safe Cities Permaculture - main.js
    -----------------------------------------------------------------------------
    Plain, dependency-free JavaScript. Two small progressive enhancements:
      1. Accessible mobile navigation toggle (hamburger).
@@ -83,4 +83,14 @@
   /* --------------------------------------------------- 3. Footer year stamp */
   var yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+  /* ------------------------------------------------------- 4. Back to top */
+  // Scroll the window directly instead of relying on the #top anchor, which
+  // can be swallowed by sticky-header offsets or inner scroll containers.
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest && event.target.closest(".site-footer__totop");
+    if (!link) return;
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 })();
