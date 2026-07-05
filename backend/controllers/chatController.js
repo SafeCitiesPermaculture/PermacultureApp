@@ -142,6 +142,28 @@ const togglePin = async (req, res) => {
     }
 };
 
+/** Rename a chat. Body: { title }. */
+const renameChat = async (req, res) => {
+    try {
+        const title = (req.body?.title || "").trim();
+        if (!title) {
+            return res.status(400).json({ message: "title is required" });
+        }
+        const chat = await Chat.findById(req.params.id);
+        if (!chat) return res.status(404).json({ message: "Chat not found" });
+        if (chat.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+        chat.title = title.length > 60 ? title.slice(0, 60) + "…" : title;
+        await chat.save();
+        return res.status(200).json({ chat });
+    } catch (error) {
+        return res
+            .status(500)
+            .json({ message: "Server error when renaming chat" });
+    }
+};
+
 const deleteChat = async (req, res) => {
     try {
         const chat = await Chat.findById(req.params.id);
@@ -163,5 +185,6 @@ module.exports = {
     getChat,
     saveChat,
     togglePin,
+    renameChat,
     deleteChat,
 };

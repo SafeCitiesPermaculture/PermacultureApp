@@ -21,6 +21,7 @@ admin /corpus/reindex endpoint and, on startup, from a background task.
 import hashlib
 import io
 import re
+import time
 from functools import lru_cache
 
 from app.config import get_settings
@@ -260,6 +261,7 @@ def index_corpus(force: bool = False) -> dict:
     Returns {"index", "indexed", "skipped", "failed", "pruned"}.
     """
     ensure_index()
+    _drop_has_documents_cache()  # the corpus is changing — recount next chat
     client = _search_client()
 
     source_files = [f for f in drive.list_corpus_files() if _in_corpus(f)]
@@ -325,15 +327,32 @@ def index_corpus(force: bool = False) -> dict:
     }
 
 
+# has_documents() is called on every chat message; cache the answer briefly so
+# each message doesn't pay an extra Azure round trip before the reply starts.
+_HAS_DOCS_TTL_SECONDS = 300.0
+_has_docs_cache: tuple[float, bool] | None = None
+
+
+def _drop_has_documents_cache() -> None:
+    global _has_docs_cache
+    _has_docs_cache = None
+
+
 def has_documents() -> bool:
     """Whether the index exists and holds at least one chunk. Returns False
     (rather than raising) when Azure isn't configured, so chat degrades."""
+    global _has_docs_cache
+    now = time.monotonic()
+    if _has_docs_cache is not None and now - _has_docs_cache[0] < _HAS_DOCS_TTL_SECONDS:
+        return _has_docs_cache[1]
     try:
         client = _search_client()
         results = client.search(search_text="*", top=0, include_total_count=True)
-        return (results.get_count() or 0) > 0
+        value = (results.get_count() or 0) > 0
     except Exception:
-        return False
+        return False  # transient/config failure — don't cache it
+    _has_docs_cache = (now, value)
+    return value
 
 
 def search(query: str, k: int = 8) -> list[dict]:

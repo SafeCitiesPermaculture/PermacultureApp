@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — AI Assistant
+  Safe Cities Permaculture - AI Assistant
   Replies come from the FastAPI AI service: POST /chat { message, history,
   include_tasks } -> { reply, sources }.
   Chat history is persisted per-user in the Express backend (/api/chat): the
@@ -71,8 +71,15 @@
         min-height: calc(100vh - var(--header-h, 64px) - 7rem);
         padding: var(--space-5, 1.5rem) var(--space-5, 1.75rem) var(--space-6, 2rem);
       }
-      .page-head__actions { display: flex; align-items: center; gap: .9rem; }
+      .page-head__actions { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
       .btn--saved { background: var(--brown-medium, #ac8155); color: #fff; }
+      .chat__quickbar { display: flex; gap: .6rem; margin-top: .6rem; flex-wrap: wrap; }
+      .chat-row__ren {
+        background: transparent; border: 0; cursor: pointer; color: var(--muted, #8a8472);
+        font-size: .9rem; padding: .4rem .3rem; opacity: 0; line-height: 1;
+      }
+      .chat-row:hover .chat-row__ren { opacity: 1; }
+      .chat-row__ren:hover { color: var(--ink, #2f3a2f); }
 
       /* Elsie mascot as a branded avatar beside the title. The art is cut out on
          a transparent background, so the circle fills with the page cream and
@@ -135,9 +142,11 @@
           <div class="page-head__actions">
             <button class="btn btn--leaf btn--sm" id="newChatBtn" type="button">+ New chat</button>
             <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>☆ Save</button>
-            <!-- When on, the model is given the user's open tasks as context. -->
+            <button class="btn btn--ghost btn--sm" id="docsBtn" type="button" disabled title="Save this conversation into the Documents tab (AI Conversations folder)">⇪ To Documents</button>
+            <!-- When on, the model is given the user's open tasks as context.
+                 On by default so "what are my tasks" just works. -->
             <label class="switch">
-              <input type="checkbox" id="taskToggle" />
+              <input type="checkbox" id="taskToggle" checked />
               <span>Include my tasks</span>
             </label>
           </div>
@@ -151,7 +160,16 @@
           <label class="sr-only" for="message">Your message</label>
           <textarea id="message" rows="1" placeholder="Ask about documents, tasks, permaculture…" required></textarea>
           <button class="btn btn--leaf" type="submit" id="sendBtn" aria-label="Send message">Send</button>
+          <button class="btn btn--ghost" type="button" id="stopBtn" aria-label="Stop generating" hidden>■ Stop</button>
         </form>
+
+        <!-- Duplicate chat controls below the composer, so they're in reach
+             after scrolling through a long conversation. -->
+        <div class="chat__quickbar">
+          <button class="btn btn--ghost btn--sm" id="newChatBtn2" type="button">+ New chat</button>
+          <button class="btn btn--ghost btn--sm" id="saveBtn2" type="button" disabled>☆ Save</button>
+          <button class="btn btn--ghost btn--sm" id="docsBtn2" type="button" disabled>⇪ To Documents</button>
+        </div>
       </div>
     </main>
 
@@ -171,9 +189,15 @@
       var chatListEmpty = document.getElementById("chatListEmpty");
       var saveBtn = document.getElementById("saveBtn");
       var newChatBtn = document.getElementById("newChatBtn");
+      var stopBtn = document.getElementById("stopBtn");
+      var docsBtn = document.getElementById("docsBtn");
+      // Bottom quickbar mirrors of the header controls.
+      var saveBtn2 = document.getElementById("saveBtn2");
+      var newChatBtn2 = document.getElementById("newChatBtn2");
+      var docsBtn2 = document.getElementById("docsBtn2");
 
       // Running history in the shape the API expects: [{role, content}].
-      // NB: named `convo`, not `history` — the latter collides with the
+      // NB: named `convo`, not `history` - the latter collides with the
       // read-only global `window.history`, so assignments silently no-op.
       var convo = [];
       var currentChatId = null;   // null until the chat is first persisted
@@ -219,9 +243,9 @@
           function () { return SC.Assistant.history(); },
           function (data) { renderChatList(data.chats || []); }
         ).catch(function () {
-          // No cache to show and the fetch failed — likely a cold start. Retry
+          // No cache to show and the fetch failed - likely a cold start. Retry
           // with backoff until the server wakes.
-          if (!chatsEmpty()) return; // cache already on screen — keep it
+          if (!chatsEmpty()) return; // cache already on screen - keep it
           return retryLoadChats(1);
         });
       }
@@ -244,7 +268,7 @@
               });
             }
             chatListEmpty.hidden = false;
-            chatListEmpty.textContent = "Couldn’t load chats — refresh to retry.";
+            chatListEmpty.textContent = "Couldn’t load chats. Refresh to retry.";
           });
       }
 
@@ -261,9 +285,10 @@
         recents.forEach(function (c) { recentList.appendChild(chatRow(c)); });
         chatListEmpty.textContent = "No chats yet";
         chatListEmpty.hidden = saved.length + recents.length > 0;
+        syncNewChatPlaceholder();
       }
 
-      // Flip the active highlight in the DOM directly — no network refetch.
+      // Flip the active highlight in the DOM directly - no network refetch.
       function setActiveRow(id) {
         var rows = document.querySelectorAll(".chat-row");
         for (var i = 0; i < rows.length; i++) {
@@ -283,6 +308,20 @@
         open.title = chat.title || "Chat";
         open.addEventListener("click", function () { openChat(chat._id); });
 
+        var ren = document.createElement("button");
+        ren.type = "button";
+        ren.className = "chat-row__ren";
+        ren.textContent = "✎";
+        ren.setAttribute("aria-label", "Rename chat");
+        ren.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var title = window.prompt("Rename this chat:", chat.title || "");
+          if (!title || !title.trim() || title.trim() === chat.title) return;
+          SC.Assistant.rename(chat._id, title.trim())
+            .then(function () { SC.swrDrop("chats"); loadChats(); })
+            .catch(function (err) { SC.toast(err.message || "Could not rename the chat", "error"); });
+        });
+
         var del = document.createElement("button");
         del.type = "button";
         del.className = "chat-row__del";
@@ -291,13 +330,32 @@
         del.addEventListener("click", function (e) { e.stopPropagation(); deleteChat(chat._id); });
 
         row.appendChild(open);
+        row.appendChild(ren);
         row.appendChild(del);
         return row;
       }
 
+      // While an unsaved new chat is open, show a "New chat" placeholder at the
+      // top of Recents so starting one is visible in the history immediately.
+      function syncNewChatPlaceholder() {
+        var existing = document.getElementById("newChatRow");
+        if (existing) existing.remove();
+        if (currentChatId !== null || convo.length) return;
+        var row = document.createElement("div");
+        row.id = "newChatRow";
+        row.className = "chat-row is-active";
+        var open = document.createElement("button");
+        open.type = "button";
+        open.className = "chat-row__open";
+        open.textContent = "New chat";
+        row.appendChild(open);
+        recentList.insertBefore(row, recentList.firstChild);
+        chatListEmpty.hidden = true;
+      }
+
       // ---------------------------------------------- Open / reset / delete
       function openChat(id) {
-        // Highlight the clicked row immediately — no waiting on the network.
+        // Highlight the clicked row immediately - no waiting on the network.
         currentChatId = id;
         setActiveRow(id);
         SC.Assistant.get(id).then(function (data) {
@@ -322,10 +380,14 @@
         addBubble("assistant", GREETING);
         updateSaveBtn();
       }
-      newChatBtn.addEventListener("click", function () {
+      function startNewChat() {
         resetToNewChat();
         setActiveRow(null); // clear the active highlight locally, no refetch
-      });
+        syncNewChatPlaceholder();
+        input.focus();
+      }
+      newChatBtn.addEventListener("click", startNewChat);
+      newChatBtn2.addEventListener("click", startNewChat);
 
       function deleteChat(id) {
         SC.Assistant.remove(id).then(function () {
@@ -351,16 +413,19 @@
 
       // ---------------------------------------------- Save (pin) button
       function updateSaveBtn() {
-        saveBtn.disabled = !currentChatId;
-        // Star metaphor: ☆ Save -> ★ Saved. Saved (starred) chats pin to the top.
-        saveBtn.textContent = currentPinned ? "★ Saved" : "☆ Save";
-        saveBtn.title = currentPinned
-          ? "Saved — pinned to the top of your chats"
-          : "Save this chat (pins it to the top)";
-        saveBtn.classList.toggle("btn--saved", currentPinned);
-        saveBtn.classList.toggle("btn--ghost", !currentPinned);
+        [saveBtn, saveBtn2].forEach(function (b) {
+          b.disabled = !currentChatId;
+          // Star metaphor: ☆ Save -> ★ Saved. Saved (starred) chats pin to the top.
+          b.textContent = currentPinned ? "★ Saved" : "☆ Save";
+          b.title = currentPinned
+            ? "Saved and pinned to the top of your chats"
+            : "Save this chat (pins it to the top)";
+          b.classList.toggle("btn--saved", currentPinned);
+          b.classList.toggle("btn--ghost", !currentPinned);
+        });
+        [docsBtn, docsBtn2].forEach(function (b) { b.disabled = !convo.length; });
       }
-      saveBtn.addEventListener("click", function () {
+      function togglePin() {
         if (!currentChatId) return;
         var next = !currentPinned;
         currentPinned = next;
@@ -368,7 +433,33 @@
         SC.Assistant.pin(currentChatId, next)
           .then(function () { SC.swrDrop("chats"); loadChats(); })
           .catch(function () { currentPinned = !next; updateSaveBtn(); });
-      });
+      }
+      saveBtn.addEventListener("click", togglePin);
+      saveBtn2.addEventListener("click", togglePin);
+
+      // ---------------------------------------------- Save to Documents
+      // Exports the conversation to the Drive "AI Conversations" folder, which
+      // shows up in the Documents tab (and joins the AI knowledge corpus).
+      function saveToDocs() {
+        if (!convo.length) return;
+        [docsBtn, docsBtn2].forEach(function (b) { b.disabled = true; });
+        // Make sure the chat is persisted first so it has an id to export.
+        var ready = currentChatId ? Promise.resolve() : persist();
+        ready
+          .then(function () {
+            if (!currentChatId) throw new Error("Could not save the conversation");
+            return SC.Assistant.saveToDocs(currentChatId);
+          })
+          .then(function () {
+            SC.toast("Saved to Documents → AI Conversations", "success");
+          })
+          .catch(function (err) {
+            SC.toast((err && err.message) || "Could not save to Documents", "error");
+          })
+          .then(function () { updateSaveBtn(); });
+      }
+      docsBtn.addEventListener("click", saveToDocs);
+      docsBtn2.addEventListener("click", saveToDocs);
 
       // ---------------------------------------------- Lightweight markdown
       // The model returns light markdown (bold, bullets). We render a safe subset
@@ -455,6 +546,9 @@
         input.value = "";
         input.style.height = "auto";
         sendBtn.disabled = true;
+        // Swap Send for Stop while the reply streams.
+        sendBtn.hidden = true;
+        stopBtn.hidden = false;
 
         var typing = addBubble("assistant", "…");
         var wrap = typing.parentElement;
@@ -466,17 +560,23 @@
         var streamSources = null;
         var started = false;     // first token received?
         var errored = false;
+        var controller = new AbortController();
+        stopBtn.onclick = function () { controller.abort(); };
 
         function finalize() {
           sendBtn.disabled = false;
+          sendBtn.hidden = false;
+          stopBtn.hidden = true;
+          stopBtn.onclick = null;
           input.focus();
-          // Always save the conversation — independent of whether the AI
-          // replied — so the chat is titled, appears in the sidebar, and the
+          // Always save the conversation - independent of whether the AI
+          // replied - so the chat is titled, appears in the sidebar, and the
           // Save (star) button works even if the AI service is unavailable.
           persist();
         }
 
         SC.Assistant.chatStream(text, convo.slice(0, -1), taskToggle.checked, {
+          signal: controller.signal,
           onSources: function (s) { streamSources = s; },
           onDelta: function (t) {
             if (!started) { started = true; wrap.classList.remove("is-typing"); typing.innerHTML = ""; }
@@ -507,16 +607,27 @@
             finalize();
           },
         }).catch(function (err) {
-          // Connection couldn't be established (auth/network/cold-start).
           wrap.classList.remove("is-typing");
+          // The user pressed Stop: keep whatever streamed as the reply.
+          if (err && err.name === "AbortError") {
+            if (acc) {
+              typing.innerHTML = renderMarkdown(acc);
+              convo.push({ role: "assistant", content: acc });
+            } else {
+              typing.textContent = "(stopped)";
+            }
+            finalize();
+            return;
+          }
+          // Connection couldn't be established (auth/network/cold-start).
           var isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
           if (isLocal && !acc) {
-            var stub = "(Local test reply — the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
+            var stub = "(Local test reply: the AI service isn't running, so this is a placeholder so you can test chat history and saving.)";
             typing.textContent = stub;
             convo.push({ role: "assistant", content: stub });
           } else if (!acc) {
             typing.textContent = (err && err.status === 503)
-              ? "The assistant is warming up or temporarily unavailable — please try again in a moment."
+              ? "The assistant is warming up or temporarily unavailable. Please try again in a moment."
               : ((err && err.message) || "Something went wrong.");
           }
           finalize();
@@ -525,6 +636,7 @@
 
       // ---------------------------------------------- Init
       addBubble("assistant", GREETING);
+      updateSaveBtn();
       loadChats();
     </script>
   </body>

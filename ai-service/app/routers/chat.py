@@ -7,6 +7,7 @@ Two flavours:
 """
 
 import json
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -56,13 +57,48 @@ async def _load_task_context(user: dict) -> str:
     return "\n".join(lines)
 
 
+# Questions that clearly don't need document retrieval skip it entirely, which
+# removes 2 network round trips (embedding + search) before the reply starts.
+_SMALLTALK_RE = re.compile(
+    r"^\s*(hi|hiya|hello|hey|yo|thanks?|thank you|ok(ay)?|"
+    r"good (morning|afternoon|evening)|how are you)\b[\s!,.?]*$",
+    re.IGNORECASE,
+)
+_TASK_RE = re.compile(
+    r"\b(tasks?|schedule|to-?dos?|due|overdue|assign(ed|ments)?)\b", re.IGNORECASE
+)
+_DOC_RE = re.compile(
+    r"\b(documents?|files?|docs?|guides?|reports?|manuals?|policy|policies)\b",
+    re.IGNORECASE,
+)
+
+
+def _needs_retrieval(message: str, include_tasks: bool) -> bool:
+    """Whether a message should hit the document index.
+
+    Greetings never do. Task/schedule questions answer straight from the task
+    context (when it's included) — unless the question also mentions documents.
+    """
+    if _SMALLTALK_RE.match(message):
+        return False
+    if include_tasks and _TASK_RE.search(message) and not _DOC_RE.search(message):
+        return False
+    return True
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, user: dict = Depends(get_current_user)):
     task_context = await _load_task_context(user) if body.include_tasks else None
 
     try:
-        # Retrieve relevant corpus chunks (empty if nothing is indexed yet).
-        chunks = search.search(body.message) if search.has_documents() else []
+        # Retrieve relevant corpus chunks (empty if nothing is indexed yet, or
+        # for questions that don't need documents at all).
+        chunks = (
+            search.search(body.message)
+            if _needs_retrieval(body.message, body.include_tasks)
+            and search.has_documents()
+            else []
+        )
         reply, sources = llm.generate_chat(
             message=body.message,
             history=body.history,
@@ -96,7 +132,12 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
     # Retrieval happens before streaming, so config errors surface as a clean
     # 503 (rather than mid-stream). The token generation is what we stream.
     try:
-        chunks = search.search(body.message) if search.has_documents() else []
+        chunks = (
+            search.search(body.message)
+            if _needs_retrieval(body.message, body.include_tasks)
+            and search.has_documents()
+            else []
+        )
     except (llm.LLMNotConfiguredError, llm.LLMUnavailableError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
