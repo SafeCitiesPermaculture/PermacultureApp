@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Marketplace
+  Safe Cities Permaculture - Marketplace
   Wired to: GET /listings/get · GET /listings/get-my-listings ·
             GET /listings/get/:id · POST /listings/post · DELETE /listings/remove/:id
   Requires login. Header/footer injected by app.js.
@@ -36,12 +36,20 @@
         <div class="tabs" role="tablist" aria-label="Listing views">
           <button class="tab is-active" id="tabAll" role="tab" aria-selected="true">All listings</button>
           <button class="tab" id="tabMine" role="tab" aria-selected="false">My listings</button>
+          <button class="tab" id="tabArchived" role="tab" aria-selected="false">Archived</button>
         </div>
 
-        <!-- Optional client-side search across title/location. -->
+        <!-- Client-side search across title/location + price range. -->
         <div class="toolbar">
           <label class="sr-only" for="search">Search listings</label>
           <input id="search" class="input-search" type="search" placeholder="Search by title or location…" />
+          <div class="price-range">
+            <label class="sr-only" for="priceMin">Minimum price</label>
+            <input id="priceMin" class="input-search price-range__input" type="number" min="0" inputmode="decimal" placeholder="Min R" />
+            <span class="price-range__sep" aria-hidden="true">–</span>
+            <label class="sr-only" for="priceMax">Maximum price</label>
+            <input id="priceMax" class="input-search price-range__input" type="number" min="0" inputmode="decimal" placeholder="Max R" />
+          </div>
         </div>
 
         <section aria-labelledby="gridLabel">
@@ -121,10 +129,13 @@
       var emptyEl = document.getElementById("emptyState");
       var errorEl = document.getElementById("errorState");
       var searchEl = document.getElementById("search");
+      var priceMinEl = document.getElementById("priceMin");
+      var priceMaxEl = document.getElementById("priceMax");
       var tabAll = document.getElementById("tabAll");
       var tabMine = document.getElementById("tabMine");
+      var tabArchived = document.getElementById("tabArchived");
 
-      var view = "all"; // or "mine"
+      var view = "all"; // "all" | "mine" | "archived"
       var allListings = []; // last loaded set (for client-side search)
       var me = SC.getCachedUser();
       document.addEventListener("sc:user", function (e) { me = e.detail; render(); });
@@ -138,7 +149,11 @@
         // Instant from cache on revisit, then revalidate + re-render if changed.
         SC.swr(
           "listings:" + view,
-          function () { return view === "all" ? SC.Listings.all() : SC.Listings.mine(); },
+          function () {
+            if (view === "mine") return SC.Listings.mine();
+            if (view === "archived") return SC.Listings.archived();
+            return SC.Listings.all();
+          },
           function (data) {
             allListings = data.listings || [];
             loadingEl.hidden = true;
@@ -152,16 +167,21 @@
         });
       }
 
-      // A listing change affects both the "all" and "mine" lists — drop both.
+      // A listing change affects all three lists - drop them all.
       function dropListingsCache() {
         SC.swrDrop("listings:all");
         SC.swrDrop("listings:mine");
+        SC.swrDrop("listings:archived");
       }
 
       // --------------------------------------------------------- Render grid
       function render() {
         var q = searchEl.value.trim().toLowerCase();
+        var min = parseFloat(priceMinEl.value);
+        var max = parseFloat(priceMaxEl.value);
         var items = allListings.filter(function (l) {
+          if (!isNaN(min) && Number(l.price) < min) return false;
+          if (!isNaN(max) && Number(l.price) > max) return false;
           if (!q) return true;
           return (l.title || "").toLowerCase().indexOf(q) !== -1 ||
                  (l.location || "").toLowerCase().indexOf(q) !== -1;
@@ -235,6 +255,7 @@
         SC.Listings.one(id).then(function (data) {
           var l = data.listing || data;
           var mine = me && l.postedBy && (l.postedBy._id === me._id);
+          var archived = !!l.isArchived;
           var html = "";
           if (l.picture) {
             html += '<img class="detail__img" src="' + SC.escapeHtml(l.picture) +
@@ -246,7 +267,13 @@
           if (l.description) html += "<p>" + SC.escapeHtml(l.description) + "</p>";
           html += '<p class="detail__seller">Posted by <strong>' +
                   SC.escapeHtml((l.postedBy && l.postedBy.username) || "Unknown") + "</strong></p>";
-          if (mine) {
+          if (mine && archived) {
+            html += '<p class="detail__loc">This listing is archived. Only you can see it.</p>';
+            html += '<div class="detail__actions">';
+            html += '<button class="btn btn--leaf btn--sm" id="restoreListing">Restore to marketplace</button>';
+            html += '<button class="btn btn--ghost btn--sm" id="destroyListing">Delete permanently</button>';
+            html += '</div>';
+          } else if (mine) {
             html += '<div class="detail__actions">';
             html += '<button class="btn btn--leaf btn--sm" id="editListing">Edit this listing</button>';
             html += '<button class="btn btn--ghost btn--sm" id="deleteListing">Delete this listing</button>';
@@ -290,10 +317,39 @@
           var del = document.getElementById("deleteListing");
           if (del) {
             del.addEventListener("click", function () {
-              if (!confirm("Delete this listing?")) return;
+              if (!confirm("Delete this listing? It moves to your Archived tab, where you can restore it.")) return;
               SC.Listings.remove(l._id).then(function () {
                 detailDialog.close();
-                SC.toast("Listing deleted", "success");
+                SC.toast("Listing archived. Find it under Archived", "success");
+                dropListingsCache();
+                load();
+              }).catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
+            });
+          }
+
+          var restore = document.getElementById("restoreListing");
+          if (restore) {
+            restore.addEventListener("click", function () {
+              restore.disabled = true;
+              SC.Listings.restore(l._id).then(function () {
+                detailDialog.close();
+                SC.toast("Listing restored to the marketplace", "success");
+                dropListingsCache();
+                load();
+              }).catch(function (e) {
+                restore.disabled = false;
+                SC.toast(e.message || "Restore failed", "error");
+              });
+            });
+          }
+
+          var destroy = document.getElementById("destroyListing");
+          if (destroy) {
+            destroy.addEventListener("click", function () {
+              if (!confirm("Permanently delete this listing? This cannot be undone.")) return;
+              SC.Listings.destroy(l._id).then(function () {
+                detailDialog.close();
+                SC.toast("Listing permanently deleted", "success");
                 dropListingsCache();
                 load();
               }).catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
@@ -310,7 +366,7 @@
       var reportMsg = document.getElementById("reportMsg");
       var reportTarget = null;
       function openReport(seller) {
-        if (!me) { SC.toast("Please wait — loading your account…", "error"); return; }
+        if (!me) { SC.toast("Please wait, loading your account…", "error"); return; }
         reportTarget = seller;
         document.getElementById("reportName").textContent = seller.username || "this user";
         reportForm.reset();
@@ -407,16 +463,19 @@
       // --------------------------------------------------------- Tabs + search
       function setView(v) {
         view = v;
-        var all = v === "all";
-        tabAll.classList.toggle("is-active", all);
-        tabMine.classList.toggle("is-active", !all);
-        tabAll.setAttribute("aria-selected", String(all));
-        tabMine.setAttribute("aria-selected", String(!all));
+        [[tabAll, "all"], [tabMine, "mine"], [tabArchived, "archived"]].forEach(function (pair) {
+          var active = pair[1] === v;
+          pair[0].classList.toggle("is-active", active);
+          pair[0].setAttribute("aria-selected", String(active));
+        });
         load();
       }
       tabAll.addEventListener("click", function () { setView("all"); });
       tabMine.addEventListener("click", function () { setView("mine"); });
+      tabArchived.addEventListener("click", function () { setView("archived"); });
       searchEl.addEventListener("input", render);
+      priceMinEl.addEventListener("input", render);
+      priceMaxEl.addEventListener("input", render);
 
       // --------------------------------------------------------- Go
       load();

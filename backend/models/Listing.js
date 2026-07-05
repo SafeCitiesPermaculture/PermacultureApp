@@ -41,6 +41,13 @@ const listingSchema = new mongoose.Schema(
             // marketplace shows a "No photo" placeholder when it's empty.
             type: String,
             default: ""
+        },
+        isArchived: {
+            // "Deleting" a listing archives it (soft delete). Archived
+            // listings are hidden from the marketplace but the owner can
+            // restore them or delete them permanently.
+            type: Boolean,
+            default: false,
         }
     },
     {

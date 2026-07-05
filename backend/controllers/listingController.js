@@ -105,6 +105,10 @@ const getAllListings = async (req, res) => {
 
         const listings = await Listing.aggregate([
             {
+                // Archived ("deleted") listings never show in the marketplace.
+                $match: { isArchived: { $ne: true } }
+            },
+            {
                 $lookup: { // Find user from postedBy field
                     from: 'users',
                     localField: 'postedBy',
@@ -162,7 +166,7 @@ const getMyListings = async (req, res) => {
     }
 
     try{
-        const listings = await Listing.find({ postedBy: req.user._id }).sort({ createdAt: -1 }).populate({
+        const listings = await Listing.find({ postedBy: req.user._id, isArchived: { $ne: true } }).sort({ createdAt: -1 }).populate({
             path: 'postedBy', select: 'username profilePicture'
         });
         res.status(200).json({
@@ -172,6 +176,31 @@ const getMyListings = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             message: "Failed to fetch my listings.",
+            error: error.message
+        });
+    }
+};
+
+// The user's archived (soft-deleted) listings, so they can restore or
+// permanently delete them.
+const getArchivedListings = async (req, res) => {
+    if (!req.user.isVerified) {
+        return res
+            .status(401)
+            .json({ message: "Unauthorized: User not authenticated." });
+    }
+
+    try {
+        const listings = await Listing.find({ postedBy: req.user._id, isArchived: true }).sort({ updatedAt: -1 }).populate({
+            path: 'postedBy', select: 'username profilePicture'
+        });
+        res.status(200).json({
+            message: 'Archived listings retrieved successfully.',
+            listings: listings
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Failed to fetch archived listings.",
             error: error.message
         });
     }
@@ -223,6 +252,63 @@ const removeListing = async(req, res) => {
             return res.status(403).json({ message: "You cannot remove this listing." });
         }
 
+        // Soft delete: archive the listing (photo included) so the owner can
+        // restore it later from the Archived tab.
+        listing.isArchived = true;
+        await listing.save();
+        res.status(200).json({ message: "Listing archived." });
+    } catch (error) {
+        console.error("Error in removeListing: ", error);
+        res.status(500).json({
+            message: "Failed to delete listing.",
+            error: error.message
+        });
+    }
+};
+
+// Bring an archived listing back to the marketplace.
+const restoreListing = async (req, res) => {
+    try {
+        if (!req.user.isVerified) {
+            return res.status(401).json({ message: "Unauthorized: User not authenticated." });
+        }
+
+        const listing = await Listing.findById(req.params.id);
+        if (!listing) {
+            return res.status(404).json({ message: "Listing not found." });
+        }
+        if (listing.postedBy.toString() != req.user._id.toString() && req.user.userRole !== 'admin') {
+            return res.status(403).json({ message: "You cannot restore this listing." });
+        }
+
+        listing.isArchived = false;
+        await listing.save();
+        res.status(200).json({ message: "Listing restored.", listing });
+    } catch (error) {
+        console.error("Error in restoreListing: ", error);
+        res.status(500).json({
+            message: "Failed to restore listing.",
+            error: error.message
+        });
+    }
+};
+
+// Permanently delete a listing (and its Cloudinary image). Used from the
+// Archived tab; there is no undo.
+const destroyListing = async (req, res) => {
+    try {
+        if (!req.user.isVerified) {
+            return res.status(401).json({ message: "Unauthorized: User not authenticated." });
+        }
+
+        const listing = await Listing.findById(req.params.id);
+        if (!listing) {
+            return res.status(404).json({ message: "Listing not found." });
+        }
+        if (listing.postedBy.toString() != req.user._id.toString() && req.user.userRole !== 'admin') {
+            return res.status(403).json({ message: "You cannot delete this listing." });
+        }
+
         // Delete the listing image from Cloudinary (legacy Drive images are just
         // left in place — the Drive client was removed from this controller).
         const publicId = publicIdFromUrl(listing.picture);
@@ -230,10 +316,10 @@ const removeListing = async(req, res) => {
             await deleteFromCloudinary(publicId);
         }
 
-        await Listing.findByIdAndDelete(id);
-        res.status(200).json({ message:"Listing deleted." });
+        await Listing.findByIdAndDelete(listing._id);
+        res.status(200).json({ message: "Listing permanently deleted." });
     } catch (error) {
-        console.error("Error in removeListing: ", error);
+        console.error("Error in destroyListing: ", error);
         res.status(500).json({
             message: "Failed to delete listing.",
             error: error.message
@@ -307,4 +393,4 @@ const updateListing = async (req, res) => {
     }
 };
 
-module.exports = { createListing, getAllListings, getMyListings, removeListing, getListing, updateListing };
+module.exports = { createListing, getAllListings, getMyListings, getArchivedListings, removeListing, restoreListing, destroyListing, getListing, updateListing };

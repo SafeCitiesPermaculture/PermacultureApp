@@ -27,8 +27,12 @@ const upload = multer({
 router.post("/post", upload.single('image'), listingController.createListing);
 router.get("/get", listingController.getAllListings);
 router.get("/get-my-listings", listingController.getMyListings);
+router.get("/get-archived", listingController.getArchivedListings);
 router.get("/get/:id", listingController.getListing);
 router.put("/update/:id", upload.single('image'), listingController.updateListing);
+// "Remove" archives (soft delete); restore brings it back; destroy is forever.
 router.delete("/remove/:id", listingController.removeListing);
+router.put("/restore/:id", listingController.restoreListing);
+router.delete("/destroy/:id", listingController.destroyListing);
 
 module.exports = router;
