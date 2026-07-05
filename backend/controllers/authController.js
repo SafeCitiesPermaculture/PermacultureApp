@@ -252,6 +252,13 @@ const resetPasswordWithToken = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
+        if (await user.isPreviousPassword(newPassword)) {
+            return res.status(400).json({
+                message:
+                    "Your new password can't be one you've used before. Please choose a different password.",
+            });
+        }
+
         user.password = newPassword;
         await user.save();
         return res.status(201).json({ message: "Password reset" });
