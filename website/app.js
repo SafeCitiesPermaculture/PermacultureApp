@@ -1,5 +1,5 @@
 /* =============================================================================
-   Safe Cities Permaculture — app.js
+   Safe Cities Permaculture - app.js
    -----------------------------------------------------------------------------
    Shared "app shell" for every logged-in page (Marketplace, Documents, Schedule,
    Assistant, Profile). It keeps those pages DRY and consistent by injecting the
@@ -14,10 +14,12 @@
 (function () {
   "use strict";
 
-  // The navigation link set — identical to the app's tabs. `key` matches the
+  // The navigation link set - identical to the app's tabs. `key` matches the
   // <body data-page="..."> value so the current item is highlighted.
   var NAV = [
     { key: "home", label: "Home", href: "index.html" },
+    { key: "gallery", label: "Gallery", href: "gallery.html" },
+    { key: "donate", label: "Donate", href: "donate.html" },
     { key: "marketplace", label: "Marketplace", href: "marketplace.html" },
     { key: "documents", label: "Documents", href: "documents.html" },
     { key: "schedule", label: "Schedule", href: "schedule.html" },
@@ -58,7 +60,7 @@
   }
 
   // The account area (right side): the username + Logout when signed in. When
-  // signed out it's empty — the Log in button lives in the nav (left of Home).
+  // signed out it's empty - the Log in button lives in the nav (left of Home).
   function accountArea() {
     var user = SC.getCachedUser();
     if (SC.isLoggedIn() && user) {
@@ -77,7 +79,7 @@
   header.id = "top";
   header.innerHTML =
     '<div class="container site-header__inner">' +
-    '<a class="brand" href="index.html" aria-label="Safe Cities Permaculture — home">' +
+    '<a class="brand" href="index.html" aria-label="Safe Cities Permaculture home">' +
     '<img class="brand__logo" src="./assets/images/logo.png" alt="Safe Cities Permaculture logo" width="56" height="56" />' +
     '<span class="brand__text"><span class="brand__name">Safe Cities</span>' +
     '<span class="brand__tag">Igniting Community Transformation</span></span></a>' +
@@ -94,11 +96,23 @@
   var footer = document.createElement("footer");
   footer.className = "site-footer";
   footer.innerHTML =
-    '<div class="container site-footer__bottom">' +
+    '<div class="container site-footer__bottom site-footer__bottom--contact">' +
+    '<p class="site-footer__contactline">' +
+    '<a href="mailto:safecitiespermaculture@gmail.com">safecitiespermaculture@gmail.com</a>' +
+    " · " +
+    '<a href="tel:+27845194878">084 519 4878</a>' +
+    " · Elsies River, Cape Town</p>" +
     "<p>&copy; " + new Date().getFullYear() +
-    " Safe Cities Permaculture · Elsies River, Cape Town</p>" +
+    " Safe Cities Permaculture</p>" +
     '<a class="site-footer__totop" href="#top">Back to top ↑</a></div>';
   document.body.appendChild(footer);
+
+  // Scroll the window directly instead of relying on the #top anchor, which
+  // can be swallowed by sticky-header offsets or inner scroll containers.
+  footer.querySelector(".site-footer__totop").addEventListener("click", function (e) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
   /* --------------------------------------------------- 4. Mobile nav toggle */
   var toggle = document.getElementById("navToggle");
@@ -166,7 +180,7 @@
 
   /* ---------------------------- 8. Instant navigation (prerender on hover) */
   // Make tab switches feel instant: supporting browsers (Chrome/Edge) prerender
-  // the hovered nav page in the background — HTML, JS, AND its data fetches — so
+  // the hovered nav page in the background - HTML, JS, AND its data fetches - so
   // clicking swaps in an already-populated page (Documents list, past AI
   // conversations, Marketplace listings all ready). Every nav page only does GET
   // reads on load, so speculating is side-effect-free. Unsupported browsers fall

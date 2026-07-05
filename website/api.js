@@ -1,5 +1,5 @@
 /* =============================================================================
-   Safe Cities Permaculture — api.js
+   Safe Cities Permaculture - api.js
    -----------------------------------------------------------------------------
    Plain-JS data layer for the static frontend. It talks to the SAME backend the
    mobile app uses (Express REST API + the FastAPI AI service) and reuses the
@@ -87,7 +87,7 @@
         clearTokens();
       }
     } catch (e) {
-      /* localStorage unavailable — leave the session as-is */
+      /* localStorage unavailable - leave the session as-is */
     }
   })();
 
@@ -107,7 +107,7 @@
   /* ---------------------------------------------- Stale-while-revalidate cache
      Render a data page instantly from a cached copy (per browser tab, via
      sessionStorage), then revalidate in the background and re-render ONLY if the
-     data changed — i.e. "instant on revisit unless something new was added".
+     data changed - i.e. "instant on revisit unless something new was added".
      The cache is per-tab and cleared on login/logout so users never see each
      other's data. */
   var SWR_PREFIX = "swr:";
@@ -123,7 +123,7 @@
   }
   // key    : unique per page + params (e.g. "files:<folderId>").
   // fetchFn: () => Promise<data>.
-  // render : (data, fromCache) => void — MUST be idempotent (may run twice).
+  // render : (data, fromCache) => void - MUST be idempotent (may run twice).
   // Returns the fresh-data promise (rejects only when there was no cache to show).
   function swr(key, fetchFn, render) {
     var ck = SWR_PREFIX + key;
@@ -175,7 +175,7 @@
 
   /* ------------------------------------------------------- Core request fn */
   // base   : which service ("api" = Express, "ai" = FastAPI)
-  // path   : e.g. "/tasks/" — appended to the chosen base URL
+  // path   : e.g. "/tasks/" - appended to the chosen base URL
   // opts   : { method, body, form, retry }
   //   - body  : plain object -> sent as JSON
   //   - form  : a FormData instance -> sent as multipart (for file uploads)
@@ -229,7 +229,7 @@
         return data;
       });
     }
-    // Non-JSON (e.g. file downloads) — hand back the raw response.
+    // Non-JSON (e.g. file downloads) - hand back the raw response.
     if (!res.ok) throw new ApiError("Request failed", res.status);
     return res;
   }
@@ -299,6 +299,9 @@
   var Listings = {
     all: function () { return request("api", "/listings/get", {}); },
     mine: function () { return request("api", "/listings/get-my-listings", {}); },
+    archived: function () { return request("api", "/listings/get-archived", {}); },
+    restore: function (id) { return request("api", "/listings/restore/" + id, { method: "PUT" }); },
+    destroy: function (id) { return request("api", "/listings/destroy/" + id, { method: "DELETE" }); },
     one: function (id) { return request("api", "/listings/get/" + id, {}); },
     create: function (form) { return request("api", "/listings/post", { method: "POST", form: form }); },
     update: function (id, form) { return request("api", "/listings/update/" + id, { method: "PUT", form: form }); },
@@ -321,6 +324,8 @@
     },
     // Download returns the raw Response so callers can read a Blob.
     download: function (id) { return request("api", "/files/" + id, { method: "POST" }); },
+    // Same stream, but with inline headers (real mimetype) for in-page viewing.
+    view: function (id) { return request("api", "/files/" + id + "?inline=1", { method: "POST" }); },
     storage: function () { return request("api", "/files/storage", {}); },
     // Admin-only writes to Drive (backend enforces the admin role; 403 if not).
     upload: function (parent, file) {
@@ -344,6 +349,8 @@
 
   var Users = {
     me: function () { return request("api", "/user/me", {}); },
+    // Case-insensitive partial username search -> { users: [{_id, username, profilePicture}] }
+    search: function (q) { return request("api", "/user/search?q=" + encodeURIComponent(q), {}); },
     updateProfile: function (body) { return request("api", "/user/update-profile", { method: "PUT", body: body }); },
     changePassword: function (oldPassword, newPassword) {
       return request("api", "/user/change-password", {
@@ -426,9 +433,11 @@
     },
     // Streaming variant of chat(): the reply arrives token-by-token over
     // Server-Sent Events. `handlers` may provide onSources(arr), onDelta(text),
-    // onError(msg), onDone(). Returns a Promise that resolves once the stream
-    // ends; the Promise rejects only if the connection can't be established
-    // (e.g. auth/network) — mid-stream issues come through onError.
+    // onError(msg), onDone(), and `signal` (an AbortSignal to stop generation).
+    // Returns a Promise that resolves once the stream ends; the Promise rejects
+    // only if the connection can't be established (e.g. auth/network) or the
+    // signal aborts (err.name === "AbortError") - mid-stream issues come
+    // through onError.
     chatStream: function (message, history, includeTasks, handlers) {
       handlers = handlers || {};
       var payload = JSON.stringify({
@@ -447,6 +456,7 @@
           method: "POST",
           headers: headers,
           body: payload,
+          signal: handlers.signal,
         }).then(function (res) {
           // Refresh once on an expired access token, then retry the stream.
           if (res.status === 401 && !isRetry) {
@@ -514,7 +524,15 @@
     pin: function (id, isPinned) {
       return request("api", "/chat/" + id + "/pin", { method: "PUT", body: { isPinned: isPinned } });
     },
+    rename: function (id, title) {
+      return request("api", "/chat/" + id + "/rename", { method: "PUT", body: { title: title } });
+    },
     remove: function (id) { return request("api", "/chat/" + id, { method: "DELETE" }); },
+    // Export a persisted chat to the Drive "AI Conversations" folder so it
+    // appears in the Documents tab (and the AI corpus).
+    saveToDocs: function (id) {
+      return request("api", "/files/save-conversation", { method: "POST", body: { chatId: id } });
+    },
   };
 
   /* ------------------------------------------------------------- Utilities */
