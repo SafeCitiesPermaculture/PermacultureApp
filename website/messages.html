@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Messages
+  Safe Cities Permaculture - Messages
   Wired to: GET /conversations · POST /conversations {usernames} ·
             GET /conversations/:id/messages · POST /conversations/:id/messages {text}
   Real-time uses Socket.IO in the mobile app; to avoid adding a library here we
@@ -36,9 +36,10 @@
           <!-- Conversation list -->
           <aside class="messenger__list" aria-label="Conversations">
             <div class="messenger__new">
-              <label class="sr-only" for="newUser">Start a chat with username</label>
-              <input id="newUser" type="text" placeholder="Username…" />
+              <label class="sr-only" for="newUser">Search for a user to chat with</label>
+              <input id="newUser" type="search" placeholder="Search users…" autocomplete="off" />
               <button class="btn btn--leaf btn--sm" id="newChatBtn">Start</button>
+              <ul class="user-results" id="userResults" hidden></ul>
             </div>
             <ul id="convoList" class="convo-list"></ul>
             <p class="state" id="convoLoading">Loading…</p>
@@ -189,7 +190,7 @@
       function renderMessages(messages) {
         threadLog.innerHTML = "";
         if (!messages.length) {
-          threadLog.innerHTML = '<p class="state">No messages yet — say hello!</p>';
+          threadLog.innerHTML = '<p class="state">No messages yet. Say hello!</p>';
           return;
         }
         messages.forEach(function (m) {
@@ -225,16 +226,69 @@
       });
 
       // -------------------------------------------------- Start new chat
-      document.getElementById("newChatBtn").addEventListener("click", function () {
-        var username = document.getElementById("newUser").value.trim();
+      var newUserInput = document.getElementById("newUser");
+      var userResults = document.getElementById("userResults");
+
+      function hideResults() {
+        userResults.hidden = true;
+        userResults.innerHTML = "";
+      }
+
+      function startChat(username) {
         if (!username) return;
         SC.Messages.start([username])
           .then(function (convo) {
-            document.getElementById("newUser").value = "";
+            newUserInput.value = "";
+            hideResults();
             loadConversations();
             openThread(convo._id, titleFor(convo), avatarUrlFor(convo));
           })
           .catch(function (err) { SC.toast(err.message || "Could not start chat", "error"); });
+      }
+
+      document.getElementById("newChatBtn").addEventListener("click", function () {
+        startChat(newUserInput.value.trim());
+      });
+      // Enter in the search box starts a chat with the typed name (the backend
+      // matches it case-insensitively).
+      newUserInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); startChat(newUserInput.value.trim()); }
+        if (e.key === "Escape") hideResults();
+      });
+
+      // Search-as-you-type: partial, case-insensitive matches with avatars.
+      var searchTimer = null;
+      newUserInput.addEventListener("input", function () {
+        var q = newUserInput.value.trim();
+        clearTimeout(searchTimer);
+        if (!q) { hideResults(); return; }
+        searchTimer = setTimeout(function () {
+          SC.Users.search(q)
+            .then(function (data) {
+              if (newUserInput.value.trim() !== q) return; // stale response
+              var users = (data && data.users) || [];
+              userResults.innerHTML = "";
+              users.forEach(function (u) {
+                var li = document.createElement("li");
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "user-result";
+                btn.appendChild(SC.avatarEl(u.profilePicture, 28, u.username));
+                var name = document.createElement("span");
+                name.textContent = u.username;
+                btn.appendChild(name);
+                btn.addEventListener("click", function () { startChat(u.username); });
+                li.appendChild(btn);
+                userResults.appendChild(li);
+              });
+              userResults.hidden = users.length === 0;
+            })
+            .catch(function () { /* transient - keep the old results */ });
+        }, 250);
+      });
+      // Close the dropdown when clicking anywhere else.
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest || !e.target.closest(".messenger__new")) hideResults();
       });
 
       // Stop polling when the page is hidden to save requests.

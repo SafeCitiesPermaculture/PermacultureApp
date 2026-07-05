@@ -59,8 +59,16 @@ router.post("/conversations", async (req, res) => {
       return res.status(400).json({ error: "Usernames array is required" });
     }
 
-    // Look up all users
-    const users = await User.find({ username: { $in: usernames } });
+    // Look up all users, matching usernames case-insensitively so "adam"
+    // finds "Adam". Regex special characters are escaped (exact match only).
+    const patterns = usernames.map(
+      (u) =>
+        new RegExp(
+          `^${String(u).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+          "i"
+        )
+    );
+    const users = await User.find({ username: { $in: patterns } });
 
     if (users.length !== usernames.length) {
       return res.status(404).json({ error: "One or more users not found" });
