@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Documents
+  Safe Cities Permaculture - Documents
   Wired to: GET /files/list?parent=<id> · POST /files/:id (download stream)
   Folders are navigated client-side via a breadcrumb stack. Requires login.
   (Upload / folder-create are admin-only on the backend and can be added later.)
@@ -32,14 +32,18 @@
         <!-- Admin-only controls. Hidden for non-admins (the backend also enforces
              the admin role on every write, so this is UX only). -->
         <div class="doc-admin" id="adminBar" hidden>
-          <input type="file" id="uploadInput" hidden />
+          <input type="file" id="uploadInput" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
           <button class="btn btn--leaf btn--sm" id="uploadBtn" type="button">Upload file</button>
           <button class="btn btn--ghost btn--sm" id="newFolderBtn" type="button">New folder</button>
-          <span class="doc-admin__hint" id="uploadHint" hidden>Open a folder to upload files into it.</span>
+          <span class="doc-admin__hint" id="uploadHint" hidden>Open a folder to upload files into it. PDF and Word (.docx) only.</span>
         </div>
 
-        <!-- Breadcrumb trail; the first crumb is the root folder. -->
-        <nav class="crumbs" id="crumbs" aria-label="Folder path"></nav>
+        <!-- Folder navigation: a back button (all users) + breadcrumb trail;
+             the first crumb is the root folder. -->
+        <div class="doc-nav">
+          <button class="btn btn--ghost btn--sm" id="backBtn" type="button" hidden>← Back</button>
+          <nav class="crumbs" id="crumbs" aria-label="Folder path"></nav>
+        </div>
 
         <section aria-labelledby="filesLabel">
           <h2 class="sr-only" id="filesLabel">Files and folders</h2>
@@ -50,6 +54,15 @@
         </section>
       </div>
     </main>
+
+    <!-- In-page document viewer (PDF via the browser, .docx via mammoth.js). -->
+    <dialog class="dialog dialog--wide doc-viewer" id="viewerDlg">
+      <div class="doc-viewer__head">
+        <h2 class="dialog__title" id="viewerTitle">Document</h2>
+        <button class="btn btn--ghost btn--sm" id="viewerClose" type="button">Close</button>
+      </div>
+      <div class="doc-viewer__content" id="viewerContent"></div>
+    </dialog>
 
     <script src="api.js"></script>
     <script src="app.js"></script>
@@ -84,10 +97,32 @@
         uploadHint.hidden = !atRoot;
       }
 
+      // The back button pops one folder off the path (shown to everyone once
+      // inside a folder - this is the navigation regular users get in place of
+      // the admin upload controls).
+      var backBtn = document.getElementById("backBtn");
+      backBtn.addEventListener("click", function () {
+        if (stack.length > 1) { stack.pop(); load(); }
+      });
+
+      function isAllowedUpload(file) {
+        var name = (file.name || "").toLowerCase();
+        return (
+          file.type === "application/pdf" ||
+          file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+          /\.(pdf|docx)$/.test(name)
+        );
+      }
+
       uploadBtn.addEventListener("click", function () { uploadInput.click(); });
       uploadInput.addEventListener("change", function () {
         var file = uploadInput.files && uploadInput.files[0];
         if (!file) return;
+        if (!isAllowedUpload(file)) {
+          SC.toast("Only PDF and Word (.docx) files can be uploaded", "error");
+          uploadInput.value = "";
+          return;
+        }
         uploadBtn.disabled = true;
         var label = uploadBtn.textContent;
         uploadBtn.textContent = "Uploading…";
@@ -136,6 +171,7 @@
       function load() {
         renderCrumbs();
         syncAdminBar();
+        backBtn.hidden = stack.length <= 1;
         // Loading state shows only until the first paint (cache OR network).
         listEl.innerHTML = "";
         loadingEl.hidden = false;
@@ -205,6 +241,12 @@
         actions.className = "file__actions";
 
         if (!f.isFolder) {
+          var vw = document.createElement("button");
+          vw.className = "btn btn--ghost btn--sm file__dl";
+          vw.textContent = "View";
+          vw.addEventListener("click", function (ev) { ev.stopPropagation(); view(f, vw); });
+          actions.appendChild(vw);
+
           var dl = document.createElement("button");
           dl.className = "btn btn--ghost btn--sm file__dl";
           dl.textContent = "Download";
@@ -253,8 +295,8 @@
           btn.classList.toggle("is-off", !on());
           btn.setAttribute("aria-pressed", on() ? "true" : "false");
           btn.title = isDocs
-            ? (on() ? "Shown in the Documents tab — click to hide" : "Hidden from the Documents tab — click to show")
-            : (on() ? "Used by the AI assistant — click to exclude" : "Excluded from the AI assistant — click to include");
+            ? (on() ? "Shown in the Documents tab. Click to hide" : "Hidden from the Documents tab. Click to show")
+            : (on() ? "Used by the AI assistant. Click to exclude" : "Excluded from the AI assistant. Click to include");
         }
         apply();
         btn.addEventListener("click", function (ev) {
@@ -289,6 +331,105 @@
         SC.Files.remove(f._id)
           .then(function () { SC.toast("Deleted", "success"); SC.swrDrop(cacheKey()); load(); })
           .catch(function (e) { SC.toast(e.message || "Delete failed", "error"); });
+      }
+
+      // ---- In-page viewer ---------------------------------------------------
+      // PDFs (including Google Docs, which the backend exports to PDF) render
+      // in an <iframe>; .docx is converted to HTML in the browser by mammoth.js
+      // (loaded from a CDN only when first needed); images render directly.
+      var viewerDlg = document.getElementById("viewerDlg");
+      var viewerTitle = document.getElementById("viewerTitle");
+      var viewerContent = document.getElementById("viewerContent");
+      var viewerUrl = null; // active object URL, revoked on close
+
+      function closeViewer() {
+        viewerDlg.close();
+        viewerContent.innerHTML = "";
+        if (viewerUrl) { URL.revokeObjectURL(viewerUrl); viewerUrl = null; }
+      }
+      document.getElementById("viewerClose").addEventListener("click", closeViewer);
+      viewerDlg.addEventListener("close", function () {
+        viewerContent.innerHTML = "";
+        if (viewerUrl) { URL.revokeObjectURL(viewerUrl); viewerUrl = null; }
+      });
+
+      function openViewer(title, node) {
+        viewerTitle.textContent = title || "Document";
+        viewerContent.innerHTML = "";
+        viewerContent.appendChild(node);
+        if (!viewerDlg.open) viewerDlg.showModal();
+      }
+
+      var mammothPromise = null;
+      function loadMammoth() {
+        if (window.mammoth) return Promise.resolve(window.mammoth);
+        if (!mammothPromise) {
+          mammothPromise = new Promise(function (resolve, reject) {
+            var s = document.createElement("script");
+            s.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js";
+            s.onload = function () { resolve(window.mammoth); };
+            s.onerror = function () {
+              mammothPromise = null;
+              reject(new Error("Could not load the document viewer"));
+            };
+            document.head.appendChild(s);
+          });
+        }
+        return mammothPromise;
+      }
+
+      var DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+      function view(f, btn) {
+        btn.disabled = true;
+        var label = btn.textContent;
+        btn.textContent = "Opening…";
+        SC.Files.view(f._id)
+          .then(function (res) { return res.blob(); })
+          .then(function (blob) {
+            var mime = blob.type || f.mimeType || "";
+            var name = (f.name || "").toLowerCase();
+            if (mime.indexOf("application/pdf") === 0) {
+              viewerUrl = URL.createObjectURL(blob);
+              var frame = document.createElement("iframe");
+              frame.className = "doc-viewer__frame";
+              frame.title = f.name || "Document";
+              frame.src = viewerUrl;
+              openViewer(f.name, frame);
+            } else if (mime === DOCX_MIME || /\.docx$/.test(name)) {
+              return loadMammoth()
+                .then(function (mammoth) { return blob.arrayBuffer(); })
+                .then(function (buf) {
+                  return window.mammoth.convertToHtml({ arrayBuffer: buf });
+                })
+                .then(function (result) {
+                  var body = document.createElement("div");
+                  body.className = "doc-viewer__body";
+                  body.innerHTML = result.value; // mammoth output: sanitised HTML from the docx
+                  openViewer(f.name, body);
+                });
+            } else if (mime.indexOf("text/") === 0) {
+              // Plain text / markdown (e.g. saved AI conversations).
+              return blob.text().then(function (txt) {
+                var pre = document.createElement("pre");
+                pre.className = "doc-viewer__body doc-viewer__text";
+                pre.textContent = txt;
+                openViewer(f.name, pre);
+              });
+            } else if (mime.indexOf("image/") === 0) {
+              viewerUrl = URL.createObjectURL(blob);
+              var img = document.createElement("img");
+              img.className = "doc-viewer__img";
+              img.alt = f.name || "Image";
+              img.src = viewerUrl;
+              openViewer(f.name, img);
+            } else {
+              SC.toast("No preview for this file type, downloading instead", "info");
+              download(f, btn);
+            }
+          })
+          .catch(function (e) { SC.toast(e.message || "Could not open the document", "error"); })
+          .then(function () { btn.disabled = false; btn.textContent = label; });
       }
 
       // The backend streams the file back from Google Drive. We read it as a

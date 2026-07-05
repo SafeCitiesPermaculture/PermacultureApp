@@ -1,5 +1,6 @@
 const { google } = require("googleapis");
 const { Readable } = require("stream");
+const Chat = require("../models/Chat");
 
 require("dotenv").config();
 const googleDriveCredentials = JSON.parse(
@@ -251,10 +252,12 @@ const setFileFlags = async (req, res) => {
 
 //retrieve a file from google drive by its Drive file ID (the `_id` returned by
 //listFiles). Google-native docs are exported; everything else is downloaded
-//as-is.
+//as-is. Pass ?inline=1 to get viewer-friendly headers (real mimetype +
+//Content-Disposition inline) so the browser can render the file in-page.
 const getFileById = async (req, res) => {
     try {
         const fileId = req.params.id;
+        const inline = req.query.inline === "1";
 
         //look up the name + type so we can name the download and decide whether
         //to export (Google-native) or stream the raw bytes.
@@ -265,12 +268,14 @@ const getFileById = async (req, res) => {
         const { name, mimeType } = meta.data;
 
         let downloadName = name || "download";
+        let contentType = mimeType || "application/octet-stream";
         let driveRes;
         if (GOOGLE_EXPORT[mimeType]) {
             const [exportMime, ext] = GOOGLE_EXPORT[mimeType];
             if (!downloadName.toLowerCase().endsWith(ext)) {
                 downloadName += ext;
             }
+            contentType = exportMime;
             driveRes = await drive.files.export(
                 { fileId, mimeType: exportMime },
                 { responseType: "stream" }
@@ -285,10 +290,13 @@ const getFileById = async (req, res) => {
         //set headers
         res.setHeader(
             "Content-Disposition",
-            `attachment; filename="${downloadName}"`
+            `${inline ? "inline" : "attachment"}; filename="${downloadName}"`
         );
 
-        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader(
+            "Content-Type",
+            inline ? contentType : "application/octet-stream"
+        );
         res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
         driveRes.data.pipe(res);
@@ -355,6 +363,122 @@ const createFolder = async (req, res) => {
     } catch (err) {
         console.error("Folder creation error:", err.message);
         res.status(500).json({ error: "Failed to create folder" });
+    }
+};
+
+// Saved AI conversations live in this folder directly under the documents
+// root, so they show up in the Documents tab and in the AI corpus walk. The
+// name matches the ai-service's existing write-back folder ("Saved Answers",
+// see ai_conversations_folder_name in ai-service config) so both features
+// share one folder instead of creating duplicates.
+const AI_CONVERSATIONS_FOLDER = "Saved Answers";
+
+// Find (or create) the AI Conversations folder under the documents root. Like
+// createFolder: the service account creates it (zero-byte, no quota needed) and
+// shares it with the Gmail owner so file uploads can land inside.
+const ensureConversationsFolder = async () => {
+    const resp = await drive.files.list({
+        q: `'${DOCUMENTS_ROOT_FOLDER_ID}' in parents and name = '${AI_CONVERSATIONS_FOLDER}' and mimeType = '${FOLDER_MIME}' and trashed = false`,
+        fields: "files(id)",
+        pageSize: 1,
+    });
+    if (resp.data.files.length) return resp.data.files[0].id;
+
+    const folder = await drive.files.create({
+        resource: {
+            name: AI_CONVERSATIONS_FOLDER,
+            mimeType: FOLDER_MIME,
+            parents: [DOCUMENTS_ROOT_FOLDER_ID],
+        },
+        fields: "id",
+    });
+    await shareWithOwner(folder.data.id);
+    return folder.data.id;
+};
+
+// Save an AI-assistant conversation (a Chat document) into the AI Conversations
+// Drive folder as markdown. Re-saving the same chat updates its existing Drive
+// file (matched by the scChatId property) instead of creating duplicates.
+const saveConversation = async (req, res) => {
+    try {
+        const { chatId } = req.body;
+        if (!chatId) {
+            return res.status(400).json({ error: "chatId is required" });
+        }
+        if (!DOCUMENTS_ROOT_FOLDER_ID) {
+            return res
+                .status(500)
+                .json({ error: "DOCUMENTS_ROOT_FOLDER_ID is not configured" });
+        }
+
+        const chat = await Chat.findById(chatId);
+        if (!chat) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+        const isOwner = chat.user.toString() === req.user._id.toString();
+        if (!isOwner && req.user.userRole !== "admin") {
+            return res.status(403).json({ error: "Not your conversation" });
+        }
+        if (!chat.messages.length) {
+            return res
+                .status(400)
+                .json({ error: "This conversation has no messages yet" });
+        }
+
+        const folderId = await ensureConversationsFolder();
+
+        const title = chat.title || "AI conversation";
+        const savedOn = new Date().toISOString().slice(0, 10);
+        const lines = [
+            `# ${title}`,
+            "",
+            `Saved by ${req.user.username} on ${savedOn}`,
+            "",
+        ];
+        for (const m of chat.messages) {
+            lines.push(m.role === "user" ? "## You" : "## Assistant", "", m.content, "");
+        }
+
+        const bufferStream = new Readable();
+        bufferStream.push(lines.join("\n"));
+        bufferStream.push(null);
+        const media = { mimeType: "text/markdown", body: bufferStream };
+        const fileName = `${title}.md`;
+
+        const existing = await drive.files.list({
+            q: `'${folderId}' in parents and properties has { key='scChatId' and value='${chat._id}' } and trashed = false`,
+            fields: "files(id)",
+            pageSize: 1,
+        });
+
+        let fileId;
+        if (existing.data.files.length) {
+            fileId = existing.data.files[0].id;
+            await driveOwner.files.update({
+                fileId,
+                resource: { name: fileName },
+                media,
+            });
+        } else {
+            const created = await driveOwner.files.create({
+                resource: {
+                    name: fileName,
+                    parents: [folderId],
+                    properties: { scChatId: String(chat._id) },
+                },
+                media,
+                fields: "id",
+            });
+            fileId = created.data.id;
+            await shareWithServiceAccount(fileId);
+        }
+
+        res.json({ success: true, fileId, folderId });
+    } catch (err) {
+        console.error("saveConversation error:", err.message);
+        res.status(500).json({
+            error: "Could not save the conversation to Documents",
+        });
     }
 };
 
@@ -477,6 +601,7 @@ const purgeDrive = async (req, res) => {
 module.exports = {
     handleUpload,
     listFiles,
+    saveConversation,
     getFileById,
     setFileFlags,
     deleteFile,
