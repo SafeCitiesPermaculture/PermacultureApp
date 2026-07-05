@@ -68,10 +68,14 @@ const markCompleted = async (req, res) => {
             task.completionNote = req.body.completionNote;
         }
 
-        // Optional completion photo (multipart upload).
+        // Optional completion photo (multipart upload). Replacing an earlier
+        // photo (e.g. after a reopen) deletes the old one from Cloudinary.
         if (req.file) {
             try {
                 const { url, publicId } = await uploadBufferToCloudinary(req.file, "task-completions");
+                if (task.completionPhotoId && task.completionPhotoId !== publicId) {
+                    await deleteFromCloudinary(task.completionPhotoId);
+                }
                 task.completionPhoto = url;
                 task.completionPhotoId = publicId;
             } catch (uploadError) {
@@ -112,16 +116,12 @@ const markIncomplete = async (req, res) => {
             return res.status(403).json({ message: "Unauthorized: you cannot edit this task" });
         }
 
-        // Clear the completion record when reverting.
-        if (task.completionPhotoId) {
-            await deleteFromCloudinary(task.completionPhotoId);
-        }
+        // Reopen the task but KEEP the completion note and photo, so whoever
+        // reopened it can still see what was previously done. Completing the
+        // task again overwrites them (and cleans up the old photo).
         task.isCompleted = false;
         task.completedAt = null;
         task.completedBy = null;
-        task.completionNote = "";
-        task.completionPhoto = "";
-        task.completionPhotoId = "";
         await task.save();
         return res.status(201).json({ message: "Task marked incomplete" });
     } catch (error) {
@@ -215,8 +215,17 @@ const deleteTask = async (req, res) => {
     try {
         const task = await Task.findById(taskId);
 
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
         if (req.user.userRole !== "admin" && task.assignedTo.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: "Unauthorized: You cannot remove this listing" });
+            return res.status(403).json({ message: "Unauthorized: You cannot remove this task" });
+        }
+
+        // Clean up the completion photo (kept through reopens) with the task.
+        if (task.completionPhotoId) {
+            await deleteFromCloudinary(task.completionPhotoId);
         }
 
         await Task.findByIdAndDelete(taskId);

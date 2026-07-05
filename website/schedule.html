@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Schedule (Tasks)
+  Safe Cities Permaculture - Schedule (Tasks)
   Wired to: GET /tasks/ · GET /tasks/completed · POST /tasks/ ·
             PUT /tasks/complete/:id · PUT /tasks/incomplete/:id · DELETE /tasks/:id
   Requires login (data-requires-auth). Header/footer injected by app.js.
@@ -40,6 +40,14 @@
             <button class="tab" id="tabDone" role="tab" aria-selected="false">Completed</button>
             <button class="tab" id="tabAll" role="tab" aria-selected="false">Overdue</button>
           </div>
+          <select id="sortSelect" class="task-user-filter" aria-label="Sort tasks">
+            <option value="due">Due soonest</option>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <!-- Grouping by assignee only makes sense for admins (they see
+                 everyone's tasks); revealed alongside the user filter. -->
+            <option value="user" id="sortByUserOpt" hidden disabled>By assigned user</option>
+          </select>
           <select id="userFilter" class="task-user-filter" aria-label="Filter by user" hidden>
             <option value="">All users</option>
           </select>
@@ -116,6 +124,7 @@
       var tabOpen = document.getElementById("tabOpen");
       var tabDone = document.getElementById("tabDone");
       var userFilter = document.getElementById("userFilter"); // admin-only
+      var sortSelect = document.getElementById("sortSelect");
       var view = "open"; // "open" | "done" | "overdue"
 
       var me = SC.getCachedUser() || {};
@@ -151,6 +160,7 @@
         errorEl.hidden = true;
         listEl.innerHTML = "";
         if (view === "overdue") tasks = tasks.filter(isOverdue);
+        tasks = applySort(tasks);
         if (!tasks.length) { emptyEl.hidden = false; return; }
         emptyEl.hidden = true;
         tasks.forEach(function (t) { listEl.appendChild(taskCard(t)); });
@@ -186,7 +196,7 @@
         }
       }
 
-      // A task change can affect either list — drop both cached views.
+      // A task change can affect either list - drop both cached views.
       function dropTasksCache() {
         SC.swrDrop("tasks:open");
         SC.swrDrop("tasks:done");
@@ -195,6 +205,27 @@
       // A task is overdue when it's incomplete and past its due date.
       function isOverdue(t) {
         return !t.isCompleted && new Date(t.dueDateTime) < new Date();
+      }
+
+      // Sort the list per the sort dropdown. "By assigned user" is admin-only
+      // (regular users only ever see their own tasks).
+      function applySort(tasks) {
+        var mode = sortSelect.value;
+        var arr = tasks.slice();
+        if (mode === "newest") {
+          arr.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+        } else if (mode === "oldest") {
+          arr.sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); });
+        } else if (mode === "user") {
+          arr.sort(function (a, b) {
+            var ua = (a.assignedTo && a.assignedTo.username) || "";
+            var ub = (b.assignedTo && b.assignedTo.username) || "";
+            return ua.localeCompare(ub) || (new Date(a.dueDateTime) - new Date(b.dueDateTime));
+          });
+        } else {
+          arr.sort(function (a, b) { return new Date(a.dueDateTime) - new Date(b.dueDateTime); });
+        }
+        return arr;
       }
 
       // Build one task row. Uses DOM APIs (not innerHTML) for user-supplied text
@@ -232,6 +263,28 @@
           notesEl.className = "task__meta task__notes";
           notesEl.textContent = "📝 " + t.notes;
           main.appendChild(notesEl);
+        }
+        // A reopened task keeps its earlier completion note + photo - show them
+        // so it's clear what was previously done.
+        if (!t.isCompleted && (t.completionNote || t.completionPhoto)) {
+          var prevEl = document.createElement("p");
+          prevEl.className = "task__meta task__notes";
+          prevEl.textContent = "↩︎ Previously completed" +
+            (t.completionNote ? ": " + t.completionNote : "");
+          main.appendChild(prevEl);
+        }
+        if (t.completionPhoto) {
+          var photoLink = document.createElement("a");
+          photoLink.className = "task__photo";
+          photoLink.href = t.completionPhoto;
+          photoLink.target = "_blank";
+          photoLink.rel = "noopener";
+          var photoImg = document.createElement("img");
+          photoImg.src = t.completionPhoto;
+          photoImg.alt = "Completion photo for " + (t.name || "task");
+          photoImg.loading = "lazy";
+          photoLink.appendChild(photoImg);
+          main.appendChild(photoLink);
         }
 
         var actions = document.createElement("div");
@@ -302,8 +355,10 @@
       tabDone.addEventListener("click", function () { setView("done"); });
       tabAll.addEventListener("click", function () { setView("overdue"); });
 
-      // Admin user filter: reload the current tab whenever the selection changes.
+      // Admin user filter + sort: reload the current tab on change (the cache
+      // makes user-view reloads instant).
       userFilter.addEventListener("change", function () { load(); });
+      sortSelect.addEventListener("change", function () { load(); });
 
       // Admins only: populate the "Assign to" picker (new-task dialog) and the
       // "Filter by user" dropdown with every verified user, so an admin can
@@ -352,6 +407,9 @@
         if (u && u.userRole === "admin") {
           if (!isAdmin) { isAdmin = true; me = u; load(); } // re-render as admin
           userFilter.hidden = false;
+          var byUserOpt = document.getElementById("sortByUserOpt");
+          byUserOpt.hidden = false;
+          byUserOpt.disabled = false;
           loadWorkers();
         }
       }
