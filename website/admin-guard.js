@@ -1,10 +1,10 @@
 /* =============================================================================
-   Safe Cities Permaculture — admin-guard.js
+   Safe Cities Permaculture - admin-guard.js
    -----------------------------------------------------------------------------
    Shared by the admin pages. Hides the page content and shows a notice if the
    signed-in user is not an administrator. The backend independently enforces
    the admin role on every /admin, /reports and /farms-write endpoint, so this
-   is purely a UX guard — never a security boundary.
+   is purely a UX guard - never a security boundary.
 
    Loaded AFTER api.js + app.js. app.js has already redirected anonymous users
    to the login page, so here we only need to check the role.

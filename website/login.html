@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Login / Sign up
+  Safe Cities Permaculture - Login / Sign up
   Talks to the existing backend: POST /auth/login and POST /auth/signup.
   The shared shell (header/footer) is injected by app.js; this page does NOT
   require auth (no data-requires-auth).
@@ -93,7 +93,7 @@
         );
         document.getElementById("authTitle").textContent = isSignup ? "Join Safe Cities" : "Welcome back";
         document.getElementById("authSub").textContent = isSignup
-          ? "Create an account — an admin will verify you before first login."
+          ? "Create an account. An admin will verify you before first login."
           : "Log in to continue to your community platform.";
         submitBtn.textContent = isSignup ? "Create account" : "Log in";
         document.getElementById("switchText").textContent = isSignup
@@ -118,7 +118,7 @@
         var action = mode === "signup"
           ? SC.signup(username, email, password).then(function () {
               // Signup succeeds but the account needs admin verification.
-              showOk("Account created! An admin will verify you shortly — you can log in once approved.");
+              showOk("Account created! An admin will verify you shortly. You can log in once approved.");
               document.getElementById("switchBtn").click(); // flip back to login
             })
           : SC.login(username, password).then(function () {

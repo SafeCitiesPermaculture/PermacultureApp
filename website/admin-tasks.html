@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Admin · Task overview
+  Safe Cities Permaculture - Admin · Task overview
   Wired to: GET /admin/tasks?assignedTo=<id>&isCompleted=<true|false>
             GET /admin/verified  (to populate the assignee filter)
   Read-only org-wide view of every task. Admin-only.
@@ -115,7 +115,7 @@
 
       function name(ref) {
         // assignedTo / completedBy may be a populated object or a bare id.
-        if (!ref) return "—";
+        if (!ref) return "-";
         return ref.username || String(ref);
       }
       function cell(text, cls) {
@@ -148,7 +148,7 @@
 
         var done = t.isCompleted
           ? (name(t.completedBy) + " · " + SC.formatDate(t.completedAt))
-          : "—";
+          : "-";
         tr.appendChild(cell(done));
         return tr;
       }

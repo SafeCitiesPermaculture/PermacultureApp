@@ -1,7 +1,7 @@
 /*
   password-toggle.js
   Adds a plain-text "Show / Hide" button to every password field on the page.
-  No dependencies, no icon fonts — include it on any page that has a
+  No dependencies, no icon fonts - include it on any page that has a
   <input type="password"> and each one gets a visible toggle.
 */
 (function () {

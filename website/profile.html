@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Safe Cities Permaculture — Profile
+  Safe Cities Permaculture - Profile
   Wired to: GET /user/me · PUT /user/update-profile · PUT /user/change-password ·
             PUT /user/image/:id
   Requires login. Admin-only management links appear when userRole === "admin".
@@ -112,7 +112,7 @@
 
       // MERGE incoming fields onto the user we already have. This matters because
       // /user/me returns only username/email/farms (no userRole or profilePicture),
-      // while the login response and /auth/userdata carry the full object — we
+      // while the login response and /auth/userdata carry the full object - we
       // must not let the partial response wipe the role or the profile picture.
       function fill(u) {
         if (u) user = Object.assign({}, user, u);
