@@ -122,8 +122,11 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
     """Stream the answer token-by-token as Server-Sent Events.
 
     Event payloads (one JSON object per `data:` line):
-      {"type":"sources","sources":[...]}   sent once, up front
       {"type":"delta","text":"..."}        many, the streamed reply
+      {"type":"sources","sources":[...]}   sent once, AFTER the deltas — only
+                                            the documents the answer actually
+                                            used (the model declares them; see
+                                            llm.stream_chat_with_sources)
       {"type":"error","message":"..."}     if generation fails mid-stream
       {"type":"done"}                       terminates the stream
     """
@@ -142,18 +145,23 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
-    sources = llm.sources_for(chunks)
-
     def event_stream():
-        yield _sse({"type": "sources", "sources": [s.model_dump() for s in sources]})
         try:
-            for delta in llm.stream_chat(
+            for kind, payload in llm.stream_chat_with_sources(
                 message=body.message,
                 history=body.history,
                 task_context=task_context,
                 context_chunks=chunks,
             ):
-                yield _sse({"type": "delta", "text": delta})
+                if kind == "delta":
+                    yield _sse({"type": "delta", "text": payload})
+                else:
+                    yield _sse(
+                        {
+                            "type": "sources",
+                            "sources": [s.model_dump() for s in payload],
+                        }
+                    )
         except (llm.LLMNotConfiguredError, llm.LLMUnavailableError) as exc:
             yield _sse({"type": "error", "message": str(exc)})
         except Exception:  # noqa: BLE001 — never leak a traceback into the stream

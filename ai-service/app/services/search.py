@@ -355,20 +355,47 @@ def has_documents() -> bool:
     return value
 
 
-def search(query: str, k: int = 8) -> list[dict]:
-    """Return the top-k corpus chunks for a question via HYBRID retrieval.
+# Minimum vector similarity (@search.score of a vector-ONLY query) for the
+# corpus to count as relevant to a question at all. Measured on the live index
+# 2026-07-07: smalltalk and out-of-corpus questions ("what is the wifi
+# password") top out at 0.52-0.56 while genuine corpus questions score
+# 0.63-0.74, so 0.58 sits in the gap. Hybrid RRF scores are rank-based and
+# carry no such signal, hence the separate probe.
+_RELEVANCE_GATE = 0.58
 
-    Passing both `search_text` (BM25 keyword) and a `vector_queries` leg makes
-    Azure AI Search run both and fuse the rankings with Reciprocal Rank Fusion.
-    Hybrid markedly out-recalls pure vector search on keyword-heavy questions
-    (e.g. "worm practices"): a purely semantic match can rank the right document
-    just outside the top-k while a literal keyword hit does not, so the assistant
-    would wrongly answer "no information". Each result is {source, content,
-    chunk_index}."""
+
+def search(query: str, k: int = 8) -> list[dict]:
+    """Return the top-k corpus chunks for a question via HYBRID retrieval, or
+    [] when the corpus simply isn't relevant to the question.
+
+    A vector-only probe runs first: its @search.score is comparable across
+    queries, so a low top score means even the best chunk is semantically
+    unrelated (greetings, out-of-corpus questions) — return nothing rather
+    than feeding the model junk context it would then "cite".
+
+    For relevant questions, passing both `search_text` (BM25 keyword) and a
+    `vector_queries` leg makes Azure AI Search run both and fuse the rankings
+    with Reciprocal Rank Fusion. Hybrid markedly out-recalls pure vector search
+    on keyword-heavy questions (e.g. "worm practices"): a purely semantic match
+    can rank the right document just outside the top-k while a literal keyword
+    hit does not, so the assistant would wrongly answer "no information". Each
+    result is {source, content, chunk_index}."""
     from azure.search.documents.models import VectorizedQuery
 
     vector = llm.embed_one(query)
     client = _search_client()
+
+    probe = client.search(
+        vector_queries=[
+            VectorizedQuery(vector=vector, k_nearest_neighbors=1, fields="embedding")
+        ],
+        select=["source"],
+        top=1,
+    )
+    best = next(iter(probe), None)
+    if best is None or best["@search.score"] < _RELEVANCE_GATE:
+        return []
+
     results = client.search(
         search_text=query,  # keyword (BM25) leg, fused with the vector leg via RRF
         vector_queries=[

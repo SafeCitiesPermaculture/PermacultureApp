@@ -11,6 +11,7 @@ still boots and /health stays green so auth and the frontend can be wired up in
 parallel.
 """
 
+import re
 import time
 from functools import lru_cache
 
@@ -134,22 +135,13 @@ def _chat(messages: list[dict], temperature: float = 0.3) -> str:
     ) from last_exc
 
 
-def _build_context_block(chunks: list[dict]) -> tuple[str, list[Source]]:
-    """Render retrieved chunks into a numbered context block and collect the
-    distinct source documents for citation."""
-    if not chunks:
-        return "", []
-
-    lines = []
-    sources: list[Source] = []
-    seen = set()
-    for i, ch in enumerate(chunks, start=1):
-        title = ch.get("source") or "Untitled"
-        lines.append(f"[{i}] (source: {title})\n{ch.get('content', '')}")
-        if title not in seen:
-            seen.add(title)
-            sources.append(Source(title=title))
-    return "\n\n".join(lines), sources
+def _build_context_block(chunks: list[dict]) -> str:
+    """Render retrieved chunks into a numbered context block."""
+    lines = [
+        f"[{i}] (source: {ch.get('source') or 'Untitled'})\n{ch.get('content', '')}"
+        for i, ch in enumerate(chunks, start=1)
+    ]
+    return "\n\n".join(lines)
 
 
 _SYSTEM_PROMPT = (
@@ -159,16 +151,64 @@ _SYSTEM_PROMPT = (
     "organisation's documents (provided below as numbered sources) and the "
     "provided context. Cite the source document name(s) you used in your "
     "answer. If the documents don't contain the answer, say so plainly "
-    "rather than guessing. When a task list is provided and the user asks "
+    "rather than guessing. If the user's message is conversational small "
+    "talk (a greeting, thanks, chit-chat), just respond naturally and "
+    "briefly — don't force the documents into it. When a task list is "
+    "provided and the user asks "
     "about their schedule, tasks, or what's due, answer from that list. If "
     "the list is labelled as all tasks across the organisation (admin "
     "view), you may tell the user who has which tasks."
 )
 
+# Asks the model to declare which numbered documents its answer actually drew
+# on, so the UI can show only genuinely-referenced sources (not everything
+# retrieval happened to fetch). The marker is stripped before display.
+_MARKER_INSTRUCTION = (
+    "After your answer, on its own final line, write [[used: 1,3]] listing "
+    "the numbers of the documents your answer actually drew on, or "
+    "[[used: none]] if you didn't use any of them (for example a greeting, "
+    "or a question the documents don't cover)."
+)
 
-def sources_for(context_chunks: list[dict] | None) -> list[Source]:
-    """The distinct source documents behind a set of retrieved chunks."""
-    return _build_context_block(context_chunks or [])[1]
+_USED_MARKER_RE = re.compile(
+    r"\s*\[\[\s*used\s*:\s*(none|[\d,\s]+)\s*\]\][\s.]*$", re.IGNORECASE
+)
+
+
+def resolve_used_sources(
+    reply: str, context_chunks: list[dict] | None
+) -> tuple[str, list[Source]]:
+    """Strip the trailing [[used: ...]] marker from a finished reply and return
+    (clean_reply, the distinct source documents the answer actually used).
+
+    When the model forgot the marker, fall back to keeping the sources whose
+    document title is mentioned in the reply text (the prompt asks it to cite
+    names, so a used document normally appears verbatim)."""
+    chunks = context_chunks or []
+    m = _USED_MARKER_RE.search(reply)
+    if m:
+        clean = reply[: m.start()].rstrip()
+        titles: list[str] = []
+        spec = m.group(1).strip().lower()
+        if spec != "none":
+            for tok in spec.split(","):
+                tok = tok.strip()
+                if tok.isdigit() and 1 <= int(tok) <= len(chunks):
+                    title = chunks[int(tok) - 1].get("source") or "Untitled"
+                    if title not in titles:
+                        titles.append(title)
+        return clean, [Source(title=t) for t in titles]
+
+    low = reply.lower()
+    titles = []
+    for ch in chunks:
+        title = ch.get("source") or "Untitled"
+        stem = title.rsplit(".", 1)[0].strip().lower()
+        if title not in titles and (
+            title.lower() in low or (len(stem) >= 4 and stem in low)
+        ):
+            titles.append(title)
+    return reply, [Source(title=t) for t in titles]
 
 
 def _build_messages(
@@ -177,14 +217,17 @@ def _build_messages(
     task_context: str | None,
     context_chunks: list[dict] | None,
 ) -> list[dict]:
-    context_block, _ = _build_context_block(context_chunks or [])
+    chunks = context_chunks or []
     messages: list[dict] = [{"role": "system", "content": _SYSTEM_PROMPT}]
 
     preamble = []
     if task_context:
         preamble.append(f"The user's current tasks:\n{task_context}")
-    if context_block:
-        preamble.append(f"Relevant documents:\n{context_block}")
+    if chunks:
+        preamble.append(
+            f"Relevant documents:\n{_build_context_block(chunks)}"
+            f"\n\n{_MARKER_INSTRUCTION}"
+        )
     if preamble:
         messages.append({"role": "system", "content": "\n\n".join(preamble)})
 
@@ -201,10 +244,42 @@ def generate_chat(
     context_chunks: list[dict] | None = None,
 ) -> tuple[str, list[Source]]:
     """Answer a user question, grounded in the retrieved corpus chunks when any
-    are provided. Returns (reply, sources)."""
+    are provided. Returns (reply, sources the answer actually used)."""
     messages = _build_messages(message, history, task_context, context_chunks)
     reply = _chat(messages)
-    return reply, sources_for(context_chunks)
+    return resolve_used_sources(reply, context_chunks)
+
+
+# How much reply text stream_chat_with_sources holds back from the client.
+# Must exceed the longest possible [[used: ...]] marker (+ surrounding
+# whitespace) so the marker can never partially leak into displayed text.
+_STREAM_HOLDBACK = 64
+
+
+def stream_chat_with_sources(
+    message: str,
+    history: list[ChatTurn],
+    task_context: str | None = None,
+    context_chunks: list[dict] | None = None,
+):
+    """Stream a reply as ("delta", text) events, then end with one
+    ("sources", list[Source]) event naming the documents the answer used.
+
+    The model appends a [[used: ...]] marker to its reply (see
+    _MARKER_INSTRUCTION); the tail of the stream is held back so the marker is
+    parsed out server-side and never shows up in the client's typewriter."""
+    acc = ""
+    emitted = 0
+    for delta in stream_chat(message, history, task_context, context_chunks):
+        acc += delta
+        safe = len(acc) - _STREAM_HOLDBACK
+        if safe > emitted:
+            yield ("delta", acc[emitted:safe])
+            emitted = safe
+    clean, sources = resolve_used_sources(acc, context_chunks)
+    if len(clean) > emitted:
+        yield ("delta", clean[emitted:])
+    yield ("sources", sources)
 
 
 def stream_chat(
@@ -213,10 +288,9 @@ def stream_chat(
     task_context: str | None = None,
     context_chunks: list[dict] | None = None,
 ):
-    """Yield the assistant reply token-by-token (a generator of text deltas).
-
-    Sources are derived from context_chunks separately (see sources_for) — they
-    are known before generation, so the caller can emit them up front.
+    """Yield the raw assistant reply token-by-token (a generator of text
+    deltas), [[used: ...]] marker included — routers should normally use
+    stream_chat_with_sources, which strips it.
     """
     settings = get_settings()
     client = _client()
