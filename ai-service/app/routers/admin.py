@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.auth import get_admin_user
 from app.config import get_settings
-from app.services import drive, llm, search
+from app.services import drive, llm, reindexer, search
 
 router = APIRouter(prefix="/corpus", tags=["corpus"])
 
@@ -35,31 +35,31 @@ def reindex(admin: dict = Depends(get_admin_user)):
     return _run_reindex()
 
 
-@router.post("/reindex-trigger")
-def reindex_trigger(
+@router.post("/reindex-trigger", status_code=status.HTTP_202_ACCEPTED)
+async def reindex_trigger(  # async: request_reindex() needs the event loop
     token: str | None = None,
     x_reindex_token: str | None = Header(default=None),
 ):
-    """No-JWT reindex trigger for a scheduler (cron-job.org). Authenticated by a
-    shared secret via the `token` query param or `X-Reindex-Token` header, so it
-    can be called without an admin login. Reuses the incremental index_corpus(),
-    so when nothing changed it's just a Drive listing — effectively free."""
-    expected = get_settings().reindex_token.strip()
+    """No-JWT reindex trigger for machine callers — the Express backend fires
+    it after corpus-affecting Drive mutations (upload/delete/toggle/save), and
+    the scheduled ACA job sweeps for out-of-band Drive changes. Authenticated
+    by a shared secret via the `token` query param or `X-Reindex-Token` header.
+
+    Responds 202 immediately; the reindex runs in the background through the
+    coalescer (concurrent triggers collapse into one follow-up run), so callers
+    never wait on embedding work. The incremental index_corpus() means a
+    no-change run is just a Drive listing — effectively free."""
+    settings = get_settings()
+    expected = settings.reindex_token.strip()
     provided = (x_reindex_token or token or "").strip()
     if not expected or not provided or not secrets.compare_digest(provided, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing reindex token",
         )
-    result = _run_reindex()
-    # Return only COUNTS, not the per-file lists. Schedulers like cron-job.org
-    # cap the response body they'll store and mark the run "output too large"
-    # otherwise — and in steady state `skipped` holds one entry per corpus file,
-    # so the full payload grows unbounded with the document count.
-    return {
-        "index": result.get("index"),
-        "indexed": len(result.get("indexed", [])),
-        "skipped": len(result.get("skipped", [])),
-        "failed": len(result.get("failed", [])),
-        "pruned": len(result.get("pruned", [])),
-    }
+    if not settings.azure_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Azure OpenAI / AI Search are not configured",
+        )
+    return {"status": reindexer.request_reindex()}

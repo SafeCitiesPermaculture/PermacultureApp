@@ -11,7 +11,6 @@ task so the service still boots green while indexing runs.
 Run locally:  uvicorn app.main:app --reload --port 8000
 """
 
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -21,23 +20,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import db
 from app.config import get_settings
 from app.routers import admin, chat, knowledge_base, report, summarize
-from app.services import search
+from app.services import reindexer
+
+# Root logger defaults to WARNING with no handler, which silently swallowed
+# our own INFO lines (reindex results) in production logs. Uvicorn's loggers
+# keep their own handlers, so this doesn't duplicate request logs. The Azure
+# SDK logs every HTTP request at INFO — keep it at WARNING or logs drown.
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("azure").setLevel(logging.WARNING)
 
 logger = logging.getLogger("ai-service")
-
-
-async def _index_corpus_on_startup() -> None:
-    """Pull + chunk + embed + index the Drive corpus, off the request path."""
-    try:
-        result = await asyncio.to_thread(search.index_corpus)
-        logger.info(
-            "Corpus indexing complete: %d indexed, %d skipped, %d failed",
-            len(result.get("indexed", [])),
-            len(result.get("skipped", [])),
-            len(result.get("failed", [])),
-        )
-    except Exception:  # never let a startup task crash the process
-        logger.exception("Corpus indexing failed on startup")
 
 
 @asynccontextmanager
@@ -45,7 +37,9 @@ async def lifespan(app: FastAPI):
     db.connect()
     if settings.azure_configured:
         # Fire-and-forget: indexing can take a while; don't block boot/health.
-        asyncio.create_task(_index_corpus_on_startup())
+        # Goes through the shared coalescer so an early /corpus/reindex-trigger
+        # can't start a second concurrent run.
+        reindexer.request_reindex()
     yield
     db.close()
 

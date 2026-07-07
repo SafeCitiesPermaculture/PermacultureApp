@@ -1,6 +1,7 @@
 const { google } = require("googleapis");
 const { Readable } = require("stream");
 const Chat = require("../models/Chat");
+const { triggerAiReindex } = require("../utils/aiReindex");
 
 require("dotenv").config();
 const googleDriveCredentials = JSON.parse(
@@ -126,6 +127,10 @@ const handleUpload = async (req, res) => {
 
         await shareWithServiceAccount(driveRes.data.id);
 
+        // New uploads default to inCorpus, so the AI should pick them up now
+        // rather than on the next scheduled sweep.
+        triggerAiReindex("upload");
+
         res.json({
             success: true,
             file: {
@@ -243,6 +248,12 @@ const setFileFlags = async (req, res) => {
             await drive.files.update({ fileId: id, requestBody });
         }
 
+        // Only the corpus flag affects the AI index (toggling on adds the
+        // file, toggling off gets it pruned); showInDocs alone doesn't.
+        if (typeof inCorpus === "boolean") {
+            triggerAiReindex("corpus toggle");
+        }
+
         res.json({ success: true, flags: { showInDocs, inCorpus } });
     } catch (err) {
         console.error("setFileFlags error:", err.message);
@@ -318,6 +329,8 @@ const deleteFile = async (req, res) => {
         } catch (ownerErr) {
             await drive.files.delete({ fileId: id });
         }
+        // Prune the deleted file's chunks from the AI index right away.
+        triggerAiReindex("delete");
         res.status(200).json({ message: "File deleted from Google Drive" });
     } catch (err) {
         console.error("Delete error:", err.message);
@@ -472,6 +485,12 @@ const saveConversation = async (req, res) => {
             fileId = created.data.id;
             await shareWithServiceAccount(fileId);
         }
+
+        // Saved conversations live under the documents root, so they belong
+        // to the corpus — index the new file now. (Re-saves of the same chat
+        // update the Drive file but keep the old embedding until a force
+        // reindex: the indexer skips already-indexed filenames.)
+        triggerAiReindex("save conversation");
 
         res.json({ success: true, fileId, folderId });
     } catch (err) {
