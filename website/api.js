@@ -39,7 +39,7 @@
     if (h === "localhost" || h === "127.0.0.1" || location.protocol === "file:") {
       return "http://localhost:8000";
     }
-    return "https://afc-estate-ai.onrender.com";
+    return "https://afc-estate-ai.bravesmoke-959675f6.southafricanorth.azurecontainerapps.io";
   }
   var BACKEND_URL = computeBackend();
   var AI_BASE_URL = computeAi();

@@ -9,7 +9,7 @@ const prodSocketUrl = "https://permacultureapp.onrender.com";
 
 // FastAPI AI assistant service (separate backend from Express).
 const devAiUrl = "http://localhost:8000";
-const prodAiUrl = "https://afc-estate-ai.onrender.com";
+const prodAiUrl = "https://afc-estate-ai.bravesmoke-959675f6.southafricanorth.azurecontainerapps.io";
 
 const BACKEND_URL = __DEV__ ? devUrl : prodUrl;
 const SOCKET_URL = __DEV__ ? devSocketUrl : prodSocketUrl;

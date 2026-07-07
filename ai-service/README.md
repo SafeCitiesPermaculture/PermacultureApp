@@ -10,7 +10,12 @@ auth, database, and Google Drive service account rather than duplicating them.
 - **DB:** reads the same MongoDB Atlas cluster (`users`, `tasks`)
 - **Drive:** same service account as the backend; write-back to an
   `AI Conversations` subfolder grows the knowledge base
-- **Hosting:** a second Render service (see `render.yaml`)
+- **Hosting:** Azure Container Apps (app `afc-estate-ai`, resource group
+  `openai-sc`, South Africa North) with one always-warm replica — no cold
+  starts. Deploys via `.github/workflows/deploy-ai-service.yml` (builds the
+  `Dockerfile` in ACR `afcestateacr` on pushes to `main` touching
+  `ai-service/`). Previously a Render service (see the deprecated
+  `render.yaml`).
 
 The React Native app calls this service **directly** (not proxied through
 Express).

@@ -1,0 +1,56 @@
+# Continuous deploy for the AI Assistant service (ai-service/) to Azure
+# Container Apps — replaces the old Render Blueprint (render.yaml).
+#
+# Auth is GitHub OIDC federation (Entra app "gha-afc-estate-ai"): no long-lived
+# Azure credentials are stored in GitHub, only the three non-secret ids below.
+# The image is built in the cloud by ACR (az acr build), so CI needs no Docker.
+name: Deploy AI service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ai-service/**"
+      - ".github/workflows/deploy-ai-service.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-ai-service
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build image in ACR
+        run: |
+          az acr build \
+            --registry afcestateacr \
+            --image afc-estate-ai:${{ github.sha }} \
+            --image afc-estate-ai:latest \
+            ai-service
+
+      - name: Deploy new revision to Container Apps
+        run: |
+          az containerapp update \
+            --name afc-estate-ai \
+            --resource-group openai-sc \
+            --image afcestateacr.azurecr.io/afc-estate-ai:${{ github.sha }}
+
+      - name: Smoke-check /health
+        run: |
+          sleep 20
+          curl --fail --silent --max-time 30 \
+            https://afc-estate-ai.bravesmoke-959675f6.southafricanorth.azurecontainerapps.io/health

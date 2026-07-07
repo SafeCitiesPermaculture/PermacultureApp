@@ -1,9 +1,9 @@
-# Render Blueprint for the AI Assistant service (separate from the Express
-# backend). Deploy via Render dashboard: New → Blueprint → pick this repo.
-# Render reads this file and pre-fills everything except the secret env vars
-# (marked sync:false) — you enter those once. Reuse the SAME values as the
-# existing backend service for ACCESS_TOKEN_SECRET, MONGODB_URI (→ db), and
-# GOOGLE_DRIVE_CREDENTIALS_JSON.
+# DEPRECATED (2026-07-07): the AI service moved to Azure Container Apps
+# (app afc-estate-ai, resource group openai-sc) — deploys now run from
+# .github/workflows/deploy-ai-service.yml. This Blueprint is kept only as a
+# record of the env vars the service needs; the Render service can be
+# suspended/deleted. The Express backend was configured in the Render
+# dashboard directly and is unaffected by this file.
 services:
   - type: web
     name: afc-estate-ai
