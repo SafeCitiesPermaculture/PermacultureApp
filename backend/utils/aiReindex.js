@@ -1,6 +1,6 @@
 // Fire-and-forget trigger for the AI service's corpus reindex, called after
 // any Drive mutation that changes the knowledge base (upload, delete, corpus
-// toggle, saved conversation). The AI service coalesces triggers server-side
+// toggle). The AI service coalesces triggers server-side
 // (one run at a time, extra triggers collapse into a single follow-up), so
 // calling this on every mutation is safe and cheap.
 //

@@ -477,7 +477,13 @@ const saveConversation = async (req, res) => {
                 resource: {
                     name: fileName,
                     parents: [folderId],
-                    properties: { scChatId: String(chat._id) },
+                    // Saved conversations show in the Docs tab but stay OUT of
+                    // the AI knowledge corpus until an admin explicitly toggles
+                    // them on there (updates preserve whatever the admin set).
+                    properties: {
+                        scChatId: String(chat._id),
+                        scInCorpus: "false",
+                    },
                 },
                 media,
                 fields: "id",
@@ -486,11 +492,9 @@ const saveConversation = async (req, res) => {
             await shareWithServiceAccount(fileId);
         }
 
-        // Saved conversations live under the documents root, so they belong
-        // to the corpus — index the new file now. (Re-saves of the same chat
-        // update the Drive file but keep the old embedding until a force
-        // reindex: the indexer skips already-indexed filenames.)
-        triggerAiReindex("save conversation");
+        // No reindex trigger here: new saves are excluded from the corpus by
+        // default, so nothing changes for the AI until the admin corpus toggle
+        // (which fires its own trigger).
 
         res.json({ success: true, fileId, folderId });
     } catch (err) {

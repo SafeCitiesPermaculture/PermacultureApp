@@ -4,8 +4,9 @@
   Replies come from the FastAPI AI service: POST /chat { message, history,
   include_tasks } -> { reply, sources }.
   Chat history is persisted per-user in the Express backend (/api/chat): the
-  collapsible sidebar lists saved chats then the 10 most recent, unpinned chats
-  auto-prune to the 10 most recent, and the Save button pins a chat. Requires login.
+  collapsible sidebar lists favorited chats then the 10 most recent, unpinned
+  chats auto-prune to the 10 most recent, and the Favorite button pins a chat.
+  Requires login.
 -->
 <html lang="en">
   <head>
@@ -73,7 +74,6 @@
       }
       .page-head__actions { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
       .btn--saved { background: var(--brown-medium, #ac8155); color: #fff; }
-      .chat__quickbar { display: flex; gap: .6rem; margin-top: .6rem; flex-wrap: wrap; }
       .chat-row__ren {
         background: transparent; border: 0; cursor: pointer; color: var(--muted, #8a8472);
         font-size: .9rem; padding: .4rem .3rem; opacity: 0; line-height: 1;
@@ -114,7 +114,7 @@
         </div>
         <div class="chat-sidebar__body">
           <div class="chat-sidebar__group" id="savedGroup" hidden>
-            <p class="chat-sidebar__label">Saved</p>
+            <p class="chat-sidebar__label">Favorites</p>
             <div id="savedList"></div>
           </div>
           <div class="chat-sidebar__group">
@@ -141,8 +141,8 @@
           </div>
           <div class="page-head__actions">
             <button class="btn btn--leaf btn--sm" id="newChatBtn" type="button">+ New chat</button>
-            <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>☆ Save</button>
-            <button class="btn btn--ghost btn--sm" id="docsBtn" type="button" disabled title="Save this conversation into the Documents tab (AI Conversations folder)">⇪ To Documents</button>
+            <button class="btn btn--ghost btn--sm" id="saveBtn" type="button" disabled>☆ Favorite</button>
+            <button class="btn btn--ghost btn--sm" id="docsBtn" type="button" disabled title="Save this conversation into the Documents tab (Saved Answers folder)">⇪ To Documents</button>
             <!-- When on, the model is given the user's open tasks as context.
                  On by default so "what are my tasks" just works. -->
             <label class="switch">
@@ -163,13 +163,6 @@
           <button class="btn btn--ghost" type="button" id="stopBtn" aria-label="Stop generating" hidden>■ Stop</button>
         </form>
 
-        <!-- Duplicate chat controls below the composer, so they're in reach
-             after scrolling through a long conversation. -->
-        <div class="chat__quickbar">
-          <button class="btn btn--ghost btn--sm" id="newChatBtn2" type="button">+ New chat</button>
-          <button class="btn btn--ghost btn--sm" id="saveBtn2" type="button" disabled>☆ Save</button>
-          <button class="btn btn--ghost btn--sm" id="docsBtn2" type="button" disabled>⇪ To Documents</button>
-        </div>
       </div>
     </main>
 
@@ -191,10 +184,6 @@
       var newChatBtn = document.getElementById("newChatBtn");
       var stopBtn = document.getElementById("stopBtn");
       var docsBtn = document.getElementById("docsBtn");
-      // Bottom quickbar mirrors of the header controls.
-      var saveBtn2 = document.getElementById("saveBtn2");
-      var newChatBtn2 = document.getElementById("newChatBtn2");
-      var docsBtn2 = document.getElementById("docsBtn2");
 
       // Running history in the shape the API expects: [{role, content}].
       // NB: named `convo`, not `history` - the latter collides with the
@@ -387,7 +376,6 @@
         input.focus();
       }
       newChatBtn.addEventListener("click", startNewChat);
-      newChatBtn2.addEventListener("click", startNewChat);
 
       function deleteChat(id) {
         SC.Assistant.remove(id).then(function () {
@@ -411,19 +399,17 @@
           .catch(function () { /* keep chatting even if a save fails */ });
       }
 
-      // ---------------------------------------------- Save (pin) button
+      // ---------------------------------------------- Favorite (pin) button
       function updateSaveBtn() {
-        [saveBtn, saveBtn2].forEach(function (b) {
-          b.disabled = !currentChatId;
-          // Star metaphor: ☆ Save -> ★ Saved. Saved (starred) chats pin to the top.
-          b.textContent = currentPinned ? "★ Saved" : "☆ Save";
-          b.title = currentPinned
-            ? "Saved and pinned to the top of your chats"
-            : "Save this chat (pins it to the top)";
-          b.classList.toggle("btn--saved", currentPinned);
-          b.classList.toggle("btn--ghost", !currentPinned);
-        });
-        [docsBtn, docsBtn2].forEach(function (b) { b.disabled = !convo.length; });
+        saveBtn.disabled = !currentChatId;
+        // Star metaphor: ☆ Favorite -> ★ Favorited. Favorited chats pin to the top.
+        saveBtn.textContent = currentPinned ? "★ Favorited" : "☆ Favorite";
+        saveBtn.title = currentPinned
+          ? "Favorited and pinned to the top of your chats"
+          : "Favorite this chat (pins it to the top)";
+        saveBtn.classList.toggle("btn--saved", currentPinned);
+        saveBtn.classList.toggle("btn--ghost", !currentPinned);
+        docsBtn.disabled = !convo.length;
       }
       function togglePin() {
         if (!currentChatId) return;
@@ -435,14 +421,14 @@
           .catch(function () { currentPinned = !next; updateSaveBtn(); });
       }
       saveBtn.addEventListener("click", togglePin);
-      saveBtn2.addEventListener("click", togglePin);
 
       // ---------------------------------------------- Save to Documents
-      // Exports the conversation to the Drive "AI Conversations" folder, which
-      // shows up in the Documents tab (and joins the AI knowledge corpus).
+      // Exports the conversation to the Drive "Saved Answers" folder, which
+      // shows up in the Documents tab. It does NOT join the AI knowledge
+      // corpus unless an admin toggles it on there.
       function saveToDocs() {
         if (!convo.length) return;
-        [docsBtn, docsBtn2].forEach(function (b) { b.disabled = true; });
+        docsBtn.disabled = true;
         // Make sure the chat is persisted first so it has an id to export.
         var ready = currentChatId ? Promise.resolve() : persist();
         ready
@@ -451,7 +437,7 @@
             return SC.Assistant.saveToDocs(currentChatId);
           })
           .then(function () {
-            SC.toast("Saved to Documents → AI Conversations", "success");
+            SC.toast("Saved to Documents → Saved Answers", "success");
           })
           .catch(function (err) {
             SC.toast((err && err.message) || "Could not save to Documents", "error");
@@ -459,7 +445,6 @@
           .then(function () { updateSaveBtn(); });
       }
       docsBtn.addEventListener("click", saveToDocs);
-      docsBtn2.addEventListener("click", saveToDocs);
 
       // ---------------------------------------------- Lightweight markdown
       // The model returns light markdown (bold, bullets). We render a safe subset
