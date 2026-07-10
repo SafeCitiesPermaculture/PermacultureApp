@@ -11,12 +11,17 @@ still boots and /health stays green so auth and the frontend can be wired up in
 parallel.
 """
 
+import logging
+import queue
 import re
+import threading
 import time
 from functools import lru_cache
 
 from app.config import get_settings
 from app.schemas import ChatTurn, Source
+
+logger = logging.getLogger("ai-service")
 
 # text-embedding-3-small returns 1536-dimensional vectors.
 EMBEDDING_DIMENSIONS = 1536
@@ -43,9 +48,13 @@ def _client():
     # Imported lazily so the package isn't required to boot the service.
     from openai import OpenAI
 
+    # max_retries=0: every call site runs its own retry loop with stall
+    # deadlines; the SDK's hidden internal retries would multiply those
+    # deadlines (each timed-out attempt silently re-sent twice).
     return OpenAI(
         base_url=settings.azure_openai_base_url,
         api_key=settings.azure_openai_key,
+        max_retries=0,
     )
 
 
@@ -62,6 +71,7 @@ def _embedding_client():
     return OpenAI(
         base_url=settings.azure_openai_embedding_base_url,
         api_key=settings.embedding_key,
+        max_retries=0,
     )
 
 
@@ -91,6 +101,9 @@ def embed(texts: list[str]) -> list[list[float]]:
             resp = client.embeddings.create(
                 model=settings.azure_openai_embedding_deployment,
                 input=texts,
+                # Same stall protection as chat: fail fast and retry, but let
+                # the last attempt wait (large indexing batches can be slow).
+                timeout=_EARLY_ATTEMPT_TIMEOUT if attempt < 2 else None,
             )
             return [d.embedding for d in resp.data]
         except Exception as exc:  # noqa: BLE001 — classified below
@@ -109,9 +122,19 @@ def embed_one(text: str) -> list[float]:
 
 
 # --- Chat -------------------------------------------------------------------
+# The serverless DeepSeek pool occasionally queues a request server-side for
+# MINUTES before answering (measured live 2026-07-10: 122s with the whole
+# reply arriving in one burst, while identical requests around it took ~1-2s).
+# Abandoning a stalled request and re-sending it usually lands on a healthy
+# backend, so early attempts get a short deadline; the LAST attempt waits
+# patiently so a genuinely slow success is never turned into an error.
+_EARLY_ATTEMPT_TIMEOUT = 30.0  # non-streaming: whole-request deadline
+_FIRST_TOKEN_DEADLINE = 20.0  # streaming: seconds to first token
+
+
 def _chat(messages: list[dict], temperature: float = 0.3) -> str:
     """Run a single chat completion against DeepSeek-V4-Flash, with retries on
-    transient errors. Returns the assistant message text."""
+    transient errors and stalled requests. Returns the assistant message text."""
     settings = get_settings()
     client = _client()
 
@@ -122,6 +145,9 @@ def _chat(messages: list[dict], temperature: float = 0.3) -> str:
                 model=settings.azure_openai_chat_deployment,
                 messages=messages,
                 temperature=temperature,
+                # A timeout raises APITimeoutError, which _is_transient treats
+                # as retryable — that's what re-dispatches a queued request.
+                timeout=_EARLY_ATTEMPT_TIMEOUT if attempt < 2 else None,
             )
             return (resp.choices[0].message.content or "").strip()
         except Exception as exc:  # noqa: BLE001 — classified below
@@ -282,6 +308,24 @@ def stream_chat_with_sources(
     yield ("sources", sources)
 
 
+def _pump_stream(stream, out: queue.Queue, abandoned: threading.Event) -> None:
+    """Worker thread: forward a stream's content deltas into a queue.
+    Runs on a thread so the consumer can time out waiting for the first token
+    (a blocking iterator can't be interrupted directly)."""
+    try:
+        for chunk in stream:
+            if abandoned.is_set():
+                return
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                out.put(("delta", delta.content))
+        out.put(("done", None))
+    except Exception as exc:  # noqa: BLE001 — consumer classifies it
+        out.put(("error", exc))
+
+
 def stream_chat(
     message: str,
     history: list[ChatTurn],
@@ -291,42 +335,75 @@ def stream_chat(
     """Yield the raw assistant reply token-by-token (a generator of text
     deltas), [[used: ...]] marker included — routers should normally use
     stream_chat_with_sources, which strips it.
+
+    Stalled requests (the serverless pool sometimes queues for minutes) are
+    abandoned and re-sent if the first token hasn't arrived within
+    _FIRST_TOKEN_DEADLINE — except on the last attempt, which waits it out.
+    Once tokens are flowing we can't safely replay, so mid-stream errors
+    propagate to the caller.
     """
     settings = get_settings()
     client = _client()
     messages = _build_messages(message, history, task_context, context_chunks)
 
-    # Establishing the stream may hit a transient error; retry that part only.
-    # Once tokens start flowing we can't safely replay, so mid-stream errors
-    # propagate to the caller.
     last_exc = None
-    stream = None
     for attempt in range(3):
+        last_attempt = attempt == 2
         try:
             stream = client.chat.completions.create(
                 model=settings.azure_openai_chat_deployment,
                 messages=messages,
                 temperature=0.3,
                 stream=True,
+                timeout=_FIRST_TOKEN_DEADLINE if not last_attempt else None,
             )
-            break
         except Exception as exc:  # noqa: BLE001 — classified below
             last_exc = exc
-            if _is_transient(exc) and attempt < 2:
+            if _is_transient(exc) and not last_attempt:
                 time.sleep(1.5 * (attempt + 1))
                 continue
             raise
-    if stream is None:
-        raise LLMUnavailableError(
-            "The assistant is busy right now. Please try again in a moment."
-        ) from last_exc
 
-    for chunk in stream:
-        if not chunk.choices:
+        out: queue.Queue = queue.Queue()
+        abandoned = threading.Event()
+        threading.Thread(
+            target=_pump_stream, args=(stream, out, abandoned), daemon=True
+        ).start()
+
+        # Wait for the first event with a deadline (none on the last attempt).
+        try:
+            kind, payload = out.get(
+                timeout=None if last_attempt else _FIRST_TOKEN_DEADLINE
+            )
+        except queue.Empty:
+            abandoned.set()
+            try:
+                stream.close()  # unblocks the pump thread
+            except Exception:  # noqa: BLE001 — best-effort cleanup
+                pass
+            logger.warning(
+                "No first token within %.0fs (attempt %d) — re-sending request",
+                _FIRST_TOKEN_DEADLINE,
+                attempt + 1,
+            )
             continue
-        delta = chunk.choices[0].delta
-        if delta and delta.content:
-            yield delta.content
+
+        if kind == "error" and _is_transient(payload) and not last_attempt:
+            last_exc = payload
+            time.sleep(1.5 * (attempt + 1))
+            continue
+
+        while True:
+            if kind == "done":
+                return
+            if kind == "error":
+                raise payload
+            yield payload
+            kind, payload = out.get()
+
+    raise LLMUnavailableError(
+        "The assistant is busy right now. Please try again in a moment."
+    ) from last_exc
 
 
 def summarize(transcript: str, title: str | None = None) -> str:
