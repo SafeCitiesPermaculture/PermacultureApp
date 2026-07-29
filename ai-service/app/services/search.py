@@ -20,12 +20,15 @@ admin /corpus/reindex endpoint and, on startup, from a background task.
 
 import hashlib
 import io
+import logging
 import re
 import time
 from functools import lru_cache
 
 from app.config import get_settings
 from app.services import drive, llm
+
+logger = logging.getLogger("ai-service")
 
 # Mime types we can extract text from. Images/video/audio are skipped.
 _SUPPORTED_EXACT = {
@@ -364,12 +367,23 @@ def has_documents() -> bool:
 _RELEVANCE_GATE = 0.58
 
 
+@lru_cache
+def _query_pool():
+    """Threads for issuing the two retrieval queries concurrently. Azure SDK
+    sync clients are thread-safe, so both legs share one SearchClient. Sized for
+    a few concurrent chats; beyond that the legs queue rather than deadlock,
+    since the caller waits on futures instead of occupying a worker."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    return ThreadPoolExecutor(max_workers=8, thread_name_prefix="retrieval")
+
+
 def search(query: str, k: int = 8) -> list[dict]:
     """Return the top-k corpus chunks for a question via HYBRID retrieval, or
     [] when the corpus simply isn't relevant to the question.
 
-    A vector-only probe runs first: its @search.score is comparable across
-    queries, so a low top score means even the best chunk is semantically
+    A vector-only probe decides relevance: its @search.score is comparable
+    across queries, so a low top score means even the best chunk is semantically
     unrelated (greetings, out-of-corpus questions) — return nothing rather
     than feeding the model junk context it would then "cite".
 
@@ -379,36 +393,66 @@ def search(query: str, k: int = 8) -> list[dict]:
     on keyword-heavy questions (e.g. "worm practices"): a purely semantic match
     can rank the right document just outside the top-k while a literal keyword
     hit does not, so the assistant would wrongly answer "no information". Each
-    result is {source, content, chunk_index}."""
+    result is {source, content, chunk_index}.
+
+    The probe and the hybrid query are independent, so they run CONCURRENTLY and
+    the hybrid result is discarded if the gate rejects. That trades a query the
+    gate might not need for one less round trip in front of every answer —
+    worth it, since Azure AI Search bills for the service by the hour rather
+    than per query."""
     from azure.search.documents.models import VectorizedQuery
 
+    t0 = time.perf_counter()
     vector = llm.embed_one(query)
+    t_embed = time.perf_counter()
     client = _search_client()
 
-    probe = client.search(
-        vector_queries=[
-            VectorizedQuery(vector=vector, k_nearest_neighbors=1, fields="embedding")
-        ],
-        select=["source"],
-        top=1,
-    )
-    best = next(iter(probe), None)
-    if best is None or best["@search.score"] < _RELEVANCE_GATE:
-        return []
+    def _probe() -> float:
+        results = client.search(
+            vector_queries=[
+                VectorizedQuery(
+                    vector=vector, k_nearest_neighbors=1, fields="embedding"
+                )
+            ],
+            select=["source"],
+            top=1,
+        )
+        best = next(iter(results), None)
+        return 0.0 if best is None else best["@search.score"]
 
-    results = client.search(
-        search_text=query,  # keyword (BM25) leg, fused with the vector leg via RRF
-        vector_queries=[
-            VectorizedQuery(vector=vector, k_nearest_neighbors=k, fields="embedding")
-        ],
-        select=["source", "content", "chunk_index"],
-        top=k,
+    def _hybrid() -> list[dict]:
+        results = client.search(
+            search_text=query,  # keyword (BM25) leg, fused with the vector leg
+            vector_queries=[
+                VectorizedQuery(
+                    vector=vector, k_nearest_neighbors=k, fields="embedding"
+                )
+            ],
+            select=["source", "content", "chunk_index"],
+            top=k,
+        )
+        return [
+            {
+                "source": r.get("source"),
+                "content": r.get("content"),
+                "chunk_index": r.get("chunk_index"),
+            }
+            for r in results
+        ]
+
+    pool = _query_pool()
+    score_future = pool.submit(_probe)
+    hits_future = pool.submit(_hybrid)
+    score = score_future.result()
+    hits = hits_future.result()
+    relevant = score >= _RELEVANCE_GATE
+
+    logger.info(
+        "retrieval: embed %.0fms, query %.0fms, score %.2f%s, %d chunks",
+        (t_embed - t0) * 1000,
+        (time.perf_counter() - t_embed) * 1000,
+        score,
+        "" if relevant else " (below gate — corpus not used)",
+        len(hits) if relevant else 0,
     )
-    return [
-        {
-            "source": r.get("source"),
-            "content": r.get("content"),
-            "chunk_index": r.get("chunk_index"),
-        }
-        for r in results
-    ]
+    return hits if relevant else []

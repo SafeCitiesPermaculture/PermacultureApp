@@ -6,16 +6,22 @@ Two flavours:
                      for the website's typewriter effect.
 """
 
+import asyncio
 import json
+import logging
 import re
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 
 from app.auth import get_current_user
 from app.db import get_database
 from app.schemas import ChatRequest, ChatResponse
 from app.services import llm, search
+
+logger = logging.getLogger("ai-service")
 
 router = APIRouter(tags=["chat"])
 
@@ -86,20 +92,48 @@ def _needs_retrieval(message: str, include_tasks: bool) -> bool:
     return True
 
 
+async def _retrieve(message: str, include_tasks: bool) -> list[dict]:
+    """Relevant corpus chunks for a question — empty if nothing is indexed yet,
+    or for questions that don't need documents at all.
+
+    The Azure Search and embedding clients are synchronous, so this runs OFF the
+    event loop: called inline it would block the whole worker for the duration
+    of retrieval, stalling every other request — including the token flushes of
+    other users' in-flight streams."""
+    if not _needs_retrieval(message, include_tasks):
+        return []
+
+    def _blocking() -> list[dict]:
+        return search.search(message) if search.has_documents() else []
+
+    return await run_in_threadpool(_blocking)
+
+
+async def _none() -> None:
+    return None
+
+
+async def _load_context(
+    body: ChatRequest, user: dict
+) -> tuple[str | None, list[dict]]:
+    """Task context and corpus chunks, fetched CONCURRENTLY — they're
+    independent, and running them in sequence put a whole Mongo round trip in
+    front of retrieval on every task-aware question."""
+    task_context, chunks = await asyncio.gather(
+        _load_task_context(user) if body.include_tasks else _none(),
+        _retrieve(body.message, body.include_tasks),
+    )
+    return task_context, chunks
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, user: dict = Depends(get_current_user)):
-    task_context = await _load_task_context(user) if body.include_tasks else None
-
     try:
-        # Retrieve relevant corpus chunks (empty if nothing is indexed yet, or
-        # for questions that don't need documents at all).
-        chunks = (
-            search.search(body.message)
-            if _needs_retrieval(body.message, body.include_tasks)
-            and search.has_documents()
-            else []
-        )
-        reply, sources = llm.generate_chat(
+        task_context, chunks = await _load_context(body, user)
+        # Off the event loop for the same reason as retrieval — and this one
+        # blocks for the whole generation, not just a round trip.
+        reply, sources = await run_in_threadpool(
+            llm.generate_chat,
             message=body.message,
             history=body.history,
             task_context=task_context,
@@ -130,22 +164,27 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
       {"type":"error","message":"..."}     if generation fails mid-stream
       {"type":"done"}                       terminates the stream
     """
-    task_context = await _load_task_context(user) if body.include_tasks else None
+    started = time.perf_counter()
 
-    # Retrieval happens before streaming, so config errors surface as a clean
+    # Context is gathered before streaming, so config errors surface as a clean
     # 503 (rather than mid-stream). The token generation is what we stream.
     try:
-        chunks = (
-            search.search(body.message)
-            if _needs_retrieval(body.message, body.include_tasks)
-            and search.has_documents()
-            else []
-        )
+        task_context, chunks = await _load_context(body, user)
     except (llm.LLMNotConfiguredError, llm.LLMUnavailableError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
+    context_ms = (time.perf_counter() - started) * 1000
+
     def event_stream():
+        # Timings for the two things users actually feel: how long the typing
+        # dots sit there, and the longest silence once text is flowing. The
+        # first-token figure is measured where the client sees it (after any
+        # marker holdback), not where the model starts.
+        first_at = None
+        last_at = started
+        longest_gap = 0.0
+        chars = 0
         try:
             for kind, payload in llm.stream_chat_with_sources(
                 message=body.message,
@@ -154,6 +193,13 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
                 context_chunks=chunks,
             ):
                 if kind == "delta":
+                    now = time.perf_counter()
+                    if first_at is None:
+                        first_at = now
+                    else:
+                        longest_gap = max(longest_gap, now - last_at)
+                    last_at = now
+                    chars += len(payload)
                     yield _sse({"type": "delta", "text": payload})
                 else:
                     yield _sse(
@@ -167,6 +213,17 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
         except Exception:  # noqa: BLE001 — never leak a traceback into the stream
             yield _sse(
                 {"type": "error", "message": "The assistant hit an error. Please try again."}
+            )
+        finally:
+            logger.info(
+                "chat/stream: context %.0fms, first token %s, longest gap "
+                "%.0fms, total %.0fms, %d chars, %d chunks",
+                context_ms,
+                f"{(first_at - started) * 1000:.0f}ms" if first_at else "never",
+                longest_gap * 1000,
+                (time.perf_counter() - started) * 1000,
+                chars,
+                len(chunks),
             )
         yield _sse({"type": "done"})
 

@@ -544,6 +544,7 @@
         var acc = "";            // full reply text received so far
         var shown = 0;           // characters currently revealed on screen
         var revealRaf = null;    // typewriter animation frame
+        var lastPaint = 0;       // timestamp of the last typewriter repaint
         var afterDrain = null;   // runs once the reveal catches up with acc
         var streamSources = null;
         var started = false;     // first token received?
@@ -555,20 +556,36 @@
         // Typewriter reveal. Tokens arrive from the network in bursts (the
         // model, the proxy and the socket all batch), so painting them raw
         // reads line-by-line. Instead we buffer and reveal a few characters
-        // per frame, like the big chat UIs. The step grows with the backlog
+        // at a time, like the big chat UIs. The step grows with the backlog
         // so the reveal never falls more than a beat behind the live stream.
-        function drainStep() {
+        //
+        // Repainting is throttled to REVEAL_MS rather than run every frame:
+        // each paint re-renders the markdown for the WHOLE reply so far and
+        // replaces innerHTML, so at 60fps a long answer spends more time
+        // re-parsing itself than reading, and the reveal visibly stalls on
+        // phones. The per-paint step is scaled to match, so the reveal moves
+        // at the same speed it always did.
+        var REVEAL_MS = 80;
+        function drainStep(now) {
           revealRaf = null;
           var backlog = acc.length - shown;
           if (backlog <= 0) {
             if (afterDrain) { var f = afterDrain; afterDrain = null; f(); }
             return;
           }
-          var step = Math.max(3, Math.ceil(backlog / 12));
-          if (afterDrain) step = Math.max(step, Math.ceil(backlog / 4)); // stream over: catch up fast
+          if (lastPaint && now - lastPaint < REVEAL_MS) {
+            revealRaf = requestAnimationFrame(drainStep);
+            return;
+          }
+          lastPaint = now;
+          var step = Math.max(3, Math.ceil(backlog / 2.5));
+          if (afterDrain) step = Math.max(step, Math.ceil(backlog / 1.5)); // stream over: catch up fast
           shown = Math.min(acc.length, shown + step);
+          // Read the scroll position before the write, and only follow the
+          // text if the reader hadn't scrolled up to re-read something.
+          var atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
           typing.innerHTML = renderMarkdown(acc.slice(0, shown));
-          log.scrollTop = log.scrollHeight;
+          if (atBottom) log.scrollTop = log.scrollHeight;
           revealRaf = requestAnimationFrame(drainStep);
         }
         function queueReveal() {
